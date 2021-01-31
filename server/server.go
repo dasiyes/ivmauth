@@ -10,12 +10,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	ivmanto "ivmanto.dev/ivmauth"
-	"ivmanto.dev/ivmauth/auth"
+	"ivmanto.dev/ivmauth/authenticating"
 )
 
 // Server holds the dependencies for a HTTP server
 type Server struct {
-	Auth auth.Service
+	Auth authenticating.Service
 
 	Logger kitlog.Logger
 
@@ -23,7 +23,7 @@ type Server struct {
 }
 
 // New returns a new HTTP server.
-func New(au auth.Service, logger kitlog.Logger) *Server {
+func New(au authenticating.Service, logger kitlog.Logger) *Server {
 	s := &Server{
 		Auth:   au,
 		Logger: logger,

@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	"github.com/go-kit/kit/log"
-	"ivmanto.dev/ivmauth/auth"
+	"ivmanto.dev/ivmauth/authenticating"
 	"ivmanto.dev/ivmauth/server"
 )
 
@@ -44,7 +44,7 @@ func main() {
 	// Configure some questionable dependencies.
 
 	// initiating a service
-	var au auth.Service
+	var au authenticating.Service
 	// TODO: initiate the service as per sample below
 	// bs = booking.NewService(cargos, locations, handlingEvents, rs)
 	// bs = booking.NewLoggingService(log.With(logger, "component", "booking"), bs)
@@ -64,6 +64,7 @@ func main() {
 	// 	bs,
 	// )
 
+	// creating a new http server to handle the requests
 	srv := server.New(au, log.With(logger, "component", "http"))
 
 	errs := make(chan error, 2)

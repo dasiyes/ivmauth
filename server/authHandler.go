@@ -9,11 +9,11 @@ import (
 	kitlog "github.com/go-kit/kit/log"
 
 	ivmanto "ivmanto.dev/ivmauth"
-	"ivmanto.dev/ivmauth/auth"
+	"ivmanto.dev/ivmauth/authenticating"
 )
 
 type authHandler struct {
-	s      auth.Service
+	s      authenticating.Service
 	logger kitlog.Logger
 }
 
@@ -21,7 +21,7 @@ func (h *authHandler) router() chi.Router {
 	r := chi.NewRouter()
 
 	r.Route("/auth", func(r chi.Router) {
-		r.Post("/", h.authRequestor)
+		r.Post("/", h.authenticateRequest)
 	})
 
 	r.Method("GET", "/docs", http.StripPrefix("/auth/v1/docs", http.FileServer(http.Dir("booking/docs"))))
@@ -29,7 +29,7 @@ func (h *authHandler) router() chi.Router {
 	return r
 }
 
-func (h *authHandler) authRequestor(w http.ResponseWriter, r *http.Request) {
+func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
 	var request struct {
