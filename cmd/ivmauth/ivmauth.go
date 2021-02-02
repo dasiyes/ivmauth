@@ -9,6 +9,9 @@ import (
 	"syscall"
 
 	"github.com/go-kit/kit/log"
+	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
+	stdprometheus "github.com/prometheus/client_golang/prometheus"
+
 	"ivmanto.dev/ivmauth/authenticating"
 	"ivmanto.dev/ivmauth/inmem"
 	"ivmanto.dev/ivmauth/ivmanto"
@@ -41,13 +44,15 @@ func main() {
 	)
 
 	if *inmemory {
-		authrequests = inmem.NewAuthRequestRepository()
+		authrequests = inmem.NewRequestRepository()
 	} else {
 		// TODO: implement db repositories
 	}
 
 	// Facilitate testing by adding some sample data
 	storeTestData("tb added")
+
+	fieldKeys := []string{"method"}
 
 	// Configure some questionable dependencies.
 
