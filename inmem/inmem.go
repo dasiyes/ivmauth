@@ -32,7 +32,7 @@ func (rr *requestRepository) FindAll() []*ivmanto.AuthRequest {
 }
 
 // NewRequestRepository - creates a new authentication requests repository
-func NewRequestRepository() *ivmanto.RequestRepository {
+func NewRequestRepository() ivmanto.RequestRepository {
 	return &requestRepository{
 		requests: make(map[ivmanto.SessionID]*ivmanto.AuthRequest),
 	}

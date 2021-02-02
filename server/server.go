@@ -9,8 +9,8 @@ import (
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	ivmanto "ivmanto.dev/ivmauth"
 	"ivmanto.dev/ivmauth/authenticating"
+	"ivmanto.dev/ivmauth/ivmanto"
 )
 
 // Server holds the dependencies for a HTTP server

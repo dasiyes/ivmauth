@@ -8,8 +8,8 @@ import (
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
 
-	ivmanto "ivmanto.dev/ivmauth"
 	"ivmanto.dev/ivmauth/authenticating"
+	"ivmanto.dev/ivmauth/ivmanto"
 )
 
 type authHandler struct {
@@ -47,9 +47,9 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	}
 
 	// TODO: compose the RequestSpec below before handinding it over to Validate function
-	rs := ivmanto.RequestSpec{}
+	rs := ivmanto.AuthRequest{}
 
-	at, err := h.s.Validate(rs)
+	at, err := h.s.Validate(rs.SessionID)
 	if err != nil {
 		encodeError(ctx, err, w)
 		return

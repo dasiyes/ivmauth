@@ -9,8 +9,8 @@ import (
 	"syscall"
 
 	"github.com/go-kit/kit/log"
-	"github.com/marcusolsson/goddd/inmem"
 	"ivmanto.dev/ivmauth/authenticating"
+	"ivmanto.dev/ivmauth/inmem"
 	"ivmanto.dev/ivmauth/ivmanto"
 	"ivmanto.dev/ivmauth/server"
 )
