@@ -1,11 +1,12 @@
 package authenticating
 
 import (
+	"net/http"
 	"time"
 
 	"github.com/go-kit/kit/log"
 
-	ivmanto "ivmanto.dev/ivmauth"
+	"ivmanto.dev/ivmauth/ivmanto"
 )
 
 type loggingService struct {
@@ -18,26 +19,26 @@ func NewLoggingService(logger log.Logger, s Service) Service {
 	return &loggingService{logger, s}
 }
 
-func (s *loggingService) Validate(rs ivmanto.RequestSpec) (at ivmanto.AccessToken, err error) {
+func (s *loggingService) Validate(id ivmanto.SessionID) (at ivmanto.AccessToken, err error) {
 	defer func(begin time.Time) {
 		s.logger.Log(
 			"method", "validate",
-			"origin", rs.Origin,
+			"session_id", id,
 			"took", time.Since(begin),
 			"err", err,
 		)
 	}(time.Now())
-	return s.next.Validate(rs)
+	return s.next.Validate(id)
 }
 
-func (s *loggingService) LogNewRequest() (id ivmanto.TrackingID, err error) {
+func (s *loggingService) RegisterNewRequest(rh http.Header, body []byte) (id ivmanto.SessionID, err error) {
 	defer func(begin time.Time) {
 		s.logger.Log(
-			"method", "log",
-			"tracking_id", id,
+			"method", "RegisterNewRequest",
+			"session_id", id,
 			"took", time.Since(begin),
 			"err", err,
 		)
 	}(time.Now())
-	return s.next.LogNewRequest()
+	return s.next.RegisterNewRequest(rh, body)
 }

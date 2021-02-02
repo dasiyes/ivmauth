@@ -32,8 +32,8 @@ func NewAuthRequest(id SessionID, rh http.Header, body []byte) *AuthRequest {
 	}
 }
 
-// RequestorRepository provides access to a requests store.
-type RequestorRepository interface {
+// RequestRepository provides access to a requests store.
+type RequestRepository interface {
 	Store(authreq *AuthRequest) error
 	Find(id SessionID) (*AuthRequest, error)
 	FindAll() []*AuthRequest

@@ -9,7 +9,9 @@ import (
 	"syscall"
 
 	"github.com/go-kit/kit/log"
+	"github.com/marcusolsson/goddd/inmem"
 	"ivmanto.dev/ivmauth/authenticating"
+	"ivmanto.dev/ivmauth/ivmanto"
 	"ivmanto.dev/ivmauth/server"
 )
 
@@ -22,6 +24,7 @@ func main() {
 		port = envString("PORT", defaultPort)
 
 		httpAddr = flag.String("http.addr", ":"+port, "HTTP listen [localhost]:port")
+		inmemory = flag.Bool("inmem", false, "use in-memory repositories")
 	)
 
 	flag.Parse()
@@ -33,10 +36,15 @@ func main() {
 	}
 
 	// setup repositories // TODO: [uncomment and set once hte DB is place or inmemory implemented ]
-	// var (
-	// 	locations ivmanto.LocationRepository
-	// 	requests  ivmanto.RequestorRepository
-	// )
+	var (
+		authrequests ivmanto.RequestRepository
+	)
+
+	if *inmemory {
+		authrequests = inmem.NewAuthRequestRepository()
+	} else {
+		// TODO: implement db repositories
+	}
 
 	// Facilitate testing by adding some sample data
 	storeTestData("tb added")
@@ -45,24 +53,24 @@ func main() {
 
 	// initiating a service
 	var au authenticating.Service
-	// TODO: initiate the service as per sample below
-	// bs = booking.NewService(cargos, locations, handlingEvents, rs)
-	// bs = booking.NewLoggingService(log.With(logger, "component", "booking"), bs)
-	// bs = booking.NewInstrumentingService(
-	// 	kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
-	// 		Namespace: "api",
-	// 		Subsystem: "booking_service",
-	// 		Name:      "request_count",
-	// 		Help:      "Number of requests received.",
-	// 	}, fieldKeys),
-	// 	kitprometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
-	// 		Namespace: "api",
-	// 		Subsystem: "booking_service",
-	// 		Name:      "request_latency_microseconds",
-	// 		Help:      "Total duration of requests in microseconds.",
-	// 	}, fieldKeys),
-	// 	bs,
-	// )
+
+	au = authenticating.NewService(authrequests)
+	au = authenticating.NewLoggingService(log.With(logger, "component", "booking"), au)
+	au = authenticating.NewInstrumentingService(
+		kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
+			Namespace: "api",
+			Subsystem: "authenticating_service",
+			Name:      "request_count",
+			Help:      "Number of requests received.",
+		}, fieldKeys),
+		kitprometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
+			Namespace: "api",
+			Subsystem: "booking_service",
+			Name:      "request_latency_microseconds",
+			Help:      "Total duration of requests in microseconds.",
+		}, fieldKeys),
+		au,
+	)
 
 	// creating a new http server to handle the requests
 	srv := server.New(au, log.With(logger, "component", "http"))
