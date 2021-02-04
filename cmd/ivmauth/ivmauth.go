@@ -15,6 +15,7 @@ import (
 	"ivmanto.dev/ivmauth/authenticating"
 	"ivmanto.dev/ivmauth/inmem"
 	"ivmanto.dev/ivmauth/ivmanto"
+	"ivmanto.dev/ivmauth/pksrefreshing"
 	"ivmanto.dev/ivmauth/server"
 )
 
@@ -41,7 +42,11 @@ func main() {
 	// setup repositories // TODO: [uncomment and set once hte DB is place or inmemory implemented ]
 	var (
 		authrequests ivmanto.RequestRepository
+		pubkeys      ivmanto.PublicKeySetRepository
 	)
+
+	// The Public Key Set is always in mem cache
+	pubkeys = inmem.NewPKSRepository()
 
 	if *inmemory {
 		authrequests = inmem.NewRequestRepository()
@@ -56,29 +61,51 @@ func main() {
 
 	// Configure some questionable dependencies.
 
-	// initiating a service
+	// initiating services
 	var au authenticating.Service
+	{
+		au = authenticating.NewService(authrequests)
+		au = authenticating.NewLoggingService(log.With(logger, "component", "authenticating"), au)
+		au = authenticating.NewInstrumentingService(
+			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
+				Namespace: "api",
+				Subsystem: "authenticating_service",
+				Name:      "request_count",
+				Help:      "Number of requests received.",
+			}, fieldKeys),
+			kitprometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
+				Namespace: "api",
+				Subsystem: "authenticating_service",
+				Name:      "request_latency_microseconds",
+				Help:      "Total duration of requests in microseconds.",
+			}, fieldKeys),
+			au,
+		)
+	}
 
-	au = authenticating.NewService(authrequests)
-	au = authenticating.NewLoggingService(log.With(logger, "component", "booking"), au)
-	au = authenticating.NewInstrumentingService(
-		kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
-			Namespace: "api",
-			Subsystem: "authenticating_service",
-			Name:      "request_count",
-			Help:      "Number of requests received.",
-		}, fieldKeys),
-		kitprometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
-			Namespace: "api",
-			Subsystem: "booking_service",
-			Name:      "request_latency_microseconds",
-			Help:      "Total duration of requests in microseconds.",
-		}, fieldKeys),
-		au,
-	)
+	var pkr pksrefreshing.Service
+	{
+		pkr = pksrefreshing.NewService(pubkeys)
+		pkr = pksrefreshing.NewLoggingService(log.With(logger, "component", "booking"), pkr)
+		pkr = pksrefreshing.NewInstrumentingService(
+			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
+				Namespace: "api",
+				Subsystem: "pksrefreshing_service",
+				Name:      "request_count",
+				Help:      "Number of requests received.",
+			}, fieldKeys),
+			kitprometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
+				Namespace: "api",
+				Subsystem: "pksrefreshing_service",
+				Name:      "request_latency_microseconds",
+				Help:      "Total duration of requests in microseconds.",
+			}, fieldKeys),
+			pkr,
+		)
+	}
 
 	// creating a new http server to handle the requests
-	srv := server.New(au, log.With(logger, "component", "http"))
+	srv := server.New(au, pkr, log.With(logger, "component", "http"))
 
 	errs := make(chan error, 2)
 	go func() {

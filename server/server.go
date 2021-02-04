@@ -11,11 +11,13 @@ import (
 
 	"ivmanto.dev/ivmauth/authenticating"
 	"ivmanto.dev/ivmauth/ivmanto"
+	"ivmanto.dev/ivmauth/pksrefreshing"
 )
 
 // Server holds the dependencies for a HTTP server
 type Server struct {
 	Auth authenticating.Service
+	Pks  pksrefreshing.Service
 
 	Logger kitlog.Logger
 
@@ -23,9 +25,10 @@ type Server struct {
 }
 
 // New returns a new HTTP server.
-func New(au authenticating.Service, logger kitlog.Logger) *Server {
+func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Logger) *Server {
 	s := &Server{
 		Auth:   au,
+		Pks:    pks,
 		Logger: logger,
 	}
 
