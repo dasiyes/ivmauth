@@ -3,17 +3,21 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
 
 	"ivmanto.dev/ivmauth/authenticating"
 	"ivmanto.dev/ivmauth/ivmanto"
+	"ivmanto.dev/ivmauth/pksrefreshing"
 )
 
 type authHandler struct {
 	s      authenticating.Service
+	pks    pksrefreshing.Service
 	logger kitlog.Logger
 }
 
@@ -24,13 +28,15 @@ func (h *authHandler) router() chi.Router {
 		r.Post("/", h.authenticateRequest)
 	})
 
-	r.Method("GET", "/docs", http.StripPrefix("/auth/v1/docs", http.FileServer(http.Dir("booking/docs"))))
+	r.Method("GET", "/docs", http.StripPrefix("/v1/auth/docs", http.FileServer(http.Dir("authenticating/docs"))))
 
 	return r
 }
 
 func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
+
+	fmt.Printf("...")
 
 	var request struct {
 		GrantType string `json:"grant_type"`
@@ -46,7 +52,44 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// TODO: compose the RequestSpec below before handinding it over to Validate function
+	var ippks *ivmanto.PublicKeySet
+	ippks, err := h.pks.GetPKSCache("google", "https://www.googleapis.com/oauth2/v3/certs")
+	if err != nil {
+		err := h.pks.NewPKS("google", "https://www.googleapis.com/oauth2/v3/certs")
+		if err != nil {
+			encodeError(ctx, err, w)
+			return
+		}
+	}
+
+	// validate idToken ==================
+	clm, err := jwt.Parse(request.IDToken, func(token *jwt.Token) (interface{}, error) {
+
+		// check the pks from cache
+		if len(ippks.Jwks.Keys) > 0 {
+			fmt.Printf("pks in cache: %v", ippks)
+			fmt.Printf("\ntoken.Method: %#v;\n kid: %#v;\n", token.Method.Alg(), token.Header["kid"].(string))
+		}
+
+		tKid := token.Header["kid"].(string)
+		alg := token.Method.Alg()
+		fmt.Printf("pks in cache: %v", alg)
+
+		rsaPK, err := h.pks.GetRSAPublicKey("google", tKid)
+		if err != nil {
+			encodeError(ctx, err, w)
+			return nil, nil
+		}
+		return rsaPK, nil
+	})
+	// ===================================
+
+	if err != nil {
+		encodeError(ctx, err, w)
+		return
+	}
+	fmt.Printf("idToken [validated] claims: %v", clm)
+
 	rs := ivmanto.AuthRequest{}
 
 	at, err := h.s.Validate(rs.SessionID)

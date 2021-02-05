@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/metrics"
+	"ivmanto.dev/ivmauth/ivmanto"
 )
 
 type instrumentingService struct {
@@ -31,11 +32,20 @@ func (s *instrumentingService) NewPKS(identityProvider string, pkURL string) err
 	return s.next.NewPKS(identityProvider, pkURL)
 }
 
-func (s *instrumentingService) GetRSAPublicKey(identityProvider string) (rsa.PublicKey, error) {
+func (s *instrumentingService) GetRSAPublicKey(identityProvider string, kid string) (rsa.PublicKey, error) {
 	defer func(begin time.Time) {
 		s.requestCount.With("method", "GetRSAPublicKey").Add(1)
 		s.requestLatency.With("method", "GetRSAPublicKey").Observe(time.Since(begin).Seconds())
 	}(time.Now())
 
-	return s.next.GetRSAPublicKey(identityProvider)
+	return s.next.GetRSAPublicKey(identityProvider, kid)
+}
+
+func (s *instrumentingService) GetPKSCache(identityProvider string, pkURL string) (*ivmanto.PublicKeySet, error) {
+	defer func(begin time.Time) {
+		s.requestCount.With("method", "GetPKSCache").Add(1)
+		s.requestLatency.With("method", "GetPKSCache").Observe(time.Since(begin).Seconds())
+	}(time.Now())
+
+	return s.next.GetPKSCache(identityProvider, pkURL)
 }

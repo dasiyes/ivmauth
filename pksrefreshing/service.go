@@ -21,7 +21,11 @@ type Service interface {
 	// Public Keys (jwks) for the given provider.
 	NewPKS(identityProvider string, pkURL string) error
 
-	GetRSAPublicKey(identityProvider string) (rsa.PublicKey, error)
+	// GetRSAPublicKey gets the jwks, finds the JWK by kid and returns it as rsa.PublicKey format
+	GetRSAPublicKey(identityProvider string, kid string) (rsa.PublicKey, error)
+
+	// GetPKSCache - finds and returns PKS from the cache, if available
+	GetPKSCache(identityProvider string, pkURL string) (*ivmanto.PublicKeySet, error)
 }
 
 type service struct {
@@ -53,11 +57,32 @@ func (s *service) NewPKS(identityProvider string, pkURL string) error {
 }
 
 // GetRSAPublicKey converts the jwks into rsaPublicKey and returns it back
-func (s *service) GetRSAPublicKey(identityProvider string) (rsa.PublicKey, error) {
+func (s *service) GetRSAPublicKey(identityProvider string, kid string) (rsa.PublicKey, error) {
 
-	// TODO: compose the correct rsa.PublicKey object
-	pk := rsa.PublicKey{}
-	return pk, nil
+	pks, err := s.keyset.Find(identityProvider)
+	if err != nil {
+		return rsa.PublicKey{}, errors.New("Error while searching for PK: " + err.Error())
+	}
+	n, e, err := pks.GetKidNE(kid)
+	if err != nil {
+		return rsa.PublicKey{}, errors.New("Error getting modulus and public exponent: " + err.Error())
+	}
+	rsaPK := rsa.PublicKey{
+		N: n,
+		E: e,
+	}
+	return rsaPK, nil
+}
+
+// GetPKSCache finds the PKS and returns it from the cache. If not found, calls NewPKS
+//  to download the keys from the URL
+func (s *service) GetPKSCache(identityProvider string, pkURL string) (*ivmanto.PublicKeySet, error) {
+
+	pks, err := s.keyset.Find(identityProvider)
+	if err != nil {
+		return &ivmanto.PublicKeySet{}, errors.New("Error while searching for PK: " + err.Error())
+	}
+	return pks, nil
 }
 
 // NewService creates a authenticating service with necessary dependencies.
@@ -73,6 +98,7 @@ func downloadJWKS(pks *ivmanto.PublicKeySet) ([]byte, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		return nil, 0, errors.New("Error while getting JWKS from identity provider url")

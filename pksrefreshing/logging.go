@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-kit/kit/log"
+	"ivmanto.dev/ivmauth/ivmanto"
 )
 
 type loggingService struct {
@@ -30,14 +31,28 @@ func (s *loggingService) NewPKS(identityProvider string, pkURL string) (err erro
 	return s.next.NewPKS(identityProvider, pkURL)
 }
 
-func (s *loggingService) GetRSAPublicKey(identityProvider string) (pk rsa.PublicKey, err error) {
+func (s *loggingService) GetRSAPublicKey(identityProvider string, kid string) (pk rsa.PublicKey, err error) {
 	defer func(begin time.Time) {
 		s.logger.Log(
 			"method", "GetRSAPublicKey",
 			"identityProvider", identityProvider,
+			"kid", kid,
 			"took", time.Since(begin),
 			"err", err,
 		)
 	}(time.Now())
-	return s.next.GetRSAPublicKey(identityProvider)
+	return s.next.GetRSAPublicKey(identityProvider, kid)
+}
+
+func (s *loggingService) GetPKSCache(identityProvider string, pkURL string) (pks *ivmanto.PublicKeySet, err error) {
+	defer func(begin time.Time) {
+		s.logger.Log(
+			"method", "GetPKSCache",
+			"identityProvider", identityProvider,
+			"pkURL", pkURL,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.next.GetPKSCache(identityProvider, pkURL)
 }

@@ -3,9 +3,12 @@ package ivmanto
 import (
 	"encoding/json"
 	"errors"
+	"math/big"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/dvsekhvalnov/jose2go/base64url"
 )
 
 // PublicKeySet will be used to hold the public keys sets form the
@@ -127,6 +130,12 @@ type JWK struct {
 	//  The key in the certificate MUST match the public key represented by
 	//  other members of the JWK.  Use of this member is OPTIONAL.
 	X5tS256 string `json:"x5t#S256"`
+
+	// N - modulus
+	N string
+
+	// E - public exponent
+	E string
 }
 
 // Init will initiate or override the values in JWKS attribute of PublicKeySet
@@ -138,6 +147,59 @@ func (pks *PublicKeySet) Init(newKey []byte, exp int64) error {
 		return ErrInvalidPubliKeySet(err)
 	}
 	return nil
+}
+
+// GetKid - returns a JWK found by its kid
+func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
+	if len(pks.Jwks.Keys) == 0 {
+		return JWK{}, ErrInvalidPubliKeySet(errors.New("Empty set of JWKs"))
+	}
+	var n, e string
+	var jwk JWK
+	for _, jwk := range pks.Jwks.Keys {
+		if jwk.Kid == kid && jwk.Kty == "RSA" {
+			n = jwk.N
+			e = jwk.E
+			break
+		}
+	}
+	if n == "" && e == "" {
+		return JWK{}, ErrInvalidPubliKeySet(errors.New("JWK not found by the provided kid"))
+	}
+	return jwk, nil
+}
+
+// GetKidNE - returns modulus N and pblic exponent E as big.Int and int respectively
+func (pks *PublicKeySet) GetKidNE(kid string) (*big.Int, int, error) {
+	if len(pks.Jwks.Keys) == 0 {
+		return nil, 0, ErrInvalidPubliKeySet(errors.New("Empty set of JWKs"))
+	}
+	var n, e string
+	for _, jwk := range pks.Jwks.Keys {
+		if jwk.Kid == kid && jwk.Kty == "RSA" {
+			n = jwk.N
+			e = jwk.E
+			break
+		}
+	}
+	if n == "" && e == "" {
+		return nil, 0, ErrInvalidPubliKeySet(errors.New("JWK not found by the provided kid"))
+	}
+
+	nb, err := base64url.Decode(n)
+	if err != nil {
+		return nil, 0, ErrInvalidPubliKeySet(errors.New("invalid JWK modulus"))
+	}
+	// TODO add a condition to check if the jwk.e is not
+	// if e != "AQAB" && e != "AAEAAQ" {
+	// 	// still need to decode the big-endian int
+	// 	log.Printf("WARNING: need to decode e: %v", e)
+	// }
+	ei := 65537
+
+	bn := new(big.Int)
+	bn = bn.SetBytes(nb)
+	return bn, ei, nil
 }
 
 // NewPublicKeySet creates a new set of Public Key for each of the suported
