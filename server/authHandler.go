@@ -36,7 +36,13 @@ func (h *authHandler) router() chi.Router {
 func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
-	fmt.Printf("...\n\n")
+	// Authenticate Client
+	err := h.s.AuthenticateClient(r)
+	if err != nil {
+		h.logger.Log("error", err)
+		encodeError(ctx, err, w)
+		return
+	}
 
 	var reqbody = ivmanto.AuthRequestBody{}
 	if err := json.NewDecoder(r.Body).Decode(&reqbody); err != nil {
@@ -48,8 +54,15 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	// Registering auth request
 	h.s.RegisterNewRequest(r.Header, reqbody)
 
+	// Validate auth request
+	at, err := h.s.Validate(r.Header, reqbody)
+	if err != nil {
+		encodeError(ctx, err, w)
+		return
+	}
+
 	var ippks *ivmanto.PublicKeySet
-	ippks, err := h.pks.GetPKSCache("google", "https://www.googleapis.com/oauth2/v3/certs")
+	ippks, err = h.pks.GetPKSCache("google", "https://www.googleapis.com/oauth2/v3/certs")
 	if err != nil {
 		encodeError(ctx, err, w)
 		return
@@ -86,14 +99,6 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 	fmt.Printf("idToken [validated] claims: %#v\n\n", clm)
-
-	rs := ivmanto.AuthRequest{}
-
-	at, err := h.s.Validate(rs.SessionID)
-	if err != nil {
-		encodeError(ctx, err, w)
-		return
-	}
 
 	var response = struct {
 		AccessToken ivmanto.AccessToken `json:"access_token"`

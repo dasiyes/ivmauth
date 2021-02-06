@@ -43,6 +43,7 @@ func main() {
 	var (
 		authrequests ivmanto.RequestRepository
 		pubkeys      ivmanto.PublicKeySetRepository
+		clients      ivmanto.ClientRepository
 	)
 
 	// The Public Key Set is always in mem cache
@@ -50,6 +51,7 @@ func main() {
 
 	if *inmemory {
 		authrequests = inmem.NewRequestRepository()
+		clients = inmem.NewClientRepository()
 	} else {
 		// TODO: implement db repositories
 	}
@@ -64,7 +66,7 @@ func main() {
 	// initiating services
 	var au authenticating.Service
 	{
-		au = authenticating.NewService(authrequests)
+		au = authenticating.NewService(authrequests, clients)
 		au = authenticating.NewLoggingService(log.With(logger, "component", "authenticating"), au)
 		au = authenticating.NewInstrumentingService(
 			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{

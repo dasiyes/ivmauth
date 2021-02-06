@@ -74,3 +74,36 @@ func NewPKSRepository() ivmanto.PublicKeySetRepository {
 		pks: make(map[string]*ivmanto.PublicKeySet),
 	}
 }
+
+// Holds the registered cleints
+type clientRepository struct {
+	mtx     sync.RWMutex
+	clients map[ivmanto.ClientID]*ivmanto.Client
+}
+
+// Store - stores the clients registrations
+func (cr *clientRepository) Store(c *ivmanto.Client) error {
+	cr.mtx.Lock()
+	defer cr.mtx.Unlock()
+	cr.clients[c.ClientID] = c
+	return nil
+}
+
+// Find - finds a authentication request in the repository
+func (cr *clientRepository) Find(id ivmanto.ClientID) (*ivmanto.Client, error) {
+	// TODO: implement find a response
+	return nil, nil
+}
+
+// FindAll - find and returns all authentication request
+func (cr *clientRepository) FindAll() []*ivmanto.Client {
+	// TODO: implement FindAll
+	return []*ivmanto.Client{}
+}
+
+// NewClientRepository - creates a new authentication requests repository
+func NewClientRepository() ivmanto.ClientRepository {
+	return &clientRepository{
+		clients: make(map[ivmanto.ClientID]*ivmanto.Client),
+	}
+}

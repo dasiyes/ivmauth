@@ -1,5 +1,5 @@
 package ivmanto
 
-// Subscription  is object to identify the customers of the domain
+// Subscription  is object to identify the customers (clients and users) of the domain
 type Subscription struct {
 }
