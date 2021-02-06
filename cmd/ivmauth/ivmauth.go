@@ -86,7 +86,7 @@ func main() {
 	var pkr pksrefreshing.Service
 	{
 		pkr = pksrefreshing.NewService(pubkeys)
-		pkr = pksrefreshing.NewLoggingService(log.With(logger, "component", "booking"), pkr)
+		pkr = pksrefreshing.NewLoggingService(log.With(logger, "component", "pksrefreshing"), pkr)
 		pkr = pksrefreshing.NewInstrumentingService(
 			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
 				Namespace: "api",

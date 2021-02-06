@@ -36,59 +36,56 @@ func (h *authHandler) router() chi.Router {
 func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
-	fmt.Printf("...")
+	fmt.Printf("...\n\n")
 
-	var request struct {
-		GrantType string `json:"grant_type"`
-		IDToken   string
-		Email     string
-		Password  string
-		Scope     string
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+	var reqbody = ivmanto.AuthRequestBody{}
+	if err := json.NewDecoder(r.Body).Decode(&reqbody); err != nil {
 		h.logger.Log("error", err)
 		encodeError(ctx, err, w)
 		return
 	}
 
+	// Registering auth request
+	h.s.RegisterNewRequest(r.Header, reqbody)
+
 	var ippks *ivmanto.PublicKeySet
 	ippks, err := h.pks.GetPKSCache("google", "https://www.googleapis.com/oauth2/v3/certs")
 	if err != nil {
-		err := h.pks.NewPKS("google", "https://www.googleapis.com/oauth2/v3/certs")
-		if err != nil {
-			encodeError(ctx, err, w)
-			return
-		}
+		encodeError(ctx, err, w)
+		return
 	}
+	lengthJWKS := ippks.LenJWKS()
+	fmt.Printf("identity provider pks keys length: %#v\n\n", lengthJWKS)
 
 	// validate idToken ==================
-	clm, err := jwt.Parse(request.IDToken, func(token *jwt.Token) (interface{}, error) {
+	clm, err := jwt.Parse(reqbody.IDToken, func(token *jwt.Token) (interface{}, error) {
 
 		// check the pks from cache
-		if len(ippks.Jwks.Keys) > 0 {
-			fmt.Printf("pks in cache: %v", ippks)
-			fmt.Printf("\ntoken.Method: %#v;\n kid: %#v;\n", token.Method.Alg(), token.Header["kid"].(string))
+		if lengthJWKS > 0 {
+			fmt.Printf("pks [ippks] in cache: %#v\n\n", ippks)
+			fmt.Printf("token.Method: %#v;\n\n token header kid: %#v;\n\n", token.Method.Alg(), token.Header["kid"].(string))
 		}
 
 		tKid := token.Header["kid"].(string)
 		alg := token.Method.Alg()
-		fmt.Printf("pks in cache: %v", alg)
+		fmt.Printf("algorithm from token Header: %#v\n\n", alg)
 
 		rsaPK, err := h.pks.GetRSAPublicKey("google", tKid)
 		if err != nil {
 			encodeError(ctx, err, w)
 			return nil, nil
 		}
+		fmt.Printf("rsaPK: %#v\n\n", rsaPK)
 		return rsaPK, nil
 	})
 	// ===================================
 
 	if err != nil {
+		fmt.Printf("err JWT validation: %#v\n\n", err.Error())
 		encodeError(ctx, err, w)
 		return
 	}
-	fmt.Printf("idToken [validated] claims: %v", clm)
+	fmt.Printf("idToken [validated] claims: %#v\n\n", clm)
 
 	rs := ivmanto.AuthRequest{}
 

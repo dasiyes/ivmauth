@@ -78,10 +78,39 @@ func (s *service) GetRSAPublicKey(identityProvider string, kid string) (rsa.Publ
 //  to download the keys from the URL
 func (s *service) GetPKSCache(identityProvider string, pkURL string) (*ivmanto.PublicKeySet, error) {
 
+	// Get the pks from the cache
 	pks, err := s.keyset.Find(identityProvider)
-	if err != nil {
-		return &ivmanto.PublicKeySet{}, errors.New("Error while searching for PK: " + err.Error())
+	if err != nil && err.Error() == "key not found" {
+		err = nil
+		// Not found - download it again from the providers url
+		err = s.NewPKS("google", "https://www.googleapis.com/oauth2/v3/certs")
+		if err != nil {
+			// error when downloading it - return empty pks and error
+			return &ivmanto.PublicKeySet{}, errors.New("Error while creating a new PKS: " + err.Error())
+		}
+		// Try again to find it in cache - once the download has been called
+		pks, err = s.keyset.Find(identityProvider)
+		if err != nil {
+			// Not found again - return empty pks and error
+			return &ivmanto.PublicKeySet{}, err
+		}
 	}
+	// Found in cache in the searches above - check if not expired
+	if pks.Expires < time.Now().Unix()+int64(time.Second*30) {
+		// has expired - try to download it again
+		err = s.NewPKS("google", "https://www.googleapis.com/oauth2/v3/certs")
+		if err != nil {
+			// error when downloading it - return empty pks and error
+			return &ivmanto.PublicKeySet{}, errors.New("Error while creating a new PKS: " + err.Error())
+		}
+		// Try to find it again after the new download
+		pks, err = s.keyset.Find(identityProvider)
+		if err != nil {
+			// Not found again - return empty pks and error
+			return &ivmanto.PublicKeySet{}, err
+		}
+	}
+
 	return pks, nil
 }
 

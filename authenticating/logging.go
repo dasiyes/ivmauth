@@ -31,7 +31,7 @@ func (s *loggingService) Validate(id ivmanto.SessionID) (at ivmanto.AccessToken,
 	return s.next.Validate(id)
 }
 
-func (s *loggingService) RegisterNewRequest(rh http.Header, body []byte) (id ivmanto.SessionID, err error) {
+func (s *loggingService) RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBody) (id ivmanto.SessionID, err error) {
 	defer func(begin time.Time) {
 		s.logger.Log(
 			"method", "RegisterNewRequest",

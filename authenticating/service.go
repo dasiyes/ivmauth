@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	// ivmanto "ivmanto.dev/ivmauth"
 	"ivmanto.dev/ivmauth/ivmanto"
+	"ivmanto.dev/ivmauth/utils"
 )
 
 // ErrInvalidArgument is returned when one or more arguments are invalid.
@@ -14,7 +14,7 @@ var ErrInvalidArgument = errors.New("invalid argument")
 // Service is the interface that provides auth methods.
 type Service interface {
 	// RegisterNewRequest registring a new http request for authentication
-	RegisterNewRequest(rh http.Header, body []byte) (ivmanto.SessionID, error)
+	RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBody) (ivmanto.SessionID, error)
 
 	// Validate the auth request attributes
 	Validate(id ivmanto.SessionID) (ivmanto.AccessToken, error)
@@ -24,8 +24,9 @@ type service struct {
 	requests ivmanto.RequestRepository
 }
 
-func (s *service) RegisterNewRequest(rh http.Header, body []byte) (ivmanto.SessionID, error) {
-	if len(rh) == 0 || len(body) == 0 {
+func (s *service) RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBody) (ivmanto.SessionID, error) {
+
+	if len(rh) == 0 || utils.GetSize(body) == 0 {
 		return "", ErrInvalidArgument
 	}
 

@@ -1,6 +1,7 @@
 package inmem
 
 import (
+	"errors"
 	"sync"
 
 	"ivmanto.dev/ivmauth/ivmanto"
@@ -53,8 +54,12 @@ func (pksr *publicKeySetRepository) Store(pk *ivmanto.PublicKeySet) error {
 
 // Find - finds a Public Key Set in the repository
 func (pksr *publicKeySetRepository) Find(ip string) (*ivmanto.PublicKeySet, error) {
-	// TODO: implement find a response - search by Identity Prodiver (ip string)
-	return nil, nil
+	for key, pks := range pksr.pks {
+		if key == ip {
+			return pks, nil
+		}
+	}
+	return nil, errors.New("key not found")
 }
 
 // FindAll - find and returns all stored Public Key Sets

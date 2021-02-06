@@ -17,12 +17,22 @@ type SessionID string
 type AuthRequest struct {
 	SessionID  SessionID
 	ReqHeaders http.Header
-	Body       []byte
+	Body       AuthRequestBody
 	Registered int64
 }
 
+// AuthRequestBody is the json object expected to receive
+// in a POST request to /auth path
+type AuthRequestBody struct {
+	GrantType string `json:"grant_type"`
+	IDToken   string
+	Email     string
+	Password  string
+	Scope     string
+}
+
 // NewAuthRequest creates a new, unauthenticated requestor.
-func NewAuthRequest(id SessionID, rh http.Header, body []byte) *AuthRequest {
+func NewAuthRequest(id SessionID, rh http.Header, body AuthRequestBody) *AuthRequest {
 	rs := time.Now().Unix()
 	return &AuthRequest{
 		SessionID:  id,

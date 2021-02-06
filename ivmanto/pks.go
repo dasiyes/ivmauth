@@ -18,7 +18,7 @@ type PublicKeySet struct {
 	URL              *url.URL
 	HTTPClient       *http.Client
 	Jwks             *JWKS
-	expires          int64
+	Expires          int64
 }
 
 // JWKS is a set of JSON Web Keys (JWK) [RFC7517]
@@ -141,7 +141,7 @@ type JWK struct {
 // Init will initiate or override the values in JWKS attribute of PublicKeySet
 func (pks *PublicKeySet) Init(newKey []byte, exp int64) error {
 
-	pks.expires = exp
+	pks.Expires = exp
 
 	if err := json.Unmarshal(newKey, pks.Jwks); err != nil {
 		return ErrInvalidPubliKeySet(err)
@@ -202,6 +202,14 @@ func (pks *PublicKeySet) GetKidNE(kid string) (*big.Int, int, error) {
 	return bn, ei, nil
 }
 
+// LenJWKS return the length of the array of JWKs
+func (pks *PublicKeySet) LenJWKS() int {
+	if pks == nil {
+		return 0
+	}
+	return len(pks.Jwks.Keys)
+}
+
 // NewPublicKeySet creates a new set of Public Key for each of the suported
 // Identity Vendors.
 func NewPublicKeySet(identityProvider string, pkURL *url.URL) *PublicKeySet {
@@ -215,7 +223,7 @@ func NewPublicKeySet(identityProvider string, pkURL *url.URL) *PublicKeySet {
 			Timeout: time.Second * 30,
 		},
 		Jwks:    &jwks,
-		expires: 0,
+		Expires: 0,
 	}
 }
 
