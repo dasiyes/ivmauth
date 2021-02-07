@@ -37,7 +37,6 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	ctx := context.Background()
 
 	// Authenticate Client
-	fmt.Printf("start client authentication ...\n\n")
 	err := h.s.AuthenticateClient(r)
 	if err != nil {
 		h.logger.Log("error", err)
@@ -45,7 +44,6 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	fmt.Printf("start getting body ...\n\n")
 	var reqbody = ivmanto.AuthRequestBody{}
 	if err := json.NewDecoder(r.Body).Decode(&reqbody); err != nil {
 		h.logger.Log("error", err)
@@ -54,7 +52,6 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	}
 
 	// Registering auth request
-	fmt.Printf("start register new request ...\n\n")
 	h.s.RegisterNewRequest(r.Header, reqbody)
 
 	// Validate auth request
@@ -64,6 +61,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// TODO: ========  starting point to move to Validate() func
 	var ippks *ivmanto.PublicKeySet
 	ippks, err = h.pks.GetPKSCache("google", "https://www.googleapis.com/oauth2/v3/certs")
 	if err != nil {
@@ -102,6 +100,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 	fmt.Printf("idToken [validated] claims: %#v\n\n", clm)
+	// TODO: ========  endpoint to move to Validate() func
 
 	var response = struct {
 		AccessToken ivmanto.AccessToken `json:"access_token"`
