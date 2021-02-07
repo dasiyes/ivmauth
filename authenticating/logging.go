@@ -48,7 +48,7 @@ func (s *loggingService) RegisterNewRequest(rh http.Header, body ivmanto.AuthReq
 func (s *loggingService) AuthenticateClient(r *http.Request) (err error) {
 	defer func(begin time.Time) {
 		s.logger.Log(
-			"method", "RegisterNewRequest",
+			"method", "AuthenticateClient",
 			"request_Header_len", len(r.Header),
 			"took", time.Since(begin),
 			"err", err,

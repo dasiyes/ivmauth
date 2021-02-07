@@ -2,7 +2,9 @@ package authenticating
 
 import (
 	"errors"
+	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"ivmanto.dev/ivmauth/ivmanto"
 	"ivmanto.dev/ivmauth/utils"
@@ -10,6 +12,9 @@ import (
 
 // ErrInvalidArgument is returned when one or more arguments are invalid.
 var ErrInvalidArgument = errors.New("invalid argument")
+
+// ErrClientAuth is return when client Basic authentication fails
+var ErrClientAuth = errors.New("invalid client authentication credentials")
 
 // Service is the interface that provides auth methods.
 type Service interface {
@@ -171,16 +176,51 @@ func (s *service) Validate(rh http.Header, body ivmanto.AuthRequestBody) (ivmant
 // 	protected resource.)
 
 func (s *service) AuthenticateClient(r *http.Request) error {
-	clientID, clientSecret, ok := r.BasicAuth()
-	if !ok || clientID == "" {
-		return errors.New("invalid client authentication credentials")
+
+	cID, cSec, ok := r.BasicAuth()
+	if !ok || cID == "" {
+		// check alternatively the body for clien_id
+		if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+			var errB error
+			cID, cSec, errB = getClientIDSecWFUE(r)
+			if errB != nil {
+				return ErrClientAuth
+			}
+		}
 	}
 
-	if clientSecret == "" {
-
+	// Find the client registration
+	rc, err := s.clients.Find(ivmanto.ClientID(cID))
+	if err != nil {
+		return err
 	}
-
+	if rc.ClientSecret != cSec {
+		return ErrClientAuth
+	}
 	return nil
+}
+
+// Get the client ID and the client secret from web form url encoded
+func getClientIDSecWFUE(r *http.Request) (cID string, cSec string, err error) {
+	if r.TLS == nil {
+		return "", "", errors.New("unsecured client credentials")
+	}
+
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return "", "", err
+	}
+
+	fp := strings.Split(string(body), "&")
+	for _, p := range fp {
+		if strings.HasPrefix(p, "client_id") {
+			cID = strings.Split(p, "=")[1]
+		} else if strings.HasPrefix(p, "client_secret") {
+			cSec = strings.Split(p, "=")[1]
+		}
+	}
+	return cID, cSec, nil
 }
 
 // NewService creates a authenticating service with necessary dependencies.

@@ -57,7 +57,7 @@ func main() {
 	}
 
 	// Facilitate testing by adding some sample data
-	storeTestData("tb added")
+	storeTestData(clients)
 
 	fieldKeys := []string{"method"}
 
@@ -131,6 +131,16 @@ func envString(env, fallback string) string {
 	return e
 }
 
-func storeTestData(t string) {
-	// TODO: implement saving test data
+func storeTestData(c ivmanto.ClientRepository) {
+	client1 := ivmanto.NewClient("674034520731-svnfvha7sbp971ubg0mckamaac07jhc2.apps.googleusercontent.com", ivmanto.Active)
+	client1.ClientSecret = "NIyjiaWxKeemVStQT83MMlne"
+	if err := c.Store(client1); err != nil {
+		fmt.Printf("error saving test data: %#v;\n", err)
+	}
+
+	client2 := ivmanto.NewClient("xxx.apps.ivmanto.dev", ivmanto.Active)
+	client2.ClientSecret = "ivmanto-2021"
+	if err := c.Store(client1); err != nil {
+		fmt.Printf("error saving test data: %#v;\n", err)
+	}
 }

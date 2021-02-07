@@ -91,8 +91,12 @@ func (cr *clientRepository) Store(c *ivmanto.Client) error {
 
 // Find - finds a authentication request in the repository
 func (cr *clientRepository) Find(id ivmanto.ClientID) (*ivmanto.Client, error) {
-	// TODO: implement find a response
-	return nil, nil
+	for clientID, client := range cr.clients {
+		if clientID == id {
+			return client, nil
+		}
+	}
+	return nil, errors.New("client not found")
 }
 
 // FindAll - find and returns all authentication request

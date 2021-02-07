@@ -37,6 +37,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	ctx := context.Background()
 
 	// Authenticate Client
+	fmt.Printf("start client authentication ...\n\n")
 	err := h.s.AuthenticateClient(r)
 	if err != nil {
 		h.logger.Log("error", err)
@@ -44,6 +45,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	fmt.Printf("start getting body ...\n\n")
 	var reqbody = ivmanto.AuthRequestBody{}
 	if err := json.NewDecoder(r.Body).Decode(&reqbody); err != nil {
 		h.logger.Log("error", err)
@@ -52,6 +54,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	}
 
 	// Registering auth request
+	fmt.Printf("start register new request ...\n\n")
 	h.s.RegisterNewRequest(r.Header, reqbody)
 
 	// Validate auth request
