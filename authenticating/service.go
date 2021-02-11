@@ -1,7 +1,9 @@
 package authenticating
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -13,8 +15,11 @@ import (
 // ErrInvalidArgument is returned when one or more arguments are invalid.
 var ErrInvalidArgument = errors.New("invalid argument")
 
-// ErrClientAuth is return when client Basic authentication fails
+// ErrClientAuth is returned when client Basic authentication fails
 var ErrClientAuth = errors.New("invalid client authentication credentials")
+
+// ErrGetRequestBody is returned when reading the request body
+var ErrGetRequestBody = errors.New("error reading request body")
 
 // Service is the interface that provides auth methods.
 type Service interface {
@@ -27,6 +32,9 @@ type Service interface {
 	// AuthenticateClient will authenticate requests calls to /auth
 	// request Header Authorization: Basic XXX
 	AuthenticateClient(r *http.Request) error
+
+	// GetRequestBody considers the contet type header and reads the request body within ivmanto.AuthRequestBody
+	GetRequestBody(r *http.Request) (b *ivmanto.AuthRequestBody, err error)
 }
 
 type service struct {
@@ -175,6 +183,7 @@ func (s *service) Validate(rh http.Header, body ivmanto.AuthRequestBody) (ivmant
 // 	the authentication code.  (It provides no additional security for the
 // 	protected resource.)
 
+// AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
 func (s *service) AuthenticateClient(r *http.Request) error {
 
 	cID, cSec, ok := r.BasicAuth()
@@ -200,8 +209,49 @@ func (s *service) AuthenticateClient(r *http.Request) error {
 	return nil
 }
 
+// GetRequestBody considers the contet type header and reads the request body within ivmanto.AuthRequestBody
+func (s *service) GetRequestBody(r *http.Request) (b *ivmanto.AuthRequestBody, err error) {
+
+	reqbody := ivmanto.AuthRequestBody{}
+	if r.Header.Get("Content-Type") == "application/json" {
+
+		if err := json.NewDecoder(r.Body).Decode(&reqbody); err != nil {
+			return nil, ErrGetRequestBody
+		}
+	} else if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+		// TODO: ENABLE after debug completed
+		// if r.TLS == nil {
+		// 	errTLS := errors.New("unsecure transport used")
+		// 	return nil, errTLS
+		// }
+
+		defer r.Body.Close()
+		body, err2 := ioutil.ReadAll(r.Body)
+		if err2 != nil {
+			return nil, ErrGetRequestBody
+		}
+
+		fp := strings.Split(string(body), "&")
+		for _, p := range fp {
+			if strings.HasPrefix(p, "idtoken") {
+				reqbody.IDToken = strings.Split(p, "=")[1]
+			}
+			break
+		}
+		fmt.Printf("idToken: %#v;\n", reqbody.IDToken)
+	}
+	return &reqbody, nil
+}
+
 // Get the client ID and the client secret from web form url encoded
 func getClientIDSecWFUE(r *http.Request) (cID string, cSec string, err error) {
+
+	// standard: https://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.1
+	// Forms submitted with this content type must be encoded as follows:
+	//
+	// Control names and values are escaped. Space characters are replaced by `+', and then reserved characters are escaped as described in [RFC1738], section 2.2: Non-alphanumeric characters are replaced by `%HH', a percent sign and two hexadecimal digits representing the ASCII code of the character. Line breaks are represented as "CR LF" pairs (i.e., `%0D%0A').
+	// The control names/values are listed in the order they appear in the document. The name is separated from the value by `=' and name/value pairs are separated from each other by `&'.
+
 	if r.TLS == nil {
 		return "", "", errors.New("unsecured client credentials")
 	}

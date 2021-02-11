@@ -24,11 +24,11 @@ type authHandler struct {
 func (h *authHandler) router() chi.Router {
 	r := chi.NewRouter()
 
-	r.Route("/auth", func(r chi.Router) {
+	r.Route("/", func(r chi.Router) {
 		r.Post("/", h.authenticateRequest)
 	})
 
-	r.Method("GET", "/docs", http.StripPrefix("/v1/auth/docs", http.FileServer(http.Dir("authenticating/docs"))))
+	r.Method("GET", "/docs", http.StripPrefix("/auth/v1/docs", http.FileServer(http.Dir("authenticating/docs"))))
 
 	return r
 }
@@ -44,18 +44,19 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var reqbody = ivmanto.AuthRequestBody{}
-	if err := json.NewDecoder(r.Body).Decode(&reqbody); err != nil {
+	// TODO: get request body
+	reqbody, err := h.s.GetRequestBody(r)
+	if err != nil {
 		h.logger.Log("error", err)
 		encodeError(ctx, err, w)
 		return
 	}
 
 	// Registering auth request
-	h.s.RegisterNewRequest(r.Header, reqbody)
+	h.s.RegisterNewRequest(r.Header, *reqbody)
 
 	// Validate auth request
-	at, err := h.s.Validate(r.Header, reqbody)
+	at, err := h.s.Validate(r.Header, *reqbody)
 	if err != nil {
 		encodeError(ctx, err, w)
 		return

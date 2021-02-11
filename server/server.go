@@ -40,12 +40,17 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 
 	// Test the authentication and return the code version if successful
 	r.Get("/", func(w http.ResponseWriter, req *http.Request) {
+
+		if err := au.AuthenticateClient(req); err != nil {
+			encodeError(nil, authenticating.ErrClientAuth, w)
+			return
+		}
 		v := utils.NewVersion(0, 0, 1)
 		w.Write([]byte(v.GetVersion("dev")))
 	})
 
 	// Route all authentication calls
-	r.Route("/", func(r chi.Router) {
+	r.Route("/auth", func(r chi.Router) {
 		h := authHandler{s.Auth, s.Pks, s.Logger}
 		r.Mount("/v1", h.router())
 	})

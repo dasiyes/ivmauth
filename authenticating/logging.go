@@ -56,3 +56,15 @@ func (s *loggingService) AuthenticateClient(r *http.Request) (err error) {
 	}(time.Now())
 	return s.next.AuthenticateClient(r)
 }
+
+func (s *loggingService) GetRequestBody(r *http.Request) (b *ivmanto.AuthRequestBody, err error) {
+	defer func(begin time.Time) {
+		s.logger.Log(
+			"method", "GetRequestBody",
+			"request_Header_len", len(r.Header),
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.next.GetRequestBody(r)
+}
