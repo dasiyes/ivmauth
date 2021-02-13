@@ -7,6 +7,7 @@ import (
 	"github.com/go-kit/kit/log"
 
 	"ivmanto.dev/ivmauth/ivmanto"
+	"ivmanto.dev/ivmauth/pksrefreshing"
 )
 
 type loggingService struct {
@@ -19,17 +20,15 @@ func NewLoggingService(logger log.Logger, s Service) Service {
 	return &loggingService{logger, s}
 }
 
-func (s *loggingService) Validate(rh http.Header, body ivmanto.AuthRequestBody) (at ivmanto.AccessToken, err error) {
+func (s *loggingService) Validate(rh http.Header, body ivmanto.AuthRequestBody, pks pksrefreshing.Service) (at ivmanto.AccessToken, err error) {
 	defer func(begin time.Time) {
 		s.logger.Log(
 			"method", "validate",
-			"request_Headrs", rh,
-			"request_body", body,
 			"took", time.Since(begin),
 			"err", err,
 		)
 	}(time.Now())
-	return s.next.Validate(rh, body)
+	return s.next.Validate(rh, body, pks)
 }
 
 func (s *loggingService) RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBody) (id ivmanto.SessionID, err error) {
@@ -55,4 +54,16 @@ func (s *loggingService) AuthenticateClient(r *http.Request) (err error) {
 		)
 	}(time.Now())
 	return s.next.AuthenticateClient(r)
+}
+
+func (s *loggingService) GetRequestBody(r *http.Request) (b *ivmanto.AuthRequestBody, err error) {
+	defer func(begin time.Time) {
+		s.logger.Log(
+			"method", "GetRequestBody",
+			"request_Header_len", len(r.Header),
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.next.GetRequestBody(r)
 }

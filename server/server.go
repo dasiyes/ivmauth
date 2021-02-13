@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -12,7 +13,6 @@ import (
 	"ivmanto.dev/ivmauth/authenticating"
 	"ivmanto.dev/ivmauth/ivmanto"
 	"ivmanto.dev/ivmauth/pksrefreshing"
-	"ivmanto.dev/ivmauth/utils"
 )
 
 // Server holds the dependencies for a HTTP server
@@ -38,18 +38,16 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 	r.Use(accessControl)
 	// TODO: Add compression and other must have middleware functions
 
-	// Test the authentication and return the code version if successful
-	r.Get("/", func(w http.ResponseWriter, req *http.Request) {
-		v := utils.NewVersion(0, 0, 1)
-		w.Write([]byte(v.GetVersion("dev")))
-	})
+	ach := authClientHandler{s.Auth, s.Logger}
+	r.Use(ach.authClients)
 
 	// Route all authentication calls
-	r.Route("/", func(r chi.Router) {
+	r.Route("/auth", func(r chi.Router) {
 		h := authHandler{s.Auth, s.Pks, s.Logger}
 		r.Mount("/v1", h.router())
 	})
 
+	r.Method("GET", "/version", version())
 	r.Method("GET", "/metrics", promhttp.Handler())
 
 	s.router = r
@@ -59,6 +57,19 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
+}
+
+func version() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ver, err := ioutil.ReadFile("version")
+		if err != nil {
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write(ver)
+		return
+	})
 }
 
 func accessControl(h http.Handler) http.Handler {
@@ -84,6 +95,8 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 		w.WriteHeader(http.StatusBadRequest)
 	case authenticating.ErrClientAuth:
 		w.WriteHeader(http.StatusForbidden)
+	case authenticating.ErrAuthenticating:
+		w.WriteHeader(http.StatusUnauthorized)
 	default:
 		w.WriteHeader(http.StatusInternalServerError)
 	}

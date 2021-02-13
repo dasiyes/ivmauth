@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-kit/kit/metrics"
 	"ivmanto.dev/ivmauth/ivmanto"
+	"ivmanto.dev/ivmauth/pksrefreshing"
 )
 
 type instrumentingService struct {
@@ -25,27 +26,36 @@ func NewInstrumentingService(counter metrics.Counter, latency metrics.Histogram,
 
 func (s *instrumentingService) RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBody) (ivmanto.SessionID, error) {
 	defer func(begin time.Time) {
-		s.requestCount.With("method", "authenticate").Add(1)
-		s.requestLatency.With("method", "authenticate").Observe(time.Since(begin).Seconds())
+		s.requestCount.With("method", "RegisterNewRequest").Add(1)
+		s.requestLatency.With("method", "RegisterNewRequest").Observe(time.Since(begin).Seconds())
 	}(time.Now())
 
 	return s.next.RegisterNewRequest(rh, body)
 }
 
-func (s *instrumentingService) Validate(rh http.Header, body ivmanto.AuthRequestBody) (ivmanto.AccessToken, error) {
+func (s *instrumentingService) Validate(rh http.Header, body ivmanto.AuthRequestBody, pks pksrefreshing.Service) (ivmanto.AccessToken, error) {
 	defer func(begin time.Time) {
-		s.requestCount.With("method", "validate").Add(1)
-		s.requestLatency.With("method", "validate").Observe(time.Since(begin).Seconds())
+		s.requestCount.With("method", "Validate").Add(1)
+		s.requestLatency.With("method", "Validate").Observe(time.Since(begin).Seconds())
 	}(time.Now())
 
-	return s.next.Validate(rh, body)
+	return s.next.Validate(rh, body, pks)
 }
 
 func (s *instrumentingService) AuthenticateClient(r *http.Request) (err error) {
 	defer func(begin time.Time) {
-		s.requestCount.With("method", "validate").Add(1)
-		s.requestLatency.With("method", "validate").Observe(time.Since(begin).Seconds())
+		s.requestCount.With("method", "AuthenticateClient").Add(1)
+		s.requestLatency.With("method", "AuthenticateClient").Observe(time.Since(begin).Seconds())
 	}(time.Now())
 
 	return s.next.AuthenticateClient(r)
+}
+
+func (s *instrumentingService) GetRequestBody(r *http.Request) (b *ivmanto.AuthRequestBody, err error) {
+	defer func(begin time.Time) {
+		s.requestCount.With("method", "GetRequestBody").Add(1)
+		s.requestLatency.With("method", "GetRequestBody").Observe(time.Since(begin).Seconds())
+	}(time.Now())
+
+	return s.next.GetRequestBody(r)
 }

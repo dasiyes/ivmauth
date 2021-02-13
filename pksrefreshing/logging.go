@@ -1,7 +1,7 @@
 package pksrefreshing
 
 import (
-	"crypto/rsa"
+	"math/big"
 	"time"
 
 	"github.com/go-kit/kit/log"
@@ -31,7 +31,7 @@ func (s *loggingService) NewPKS(identityProvider string, pkURL string) (err erro
 	return s.next.NewPKS(identityProvider, pkURL)
 }
 
-func (s *loggingService) GetRSAPublicKey(identityProvider string, kid string) (pk rsa.PublicKey, err error) {
+func (s *loggingService) GetRSAPublicKey(identityProvider string, kid string) (n *big.Int, e int, err error) {
 	defer func(begin time.Time) {
 		s.logger.Log(
 			"method", "GetRSAPublicKey",
@@ -55,4 +55,14 @@ func (s *loggingService) GetPKSCache(identityProvider string, pkURL string) (pks
 		)
 	}(time.Now())
 	return s.next.GetPKSCache(identityProvider, pkURL)
+}
+
+func (s *loggingService) DownloadPKSinCache(identityProvider string) {
+	defer func(begin time.Time) {
+		s.logger.Log(
+			"method", "DownloadPKSinCache",
+			"identityProvider", identityProvider,
+			"took", time.Since(begin),
+		)
+	}(time.Now())
 }

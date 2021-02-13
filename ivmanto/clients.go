@@ -55,7 +55,7 @@ var ErrUnknownCargo = errors.New("unknown client")
 
 // NextClientID generates a new client ID.
 func NextClientID(appname string) ClientID {
-	return ClientID(strings.Split(strings.ToUpper(uuid.New()), "-")[0] + "-" + appname + "-" + "ivmanto.dev")
+	return ClientID(strings.Split(strings.ToUpper(uuid.New()), "-")[4] + "-" + appname + "-" + "ivmanto.dev")
 }
 
 // ClientStatus describes status of a client registration.

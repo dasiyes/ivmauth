@@ -1,9 +1,9 @@
 package pksrefreshing
 
 import (
-	"crypto/rsa"
 	"errors"
 	"io/ioutil"
+	"math/big"
 	"net/url"
 	"strconv"
 	"strings"
@@ -19,13 +19,18 @@ var ErrInvalidArgument = errors.New("invalid argument")
 type Service interface {
 	// RefreshPKS suposed to connect and get a new, fresh set of
 	// Public Keys (jwks) for the given provider.
+	// TODO: consider to turn it into private function. It seems it is not really used out of the package
 	NewPKS(identityProvider string, pkURL string) error
 
 	// GetRSAPublicKey gets the jwks, finds the JWK by kid and returns it as rsa.PublicKey format
-	GetRSAPublicKey(identityProvider string, kid string) (rsa.PublicKey, error)
+	GetRSAPublicKey(identityProvider string, kid string) (*big.Int, int, error)
 
 	// GetPKSCache - finds and returns PKS from the cache, if available
 	GetPKSCache(identityProvider string, pkURL string) (*ivmanto.PublicKeySet, error)
+
+	// DownloadPKSinCache - will check the cache for not expired PKS if not found will download it. Otherwise do nothing.
+	// This feature to be used as preliminary download feature
+	DownloadPKSinCache(identityProvider string)
 }
 
 type service struct {
@@ -57,33 +62,66 @@ func (s *service) NewPKS(identityProvider string, pkURL string) error {
 }
 
 // GetRSAPublicKey converts the jwks into rsaPublicKey and returns it back
-func (s *service) GetRSAPublicKey(identityProvider string, kid string) (rsa.PublicKey, error) {
+func (s *service) GetRSAPublicKey(identityProvider string, kid string) (n *big.Int, e int, err error) {
 
 	pks, err := s.keyset.Find(identityProvider)
 	if err != nil {
-		return rsa.PublicKey{}, errors.New("Error while searching for PK: " + err.Error())
+		return &big.Int{}, 0, errors.New("Error while searching for PK: " + err.Error())
 	}
-	n, e, err := pks.GetKidNE(kid)
+	n, e, err = pks.GetKidNE(kid)
 	if err != nil {
-		return rsa.PublicKey{}, errors.New("Error getting modulus and public exponent: " + err.Error())
+		return &big.Int{}, 0, errors.New("Error getting modulus and public exponent: " + err.Error())
 	}
-	rsaPK := rsa.PublicKey{
-		N: n,
-		E: e,
+	// rsaPK := rsa.PublicKey{
+	// 	N: n,
+	// 	E: e,
+	// }
+	return n, e, nil
+}
+
+// DownloadPKSinCache - will check the cache for not expired PKS if not found will download it. Otherwise do nothing.
+// This feature to be used as preliminary download feature
+func (s *service) DownloadPKSinCache(identityProvider string) {
+	var pkURL string
+	// TODO: automate the process of getting the jwks_uri from https://accounts.google.com/.well-known/openid-configuration
+	switch identityProvider {
+	case "google":
+		pkURL = "https://www.googleapis.com/oauth2/v3/certs"
 	}
-	return rsaPK, nil
+
+	// Check the cache for PKS
+	pks, err := s.keyset.Find(identityProvider)
+	if err != nil && err.Error() == "key not found" {
+		err = nil
+		// Not found - download it again from the providers url
+		err = s.NewPKS(identityProvider, pkURL)
+		if err != nil {
+			return
+		}
+	}
+
+	// Found in cache in the searches above - check if not expired
+	if pks.Expires < time.Now().Unix()+int64(time.Second*60) {
+		// has expired or will expire in the next minute - try to download it again
+		err = s.NewPKS(identityProvider, pkURL)
+		if err != nil {
+			// error when downloading it
+			return
+		}
+	}
 }
 
 // GetPKSCache finds the PKS and returns it from the cache. If not found, calls NewPKS
 //  to download the keys from the URL
 func (s *service) GetPKSCache(identityProvider string, pkURL string) (*ivmanto.PublicKeySet, error) {
 
+	// TODO: automate the process of getting the jwks_uri from https://accounts.google.com/.well-known/openid-configuration
 	// Get the pks from the cache
 	pks, err := s.keyset.Find(identityProvider)
 	if err != nil && err.Error() == "key not found" {
 		err = nil
 		// Not found - download it again from the providers url
-		err = s.NewPKS("google", "https://www.googleapis.com/oauth2/v3/certs")
+		err = s.NewPKS(identityProvider, "https://www.googleapis.com/oauth2/v3/certs")
 		if err != nil {
 			// error when downloading it - return empty pks and error
 			return &ivmanto.PublicKeySet{}, errors.New("Error while creating a new PKS: " + err.Error())
