@@ -266,7 +266,7 @@ func (s *service) GetRequestBody(r *http.Request) (b *ivmanto.AuthRequestBody, e
 	return &reqbody, nil
 }
 
-// Get the client ID and the client secret from web form url encoded
+// Get the client ID and the Client secret from web form url encoded
 func getClientIDSecWFUE(r *http.Request) (cID string, cSec string, err error) {
 
 	// standard: https://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.1
@@ -304,45 +304,49 @@ func getClientIDSecWFUE(r *http.Request) (cID string, cSec string, err error) {
 // validateIDToken will provide validation of OpenIDConnect ID Tokens
 func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) error {
 
-	ippks, err := pks.GetPKSCache(idP, "https://www.googleapis.com/oauth2/v3/certs")
+	_, err := pks.GetPKSCache(idP)
 	if err != nil {
 		return err
 	}
 
-	lengthJWKS := ippks.LenJWKS()
-	fmt.Printf("identity provider pks keys length: %#v\n\n", lengthJWKS)
-
-	// validate idToken ==================
+	// validate idToken
 	clm, err := jwt.Parse(rawIDToken, func(token *jwt.Token) (interface{}, error) {
-
-		// check the pks from cache
-		if lengthJWKS > 0 {
-			fmt.Printf("pks [ippks] in cache: %#v\n\n", ippks)
-			fmt.Printf("token.Method: %#v;\n\n token header kid: %#v;\n\n", token.Method.Alg(), token.Header["kid"].(string))
-		}
 
 		tKid := token.Header["kid"].(string)
 		alg := token.Method.Alg()
-		fmt.Printf("algorithm from token Header: %#v\n\n", alg)
+		switch alg {
+		case "RS256":
+			n, e, err := pks.GetRSAPublicKey(idP, tKid)
+			if err != nil {
+				return nil, err
+			}
 
-		n, e, err := pks.GetRSAPublicKey(idP, tKid)
-		if err != nil {
-			fmt.Printf("Error getting rsaPK: %#v\n\n", err.Error())
-			return nil, err
+			return &rsa.PublicKey{
+				N: n,
+				E: e,
+			}, nil
+		default:
+			return "", nil
 		}
-
-		return &rsa.PublicKey{
-			N: n,
-			E: e,
-		}, nil
 	})
-	// ===================================
 
 	if err != nil {
-		fmt.Printf("err JWT validation: %#v\n\n", err.Error())
 		return err
 	}
-	fmt.Printf("idToken [validated] claims: %#v\n\n", clm)
+
+	// Validate OpenID claims
+	if err = validateOpenIDClaims(clm, idP); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateOpenIDClaims will validate the token's claims from the respective Identity Provider
+func validateOpenIDClaims(jwt *jwt.Token, idP string) error {
+
+	fmt.Printf("idToken [validated] claims: %#v\n\n", jwt)
+	// TODO: implement token's claims validation logic
 	return nil
 }
 

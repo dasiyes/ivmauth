@@ -191,10 +191,6 @@ func (pks *PublicKeySet) GetKidNE(kid string) (*big.Int, int, error) {
 		return nil, 0, ErrInvalidPubliKeySet(errors.New("invalid JWK modulus"))
 	}
 	// TODO add a condition to check if the jwk.e is not
-	// if e != "AQAB" && e != "AAEAAQ" {
-	// 	// still need to decode the big-endian int
-	// 	log.Printf("WARNING: need to decode e: %v", e)
-	// }
 	ei := 65537
 
 	bn := new(big.Int)
@@ -212,13 +208,13 @@ func (pks *PublicKeySet) LenJWKS() int {
 
 // NewPublicKeySet creates a new set of Public Key for each of the suported
 // Identity Vendors.
-func NewPublicKeySet(identityProvider string, pkURL *url.URL) *PublicKeySet {
+func NewPublicKeySet(identityProvider string) *PublicKeySet {
 	jwk := JWK{Kty: ""}
 	jwks := JWKS{Keys: []JWK{jwk}}
 
 	return &PublicKeySet{
 		IdentityProvider: identityProvider,
-		URL:              pkURL,
+		URL:              &url.URL{},
 		HTTPClient: &http.Client{
 			Timeout: time.Second * 30,
 		},

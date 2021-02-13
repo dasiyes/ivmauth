@@ -23,13 +23,11 @@ func NewInstrumentingService(counter metrics.Counter, latency metrics.Histogram,
 	}
 }
 
-func (s *instrumentingService) NewPKS(identityProvider string, pkURL string) error {
+func (s *instrumentingService) InitOIDProviders() {
 	defer func(begin time.Time) {
-		s.requestCount.With("method", "pksrefresh").Add(1)
-		s.requestLatency.With("method", "pksrefresh").Observe(time.Since(begin).Seconds())
+		s.requestCount.With("method", "InitOIDProviders").Add(1)
+		s.requestLatency.With("method", "InitOIDProviders").Observe(time.Since(begin).Seconds())
 	}(time.Now())
-
-	return s.next.NewPKS(identityProvider, pkURL)
 }
 
 func (s *instrumentingService) GetRSAPublicKey(identityProvider string, kid string) (n *big.Int, e int, err error) {
@@ -41,13 +39,13 @@ func (s *instrumentingService) GetRSAPublicKey(identityProvider string, kid stri
 	return s.next.GetRSAPublicKey(identityProvider, kid)
 }
 
-func (s *instrumentingService) GetPKSCache(identityProvider string, pkURL string) (*ivmanto.PublicKeySet, error) {
+func (s *instrumentingService) GetPKSCache(identityProvider string) (*ivmanto.PublicKeySet, error) {
 	defer func(begin time.Time) {
 		s.requestCount.With("method", "GetPKSCache").Add(1)
 		s.requestLatency.With("method", "GetPKSCache").Observe(time.Since(begin).Seconds())
 	}(time.Now())
 
-	return s.next.GetPKSCache(identityProvider, pkURL)
+	return s.next.GetPKSCache(identityProvider)
 }
 
 func (s *instrumentingService) DownloadPKSinCache(identityProvider string) {

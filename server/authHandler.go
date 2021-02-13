@@ -45,6 +45,8 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	var tt = r.Header.Get("x-token-type")
 	if tt != "" {
 		go h.pks.DownloadPKSinCache(tt)
+		// TODO: debug to find why it does not work
+		// go h.pks.InitOIDProviders()
 	}
 
 	// ? Registering auth request

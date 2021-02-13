@@ -21,11 +21,15 @@ import (
 
 const (
 	defaultPort = "8080"
+	defaultCID  = "xxx"
+	defaultCSC  = "yyy"
 )
 
 func main() {
 	var (
 		port = envString("PORT", defaultPort)
+		cid  = envString("clientID", defaultCID)
+		csc  = envString("clientSecret", defaultCSC)
 
 		httpAddr = flag.String("http.addr", ":"+port, "HTTP listen [localhost]:port")
 		inmemory = flag.Bool("inmem", false, "use in-memory repositories")
@@ -43,11 +47,13 @@ func main() {
 	var (
 		authrequests ivmanto.RequestRepository
 		pubkeys      ivmanto.PublicKeySetRepository
+		oidprv       ivmanto.OIDProviderRepository
 		clients      ivmanto.ClientRepository
 	)
 
 	// The Public Key Set is always in mem cache
 	pubkeys = inmem.NewPKSRepository()
+	oidprv = inmem.NewOIDProviderRepository()
 
 	if *inmemory {
 		authrequests = inmem.NewRequestRepository()
@@ -57,7 +63,7 @@ func main() {
 	}
 
 	// Facilitate testing by adding some sample data
-	storeTestData(clients)
+	storeTestData(clients, cid, csc)
 
 	fieldKeys := []string{"method"}
 
@@ -87,7 +93,7 @@ func main() {
 
 	var pkr pksrefreshing.Service
 	{
-		pkr = pksrefreshing.NewService(pubkeys)
+		pkr = pksrefreshing.NewService(pubkeys, oidprv)
 		pkr = pksrefreshing.NewLoggingService(log.With(logger, "component", "pksrefreshing"), pkr)
 		pkr = pksrefreshing.NewInstrumentingService(
 			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
@@ -131,9 +137,9 @@ func envString(env, fallback string) string {
 	return e
 }
 
-func storeTestData(c ivmanto.ClientRepository) {
-	client1 := ivmanto.NewClient("674034520731-svnfvha7sbp971ubg0mckamaac07jhc2.apps.googleusercontent.com", ivmanto.Active)
-	client1.ClientSecret = "NIyjiaWxKeemVStQT83MMlne"
+func storeTestData(c ivmanto.ClientRepository, cid, csc string) {
+	client1 := ivmanto.NewClient(ivmanto.ClientID(cid), ivmanto.Active)
+	client1.ClientSecret = csc
 	if err := c.Store(client1); err != nil {
 		fmt.Printf("error saving test data: %#v;\n", err)
 	}
