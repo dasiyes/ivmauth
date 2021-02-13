@@ -1,7 +1,7 @@
 package pksrefreshing
 
 import (
-	"crypto/rsa"
+	"math/big"
 	"time"
 
 	"github.com/go-kit/kit/metrics"
@@ -32,7 +32,7 @@ func (s *instrumentingService) NewPKS(identityProvider string, pkURL string) err
 	return s.next.NewPKS(identityProvider, pkURL)
 }
 
-func (s *instrumentingService) GetRSAPublicKey(identityProvider string, kid string) (rsa.PublicKey, error) {
+func (s *instrumentingService) GetRSAPublicKey(identityProvider string, kid string) (n *big.Int, e int, err error) {
 	defer func(begin time.Time) {
 		s.requestCount.With("method", "GetRSAPublicKey").Add(1)
 		s.requestLatency.With("method", "GetRSAPublicKey").Observe(time.Since(begin).Seconds())
@@ -48,4 +48,11 @@ func (s *instrumentingService) GetPKSCache(identityProvider string, pkURL string
 	}(time.Now())
 
 	return s.next.GetPKSCache(identityProvider, pkURL)
+}
+
+func (s *instrumentingService) DownloadPKSinCache(identityProvider string) {
+	defer func(begin time.Time) {
+		s.requestCount.With("method", "DownloadPKSinCache").Add(1)
+		s.requestLatency.With("method", "DownloadPKSinCache").Observe(time.Since(begin).Seconds())
+	}(time.Now())
 }

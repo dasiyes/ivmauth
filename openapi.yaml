@@ -272,7 +272,6 @@ components:
           schema:
             $ref: '#/components/schemas/ErrorModel'
 
-
   securitySchemes:
     # Only used for client authorization of http requests to /auth
     basic:
@@ -290,12 +289,14 @@ components:
           scopes:
             write:ivmanto: editor permissions at ivmanto
             read:ivmanto: read only permissions
+        
         password:
           tokenUrl: https://ivmanto.dev/auth/token
           refreshUrl: https://ivmanto.dev/auth/token/refresh
           scopes:
             write:ivmanto: editor permissions at ivmanto
             read:ivmanto: read only permissions
+        
         clientCredentials:
           tokenUrl: https://ivmanto.dev/auth/token
           refreshUrl: https://ivmanto.dev/auth/token/refresh

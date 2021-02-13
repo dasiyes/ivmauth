@@ -1,6 +1,8 @@
 package authenticating
 
 import (
+	"bytes"
+	"crypto/rsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,18 +10,11 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/dgrijalva/jwt-go"
 	"ivmanto.dev/ivmauth/ivmanto"
+	"ivmanto.dev/ivmauth/pksrefreshing"
 	"ivmanto.dev/ivmauth/utils"
 )
-
-// ErrInvalidArgument is returned when one or more arguments are invalid.
-var ErrInvalidArgument = errors.New("invalid argument")
-
-// ErrClientAuth is returned when client Basic authentication fails
-var ErrClientAuth = errors.New("invalid client authentication credentials")
-
-// ErrGetRequestBody is returned when reading the request body
-var ErrGetRequestBody = errors.New("error reading request body")
 
 // Service is the interface that provides auth methods.
 type Service interface {
@@ -27,9 +22,9 @@ type Service interface {
 	RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBody) (ivmanto.SessionID, error)
 
 	// Validate the auth request attributes
-	Validate(rh http.Header, body ivmanto.AuthRequestBody) (ivmanto.AccessToken, error)
+	Validate(rh http.Header, body ivmanto.AuthRequestBody, pks pksrefreshing.Service) (ivmanto.AccessToken, error)
 
-	// AuthenticateClient will authenticate requests calls to /auth
+	// AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
 	// request Header Authorization: Basic XXX
 	AuthenticateClient(r *http.Request) error
 
@@ -84,7 +79,7 @@ func (s *service) RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBod
 
 // Validate receives all POST request calls to /auth path and validates
 // them according to OAuth2 [RFC6749]
-func (s *service) Validate(rh http.Header, body ivmanto.AuthRequestBody) (ivmanto.AccessToken, error) {
+func (s *service) Validate(rh http.Header, body ivmanto.AuthRequestBody, pks pksrefreshing.Service) (ivmanto.AccessToken, error) {
 	// According to [RFC6479] Protocol Flow - this part is steps (C)-(D):
 	// receives --(C)-- Authorization Grant -->
 	// returns  <-(D)----- Access Token -------
@@ -114,7 +109,29 @@ func (s *service) Validate(rh http.Header, body ivmanto.AuthRequestBody) (ivmant
 	// credentials, and client credentials -- as well as an extensibility
 	// mechanism for defining additional types.
 
-	authGrantType := ""
+	// Check grant type and identity provider name presence
+	if rh.Get("x-grant-type") == "" || rh.Get("x-token-type") == "" {
+		return ivmanto.AccessToken{}, ivmanto.ErrUnknownGrantType
+	}
+	var authGrantType string
+	var xgt, idP string
+	idP = rh.Get("x-token-type")
+	xgt = rh.Get("x-grant-type")
+
+	switch xgt {
+	case "id_token":
+		if err := validateIDToken(body.IDToken, idP, pks); err != nil {
+			return ivmanto.AccessToken{}, ErrAuthenticating
+		}
+		authGrantType = "implicit"
+	case "password":
+		authGrantType = "password_credentials"
+	case "code":
+		authGrantType = "authorization_code"
+	default:
+		authGrantType = "client_credentials"
+	}
+
 	switch authGrantType {
 
 	// 1.3.1.  Authorization Code
@@ -137,7 +154,7 @@ func (s *service) Validate(rh http.Header, body ivmanto.AuthRequestBody) (ivmant
 	case "authorization_code":
 
 	case "implicit":
-
+		// TODO: to issue the Access Token?
 	case "password_credentials":
 
 	case "client_credentials":
@@ -186,16 +203,23 @@ func (s *service) Validate(rh http.Header, body ivmanto.AuthRequestBody) (ivmant
 // AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
 func (s *service) AuthenticateClient(r *http.Request) error {
 
-	cID, cSec, ok := r.BasicAuth()
-	if !ok || cID == "" {
-		// check alternatively the body for clien_id
-		if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
-			var errB error
-			cID, cSec, errB = getClientIDSecWFUE(r)
-			if errB != nil {
-				return ErrClientAuth
-			}
+	var cID, cSec string
+	var err error
+
+	ahct := r.Header.Get("Content-Type")
+	switch ahct {
+	case "application/x-www-form-urlencoded":
+		cID, cSec, err = getClientIDSecWFUE(r)
+		if err != nil {
+			return ErrClientAuth
 		}
+	case "application/json":
+		cID, cSec, _ = r.BasicAuth()
+		if cID == "" || cSec == "" {
+			return ErrClientAuth
+		}
+	default:
+		return ErrClientAuth
 	}
 
 	// Find the client registration
@@ -238,7 +262,6 @@ func (s *service) GetRequestBody(r *http.Request) (b *ivmanto.AuthRequestBody, e
 			}
 			break
 		}
-		fmt.Printf("idToken: %#v;\n", reqbody.IDToken)
 	}
 	return &reqbody, nil
 }
@@ -252,9 +275,10 @@ func getClientIDSecWFUE(r *http.Request) (cID string, cSec string, err error) {
 	// Control names and values are escaped. Space characters are replaced by `+', and then reserved characters are escaped as described in [RFC1738], section 2.2: Non-alphanumeric characters are replaced by `%HH', a percent sign and two hexadecimal digits representing the ASCII code of the character. Line breaks are represented as "CR LF" pairs (i.e., `%0D%0A').
 	// The control names/values are listed in the order they appear in the document. The name is separated from the value by `=' and name/value pairs are separated from each other by `&'.
 
-	if r.TLS == nil {
-		return "", "", errors.New("unsecured client credentials")
-	}
+	// TODO: remove after debug
+	// if r.TLS == nil {
+	// 	return "", "", errors.New("unsecured client credentials")
+	// }
 
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
@@ -270,7 +294,56 @@ func getClientIDSecWFUE(r *http.Request) (cID string, cSec string, err error) {
 			cSec = strings.Split(p, "=")[1]
 		}
 	}
+
+	// set the body back
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+
 	return cID, cSec, nil
+}
+
+// validateIDToken will provide validation of OpenIDConnect ID Tokens
+func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) error {
+
+	ippks, err := pks.GetPKSCache(idP, "https://www.googleapis.com/oauth2/v3/certs")
+	if err != nil {
+		return err
+	}
+
+	lengthJWKS := ippks.LenJWKS()
+	fmt.Printf("identity provider pks keys length: %#v\n\n", lengthJWKS)
+
+	// validate idToken ==================
+	clm, err := jwt.Parse(rawIDToken, func(token *jwt.Token) (interface{}, error) {
+
+		// check the pks from cache
+		if lengthJWKS > 0 {
+			fmt.Printf("pks [ippks] in cache: %#v\n\n", ippks)
+			fmt.Printf("token.Method: %#v;\n\n token header kid: %#v;\n\n", token.Method.Alg(), token.Header["kid"].(string))
+		}
+
+		tKid := token.Header["kid"].(string)
+		alg := token.Method.Alg()
+		fmt.Printf("algorithm from token Header: %#v\n\n", alg)
+
+		n, e, err := pks.GetRSAPublicKey(idP, tKid)
+		if err != nil {
+			fmt.Printf("Error getting rsaPK: %#v\n\n", err.Error())
+			return nil, err
+		}
+
+		return &rsa.PublicKey{
+			N: n,
+			E: e,
+		}, nil
+	})
+	// ===================================
+
+	if err != nil {
+		fmt.Printf("err JWT validation: %#v\n\n", err.Error())
+		return err
+	}
+	fmt.Printf("idToken [validated] claims: %#v\n\n", clm)
+	return nil
 }
 
 // NewService creates a authenticating service with necessary dependencies.
@@ -280,3 +353,15 @@ func NewService(requests ivmanto.RequestRepository, clients ivmanto.ClientReposi
 		clients:  clients,
 	}
 }
+
+// ErrInvalidArgument is returned when one or more arguments are invalid.
+var ErrInvalidArgument = errors.New("invalid argument")
+
+// ErrClientAuth is returned when client Basic authentication fails
+var ErrClientAuth = errors.New("invalid client authentication credentials")
+
+// ErrGetRequestBody is returned when reading the request body
+var ErrGetRequestBody = errors.New("error reading request body")
+
+// ErrAuthenticating is returned when the authentication process fails
+var ErrAuthenticating = errors.New("authentication failed")

@@ -22,6 +22,14 @@ func (v *Version) GetVersion(state string) string {
 	return "v" + strings.Join(vers, ".")
 }
 
+// UpdateVersion TODO: Implement a method to update the integer values from a string
+func (v *Version) UpdateVersion(strver string) error {
+	// TODO: check the string for 3 parts with "." separator
+	// TODO: convert each string part into integer
+	// TODO: update the version properties major, minor and patch with respective integers
+	return nil
+}
+
 // NewVersion creates a new instance of the version object
 func NewVersion(major int, minor int, patch int) *Version {
 	return &Version{
