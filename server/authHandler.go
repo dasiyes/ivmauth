@@ -53,7 +53,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	h.aus.RegisterNewRequest(r.Header, *reqbody)
 
 	// Validate auth request
-	at, err := h.aus.Validate(r.Header, *reqbody, h.pks)
+	at, err := h.aus.Validate(r.Header, reqbody, h.pks)
 	if err != nil {
 		encodeError(ctx, err, w)
 		return

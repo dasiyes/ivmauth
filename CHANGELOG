@@ -1,0 +1,5 @@
+v0.0.4  Authorization Grant type implicit for Ivmanto's web app client. Authenticating OpenID IDToken. Google as Indentity Provider implemented as of this version.
+        Validating IDToken as OpenID Connect ID Token.
+        Generating Access Token on successfull IDToken (OIC) validation.
+
+v0.0.3  Validating IDToken as JWT

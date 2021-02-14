@@ -22,7 +22,7 @@ type Service interface {
 	RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBody) (ivmanto.SessionID, error)
 
 	// Validate the auth request attributes
-	Validate(rh http.Header, body ivmanto.AuthRequestBody, pks pksrefreshing.Service) (ivmanto.AccessToken, error)
+	Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pksrefreshing.Service) (ivmanto.AccessToken, error)
 
 	// AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
 	// request Header Authorization: Basic XXX
@@ -79,7 +79,7 @@ func (s *service) RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBod
 
 // Validate receives all POST request calls to /auth path and validates
 // them according to OAuth2 [RFC6749]
-func (s *service) Validate(rh http.Header, body ivmanto.AuthRequestBody, pks pksrefreshing.Service) (ivmanto.AccessToken, error) {
+func (s *service) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pksrefreshing.Service) (ivmanto.AccessToken, error) {
 	// According to [RFC6479] Protocol Flow - this part is steps (C)-(D):
 	// receives --(C)-- Authorization Grant -->
 	// returns  <-(D)----- Access Token -------
@@ -113,21 +113,32 @@ func (s *service) Validate(rh http.Header, body ivmanto.AuthRequestBody, pks pks
 	if rh.Get("x-grant-type") == "" || rh.Get("x-token-type") == "" {
 		return ivmanto.AccessToken{}, ivmanto.ErrUnknownGrantType
 	}
-	var authGrantType string
-	var xgt, idP string
+
+	var authGrantType, xgt, idP string
+	var oidtoken *ivmanto.IDToken
+
 	idP = rh.Get("x-token-type")
 	xgt = rh.Get("x-grant-type")
 
 	switch xgt {
 	case "id_token":
 
-		// TODO - remove after debug
-		fmt.Printf("ivmAuthBody: %#v;\n", body)
+		var err error
+		var tkn *jwt.Token
 
-		if err := validateIDToken(body.IDToken, idP, pks); err != nil {
+		tkn, oidtoken, err = validateIDToken(body.IDToken, idP, pks)
+
+		if err != nil || !tkn.Valid {
 			return ivmanto.AccessToken{}, ErrAuthenticating
 		}
+
+		err = validateOpenIDClaims(oidtoken, body, idP)
+		if err != nil {
+			return ivmanto.AccessToken{}, ErrAuthenticating
+		}
+
 		authGrantType = "implicit"
+
 	case "password":
 		authGrantType = "password_credentials"
 	case "code":
@@ -158,7 +169,11 @@ func (s *service) Validate(rh http.Header, body ivmanto.AuthRequestBody, pks pks
 	case "authorization_code":
 
 	case "implicit":
+
+		fmt.Printf("...evrything looks good: %#v;\n", oidtoken)
 		// TODO: to issue the Access Token?
+		// TODO: in separate go routine register the user from the IDToken, if not already in the db. if the user email is already in - connect the Identity Provider to the existing account.
+
 	case "password_credentials":
 
 	case "client_credentials":
@@ -320,15 +335,19 @@ func getClientIDSecWFUE(r *http.Request) (cID string, cSec string, err error) {
 }
 
 // validateIDToken will provide validation of OpenIDConnect ID Tokens
-func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) error {
+func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (*jwt.Token, *ivmanto.IDToken, error) {
 
-	_, err := pks.GetPKSCache(idP)
+	var err error
+	var tkn *jwt.Token
+	var oidt = ivmanto.IDToken{}
+
+	_, err = pks.GetPKSCache(idP)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	// validate idToken
-	clm, err := jwt.Parse(rawIDToken, func(token *jwt.Token) (interface{}, error) {
+	tkn, err = jwt.ParseWithClaims(rawIDToken, &oidt, func(token *jwt.Token) (interface{}, error) {
 
 		tKid := token.Header["kid"].(string)
 		alg := token.Method.Alg()
@@ -352,21 +371,45 @@ func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) e
 	})
 
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	// Validate OpenID claims
-	if err = validateOpenIDClaims(clm, idP); err != nil {
-		return err
-	}
-
-	return nil
+	return tkn, &oidt, nil
 }
 
-// validateOpenIDClaims will validate the token's claims from the respective Identity Provider
-func validateOpenIDClaims(jwt *jwt.Token, idP string) error {
+// validateOpenIDClaims will validate the jwtoken's claims from the respective Identity Provider as IDToken
+// and return the IDToken in successful validation
+func validateOpenIDClaims(oidt *ivmanto.IDToken, body *ivmanto.AuthRequestBody, idP string) error {
 
-	fmt.Printf("idToken [validated] claims: %#v\n\n", jwt)
+	// verify the client side sent nonce and asrCID to match the values in the token's claims
+	if oidt.Nonce != body.Nonce {
+		return ErrSessionToken
+	}
+
+	// Uncomment beow code if changing IDToken Aud from string to []string
+	//
+	// var matchAud bool = false
+	// for _, ai := range oidt.Aud {
+	// 	if ai == body.AsrCID {
+	// 		matchAud = true
+	// 		break
+	// 	}
+	// }
+	// if !matchAud {
+	// 	return ErrCompromisedAud
+	// }
+
+	if oidt.Azp != body.AsrCID {
+		return ErrCompromisedAud
+	}
+
+	// TODO: 1) Validate the issuer to match the expected Identity Provider
+
+	// validate if the IDToken pass the standard requirements of OpenID Connect for IDToken
+	if err := oidt.Valid(); err != nil {
+		return ErrInvalidIDToken
+	}
+
 	// TODO: implement token's claims validation logic
 	return nil
 }
@@ -393,3 +436,12 @@ var ErrAuthenticating = errors.New("authentication failed")
 
 // ErrTLS - returned when the content-type is set to "application/x-www-form-urlencoded" and no TLS is used
 var ErrTLS = errors.New("unsecured transport of credentials")
+
+// ErrSessionToken - when the NONCE value from the IDToken does not match the value sent from the client in the auth request body
+var ErrSessionToken = errors.New("invalid session token")
+
+// ErrCompromisedAud - will be returned when the valid of the ClientID returned to the client from the authorization server alongside with the IDToken, does not match the aud value in the IDToken
+var ErrCompromisedAud = errors.New("compromised audience")
+
+// ErrInvalidIDToken - will be returned if the IDToken does not match the requirements of the OPenID standard for IDToken
+var ErrInvalidIDToken = errors.New("invalid openID IDToken")

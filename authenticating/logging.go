@@ -20,7 +20,7 @@ func NewLoggingService(logger log.Logger, s Service) Service {
 	return &loggingService{logger, s}
 }
 
-func (s *loggingService) Validate(rh http.Header, body ivmanto.AuthRequestBody, pks pksrefreshing.Service) (at ivmanto.AccessToken, err error) {
+func (s *loggingService) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pksrefreshing.Service) (at ivmanto.AccessToken, err error) {
 	defer func(begin time.Time) {
 		s.logger.Log(
 			"method", "validate",
