@@ -120,6 +120,10 @@ func (s *service) Validate(rh http.Header, body ivmanto.AuthRequestBody, pks pks
 
 	switch xgt {
 	case "id_token":
+
+		// TODO - remove after debug
+		fmt.Printf("ivmAuthBody: %#v;\n", body)
+
 		if err := validateIDToken(body.IDToken, idP, pks); err != nil {
 			return ivmanto.AccessToken{}, ErrAuthenticating
 		}
@@ -234,36 +238,50 @@ func (s *service) AuthenticateClient(r *http.Request) error {
 }
 
 // GetRequestBody considers the contet type header and reads the request body within ivmanto.AuthRequestBody
-func (s *service) GetRequestBody(r *http.Request) (b *ivmanto.AuthRequestBody, err error) {
+func (s *service) GetRequestBody(r *http.Request) (*ivmanto.AuthRequestBody, error) {
 
-	reqbody := ivmanto.AuthRequestBody{}
+	var err error
+	var rb ivmanto.AuthRequestBody
+
 	if r.Header.Get("Content-Type") == "application/json" {
 
-		if err := json.NewDecoder(r.Body).Decode(&reqbody); err != nil {
+		if err = json.NewDecoder(r.Body).Decode(&rb); err != nil {
 			return nil, ErrGetRequestBody
 		}
+
 	} else if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
+
+		var body []byte
+		var fp []string
+		var lblval []string
+
 		// TODO: ENABLE after debug completed
 		// if r.TLS == nil {
-		// 	errTLS := errors.New("unsecure transport used")
-		// 	return nil, errTLS
+		// 	return "", errTLS
 		// }
 
 		defer r.Body.Close()
-		body, err2 := ioutil.ReadAll(r.Body)
-		if err2 != nil {
+		body, err = ioutil.ReadAll(r.Body)
+		if err != nil {
 			return nil, ErrGetRequestBody
 		}
 
-		fp := strings.Split(string(body), "&")
+		fp = strings.Split(string(body), "&")
 		for _, p := range fp {
-			if strings.HasPrefix(p, "idtoken") {
-				reqbody.IDToken = strings.Split(p, "=")[1]
+
+			lblval = strings.Split(p, "=")
+
+			switch lblval[0] {
+			case "idtoken":
+				rb.IDToken = lblval[1]
+			case "nonce":
+				rb.Nonce = lblval[1]
+			case "asrCID":
+				rb.AsrCID = lblval[1]
 			}
-			break
 		}
 	}
-	return &reqbody, nil
+	return &rb, nil
 }
 
 // Get the client ID and the Client secret from web form url encoded
@@ -277,7 +295,7 @@ func getClientIDSecWFUE(r *http.Request) (cID string, cSec string, err error) {
 
 	// TODO: remove after debug
 	// if r.TLS == nil {
-	// 	return "", "", errors.New("unsecured client credentials")
+	// 	return "", "", ErrTLS
 	// }
 
 	defer r.Body.Close()
@@ -295,7 +313,7 @@ func getClientIDSecWFUE(r *http.Request) (cID string, cSec string, err error) {
 		}
 	}
 
-	// set the body back
+	// set the body back to the request. For cases when needs to read again.
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
 	return cID, cSec, nil
@@ -314,6 +332,9 @@ func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) e
 
 		tKid := token.Header["kid"].(string)
 		alg := token.Method.Alg()
+		if strings.ToUpper(token.Header["typ"].(string)) != "JWT" {
+			return "", ErrAuthenticating
+		}
 		switch alg {
 		case "RS256":
 			n, e, err := pks.GetRSAPublicKey(idP, tKid)
@@ -369,3 +390,6 @@ var ErrGetRequestBody = errors.New("error reading request body")
 
 // ErrAuthenticating is returned when the authentication process fails
 var ErrAuthenticating = errors.New("authentication failed")
+
+// ErrTLS - returned when the content-type is set to "application/x-www-form-urlencoded" and no TLS is used
+var ErrTLS = errors.New("unsecured transport of credentials")

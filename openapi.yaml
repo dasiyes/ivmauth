@@ -86,7 +86,7 @@ components:
       description: body json object for requesting authentication
       required:
         - grant_type
-        - scope
+        - scopes
       additionalProperties: false
       properties:
         grant_type:
@@ -94,7 +94,7 @@ components:
           description: defines the Authrozatin Grant Type
           maxLength: 30
           pattern: '^[a-z0-9._]$'
-        scope:
+        scopes:
           type: array
           description: identifies the authroization scope
           items:
@@ -102,12 +102,12 @@ components:
             maxLength: 30
             pattern: '^[0-9a-z._]$'
           maxItems: 10
-        idToken:
+        IDToken:
           type: string
           description: Required only when the grant_type is set to id_token
           pattern: '^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$'
           maxLength: 4000
-        idProvider:
+        IDProvider:
           type: string
           description: Required only when the grant_type is set to id_token
           maxLength: 32
@@ -119,6 +119,16 @@ components:
           description: Required only for grant_type - resource owner password
           pattern: '^[-!$%^&*()_+|~=`{}\[\]:";<>?,.\/a-zA-Z0-9]$'
           maxLength: 65
+        nonce:
+          type: string
+          description: session token to validate the IDToken returned by the Authorization server
+          maxLength: 32
+          pattern: '^[A-Za-z0-9._+/=&]$'
+        asrCID:
+          type: string
+          description: this is the OAUth2 clientID as value returned by the authorization server along with the IDToken response
+          maxLength: 100
+          pattern: '^[-A-Za-z0-9.]$'
 
     # Authentication Request Form Body [NOT RECOMMENDED] content type x-www-form-urlencoded
     AuthRequestFormBody:

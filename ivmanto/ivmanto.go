@@ -28,7 +28,13 @@ type AuthRequestBody struct {
 	IDToken   string
 	Email     string
 	Password  string
-	Scope     string
+	Scopes    []string
+	// Session validation token when the GrantType is id_token
+	Nonce string
+	// This holds the value of the ClientID returned by the Authorization server along with IDToken
+	AsrCID string
+	// OPTIONAL The name of the Identity provider when the GrantType is id_token
+	IDProvider string
 }
 
 // NewAuthRequest creates a new, unauthenticated requestor.
