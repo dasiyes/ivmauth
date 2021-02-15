@@ -24,7 +24,8 @@ type AuthRequest struct {
 // AuthRequestBody is the json object expected to receive
 // in a POST request to /auth path
 type AuthRequestBody struct {
-	GrantType string `json:"grant_type"`
+	GrantType string `json:"grant_type,omitempty"`
+	ClientID  string `json:"client_id,omitempty"`
 	IDToken   string
 	Email     string
 	Password  string

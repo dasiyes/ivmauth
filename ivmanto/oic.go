@@ -1,5 +1,11 @@
 package ivmanto
 
+import (
+	"fmt"
+	"strings"
+	"time"
+)
+
 // ProviderName is representing the name of OIDConnect Provider
 type ProviderName string
 
@@ -183,7 +189,25 @@ type IDToken struct {
 // Valid function performs an validation check that match the OpenID Connect specification for validating ID Token
 func (it *IDToken) Valid() error {
 
-	// TODO: 1) if azp is not empty - to be equal to ClientID
-	// TODO: 2) verify id all 5 REQUIRED attributes are present and not empty
+	if it.Iss == "" || !strings.HasPrefix(strings.ToLower(it.Iss), "https") {
+		return ErrInvalidIDToken
+	}
+
+	if it.Sub == "" || len(it.Sub) > 255 {
+		return ErrInvalidIDToken
+	}
+
+	if it.Aud == "" {
+		return ErrInvalidIDToken
+	}
+
+	if it.Exp < time.Now().Unix()+60 {
+		return fmt.Errorf("%v, %v", ErrInvalidIDToken, "token expired")
+	}
+
+	if it.Iat >= time.Now().Unix() {
+		return ErrInvalidIDToken
+	}
+
 	return nil
 }

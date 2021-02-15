@@ -61,3 +61,16 @@ func (s *loggingService) DownloadPKSinCache(identityProvider string) {
 		)
 	}(time.Now())
 }
+
+func (s *loggingService) GetIssuerVal(provider string) (iss string, err error) {
+	defer func(begin time.Time) {
+		s.logger.Log(
+			"method", "GetIssuerVal",
+			"identityProvider", provider,
+			"issuer", iss,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.next.GetIssuerVal(provider)
+}

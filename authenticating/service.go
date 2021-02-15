@@ -92,7 +92,7 @@ func (s *service) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pk
 	// 1.1) authenticate the client [step (D) autenticate client]
 	// step 1.1) is done by the method AuthenticateClient, called from authHandler.authenticateRequest
 
-	// TODO: 2) Identify the grant_type [step (C) presents authorization grant]
+	// 2) Identify the grant_type [step (C) presents authorization grant]
 	// The client receives an authorization grant, which is a
 	// credential representing the resource owner’s authorization,
 	// expressed using one of four grant types defined in this
@@ -132,7 +132,7 @@ func (s *service) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pk
 			return ivmanto.AccessToken{}, ErrAuthenticating
 		}
 
-		err = validateOpenIDClaims(oidtoken, body, idP)
+		err = validateOpenIDClaims(oidtoken, body, idP, pks)
 		if err != nil {
 			return ivmanto.AccessToken{}, ErrAuthenticating
 		}
@@ -293,6 +293,8 @@ func (s *service) GetRequestBody(r *http.Request) (*ivmanto.AuthRequestBody, err
 				rb.Nonce = lblval[1]
 			case "asrCID":
 				rb.AsrCID = lblval[1]
+			case "client_id":
+				rb.ClientID = lblval[1]
 			}
 		}
 	}
@@ -308,7 +310,7 @@ func getClientIDSecWFUE(r *http.Request) (cID string, cSec string, err error) {
 	// Control names and values are escaped. Space characters are replaced by `+', and then reserved characters are escaped as described in [RFC1738], section 2.2: Non-alphanumeric characters are replaced by `%HH', a percent sign and two hexadecimal digits representing the ASCII code of the character. Line breaks are represented as "CR LF" pairs (i.e., `%0D%0A').
 	// The control names/values are listed in the order they appear in the document. The name is separated from the value by `=' and name/value pairs are separated from each other by `&'.
 
-	// TODO: remove after debug
+	// TODO: activate the code after debug
 	// if r.TLS == nil {
 	// 	return "", "", ErrTLS
 	// }
@@ -378,39 +380,55 @@ func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (
 }
 
 // validateOpenIDClaims will validate the jwtoken's claims from the respective Identity Provider as IDToken
-// and return the IDToken in successful validation
-func validateOpenIDClaims(oidt *ivmanto.IDToken, body *ivmanto.AuthRequestBody, idP string) error {
+// and return nil error in successful validation.
+//
+// 1. verify the client side set nonce and asrCID to match the values in the token's claims
+// 2. validate the IDToken against the openID Connect standard
+// 3. validate the issuer to match the expected Identity Provider
+// 4. verify the authorized party (Azp) to match clienID
+func validateOpenIDClaims(
+	oidt *ivmanto.IDToken, body *ivmanto.AuthRequestBody, idP string, pks pksrefreshing.Service) error {
 
-	// verify the client side sent nonce and asrCID to match the values in the token's claims
+	var err error
+
 	if oidt.Nonce != body.Nonce {
 		return ErrSessionToken
 	}
 
-	// Uncomment beow code if changing IDToken Aud from string to []string
-	//
-	// var matchAud bool = false
-	// for _, ai := range oidt.Aud {
-	// 	if ai == body.AsrCID {
-	// 		matchAud = true
-	// 		break
-	// 	}
-	// }
-	// if !matchAud {
-	// 	return ErrCompromisedAud
-	// }
+	// ISSUE: jwt-go package does not support loading the toke claims into IDToken when the AUD type is set to array of[]string. With flat string type works well.
+	// TODO: report the issue to package repo...
 
-	if oidt.Azp != body.AsrCID {
+	if oidt.Aud != body.AsrCID {
 		return ErrCompromisedAud
 	}
 
-	// TODO: 1) Validate the issuer to match the expected Identity Provider
+	if err = oidt.Valid(); err != nil {
+		return err
+	}
 
-	// validate if the IDToken pass the standard requirements of OpenID Connect for IDToken
-	if err := oidt.Valid(); err != nil {
+	// {Iss:"https://accounts.google.com", Sub:"111378573917627854055", Aud:"674034520731-svnfvha7sbp971ubg0mckamaac07jhc2.apps.googleusercontent.com", Exp:1613414482, Iat:1613410882, AuthTime:0, Nonce:"NUAAKDvvoM2o7Lwmc3e3q6zcrD8ipZoQ", Acr:"", Amr:"", Azp:"674034520731-svnfvha7sbp971ubg0mckamaac07jhc2.apps.googleusercontent.com", Email:"nikolay.tonev@gmail.com", EmailVerified:true, Name:"Nikolay Tonev", FirstName:"Nikolay", FamilyName:"Tonev", Jti:"7e56fd3faed79724789d7109739942bd5b2cf1e3", Picture:"https://lh3.googleusercontent.com/a-/AOh14Gj07AlGItR3b4Q-hPDlUQ8pl_Fey5UeMHGkDKLVEA=s96-c"}
+
+	var issval string
+
+	issval, err = pks.GetIssuerVal(idP)
+	if err != nil {
+		return fmt.Errorf("%v inner %v", ErrInvalidIDToken, err)
+	}
+	if oidt.Iss != issval {
 		return ErrInvalidIDToken
 	}
 
-	// TODO: implement token's claims validation logic
+	if oidt.Azp != "" && body.ClientID != "" {
+		if oidt.Azp != body.ClientID {
+			return fmt.Errorf("%v inner %v", ErrInvalidIDToken, "authorized party not verified")
+		}
+	}
+
+	if oidt.Aud != body.ClientID {
+		return ErrInvalidIDToken
+	}
+
+	// TODO: Review what else can be validated here in this method ...
 	return nil
 }
 

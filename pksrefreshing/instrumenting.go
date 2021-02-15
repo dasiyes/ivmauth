@@ -54,3 +54,12 @@ func (s *instrumentingService) DownloadPKSinCache(identityProvider string) {
 		s.requestLatency.With("method", "DownloadPKSinCache").Observe(time.Since(begin).Seconds())
 	}(time.Now())
 }
+
+func (s *instrumentingService) GetIssuerVal(provider string) (string, error) {
+	defer func(begin time.Time) {
+		s.requestCount.With("method", "GetIssuerVal").Add(1)
+		s.requestLatency.With("method", "GetIssuerVal").Observe(time.Since(begin).Seconds())
+	}(time.Now())
+
+	return s.next.GetIssuerVal(provider)
+}

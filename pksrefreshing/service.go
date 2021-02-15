@@ -28,6 +28,9 @@ type Service interface {
 	// DownloadPKSinCache - will check the cache for not expired PKS if not found will download it. Otherwise do nothing.
 	// This feature to be used as preliminary download feature
 	DownloadPKSinCache(identityProvider string)
+
+	// Get the issuer value from the OpenIDProvider stored
+	GetIssuerVal(provider string) (string, error)
 }
 
 type service struct {
@@ -104,10 +107,7 @@ func (s *service) GetRSAPublicKey(identityProvider string, kid string) (n *big.I
 	if err != nil {
 		return &big.Int{}, 0, errors.New("Error getting modulus and public exponent: " + err.Error())
 	}
-	// rsaPK := rsa.PublicKey{
-	// 	N: n,
-	// 	E: e,
-	// }
+
 	return n, e, nil
 }
 
@@ -175,6 +175,19 @@ func (s *service) GetPKSCache(identityProvider string) (*ivmanto.PublicKeySet, e
 	}
 
 	return pks, nil
+}
+
+// Get the issuer value from the OpenIDProvider stored
+func (s *service) GetIssuerVal(provider string) (string, error) {
+
+	var prv *ivmanto.OIDProvider
+	var err error
+
+	prv, err = s.providers.Find(ivmanto.ProviderName(provider))
+	if err != nil {
+		return "", err
+	}
+	return prv.Oidc.Issuer, nil
 }
 
 // NewService creates a authenticating service with necessary dependencies.
