@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net/http"
@@ -8,11 +9,13 @@ import (
 	"os/signal"
 	"syscall"
 
+	"cloud.google.com/go/firestore"
 	"github.com/go-kit/kit/log"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 
 	"ivmanto.dev/ivmauth/authenticating"
+	"ivmanto.dev/ivmauth/firestoredb"
 	"ivmanto.dev/ivmauth/inmem"
 	"ivmanto.dev/ivmauth/ivmanto"
 	"ivmanto.dev/ivmauth/pksrefreshing"
@@ -21,15 +24,15 @@ import (
 
 const (
 	defaultPort = "8080"
-	defaultCID  = "xxx"
-	defaultCSC  = "yyy"
+	defaultGCP  = "ivmauth"
 )
 
 func main() {
 	var (
-		port = envString("PORT", defaultPort)
-		cid  = envString("clientID", defaultCID)
-		csc  = envString("clientSecret", defaultCSC)
+		port      = envString("PORT", defaultPort)
+		cid       = envString("clientID", "")
+		csc       = envString("clientSecret", "")
+		projectID = envString("GCP_PROJECT", defaultGCP)
 
 		httpAddr = flag.String("http.addr", ":"+port, "HTTP listen [localhost]:port")
 		inmemory = flag.Bool("inmem", false, "use in-memory repositories")
@@ -43,7 +46,7 @@ func main() {
 		logger = log.With(logger, "ts", log.DefaultTimestamp)
 	}
 
-	// setup repositories // TODO: [uncomment and set once hte DB is place or inmemory implemented ]
+	// SETUP repositories
 	var (
 		authrequests ivmanto.RequestRepository
 		pubkeys      ivmanto.PublicKeySetRepository
@@ -56,10 +59,23 @@ func main() {
 	oidprv = inmem.NewOIDProviderRepository()
 
 	if *inmemory {
+
 		authrequests = inmem.NewRequestRepository()
 		clients = inmem.NewClientRepository()
+
 	} else {
-		// TODO: implement db repositories
+
+		ctx := context.Background()
+		client, err := firestore.NewClient(ctx, projectID)
+		if err != nil {
+			panic(err)
+		}
+
+		defer client.Close()
+
+		authrequests, _ = firestoredb.NewRequestRepository(&ctx, "authrequests", client)
+		clients, _ = firestoredb.NewClientRepository(&ctx, "clients", client)
+		// TODO: add the rest of the repos
 	}
 
 	// Facilitate testing by adding some sample data
@@ -117,7 +133,7 @@ func main() {
 
 	errs := make(chan error, 2)
 	go func() {
-		logger.Log("transport", "http", "address", *httpAddr, "msg", "listening")
+		_ = logger.Log("transport", "http", "address", *httpAddr, "msg", "listening")
 		errs <- http.ListenAndServe(*httpAddr, srv)
 	}()
 	go func() {
@@ -126,7 +142,7 @@ func main() {
 		errs <- fmt.Errorf("%s", <-c)
 	}()
 
-	logger.Log("terminated", <-errs)
+	_ = logger.Log("terminated", <-errs)
 }
 
 func envString(env, fallback string) string {

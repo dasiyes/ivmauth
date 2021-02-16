@@ -20,7 +20,7 @@ func NewLoggingService(logger log.Logger, s Service) Service {
 
 func (s *loggingService) InitOIDProviders() {
 	defer func(begin time.Time) {
-		s.logger.Log(
+		_ = s.logger.Log(
 			"method", "InitOIDProviders",
 			"took", time.Since(begin),
 		)
@@ -29,7 +29,7 @@ func (s *loggingService) InitOIDProviders() {
 
 func (s *loggingService) GetRSAPublicKey(identityProvider string, kid string) (n *big.Int, e int, err error) {
 	defer func(begin time.Time) {
-		s.logger.Log(
+		_ = s.logger.Log(
 			"method", "GetRSAPublicKey",
 			"identityProvider", identityProvider,
 			"kid", kid,
@@ -42,7 +42,7 @@ func (s *loggingService) GetRSAPublicKey(identityProvider string, kid string) (n
 
 func (s *loggingService) GetPKSCache(identityProvider string) (pks *ivmanto.PublicKeySet, err error) {
 	defer func(begin time.Time) {
-		s.logger.Log(
+		_ = s.logger.Log(
 			"method", "GetPKSCache",
 			"identityProvider", identityProvider,
 			"took", time.Since(begin),
@@ -54,7 +54,7 @@ func (s *loggingService) GetPKSCache(identityProvider string) (pks *ivmanto.Publ
 
 func (s *loggingService) DownloadPKSinCache(identityProvider string) {
 	defer func(begin time.Time) {
-		s.logger.Log(
+		_ = s.logger.Log(
 			"method", "DownloadPKSinCache",
 			"identityProvider", identityProvider,
 			"took", time.Since(begin),
@@ -64,7 +64,7 @@ func (s *loggingService) DownloadPKSinCache(identityProvider string) {
 
 func (s *loggingService) GetIssuerVal(provider string) (iss string, err error) {
 	defer func(begin time.Time) {
-		s.logger.Log(
+		_ = s.logger.Log(
 			"method", "GetIssuerVal",
 			"identityProvider", provider,
 			"issuer", iss,

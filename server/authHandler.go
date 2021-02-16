@@ -36,7 +36,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 
 	reqbody, err := h.aus.GetRequestBody(r)
 	if err != nil {
-		h.logger.Log("error", err)
+		_ = h.logger.Log("error", err)
 		encodeError(ctx, err, w)
 		return
 	}
@@ -50,7 +50,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	}
 
 	// ? Registering auth request
-	h.aus.RegisterNewRequest(r.Header, *reqbody)
+	// h.aus.RegisterNewRequest(r.Header, *reqbody)
 
 	// Validate auth request
 	at, err := h.aus.Validate(r.Header, reqbody, h.pks)
@@ -67,7 +67,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		h.logger.Log("error", err)
+		_ = h.logger.Log("error", err)
 		encodeError(ctx, err, w)
 		return
 	}

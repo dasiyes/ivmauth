@@ -60,15 +60,17 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func version() http.Handler {
+	var ver []byte
+	var err error
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ver, err := ioutil.ReadFile("version")
+		ver, err = ioutil.ReadFile("version")
 		if err != nil {
-			w.Write([]byte(err.Error()))
+			_, _ = w.Write([]byte(err.Error()))
 			return
 		}
 		w.Header().Set("Content-Type", "text/plain")
-		w.Write(ver)
-		return
+		_, _ = w.Write(ver)
 	})
 }
 
@@ -100,7 +102,7 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 	default:
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"error": err.Error(),
 	})
 }

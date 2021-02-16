@@ -73,7 +73,7 @@ func (s *service) newPKS(ip string) error {
 			ProviderName: prvn,
 			Oidc:         oidc,
 		}
-		s.providers.Store(&oidp)
+		_ = s.providers.Store(&oidp)
 
 		// fullfiling PKS
 		pks.URL, err = url.Parse(oidc.JWKSURI)
