@@ -54,7 +54,7 @@ type clientRepository struct {
 
 // Store - stores the clients registrations
 func (cr *clientRepository) Store(c *ivmanto.Client) error {
-	_, _, err := cr.client.Collection(cr.collection).Add(*cr.ctx, c)
+	_, err := cr.client.Collection(cr.collection).Doc(string(c.ClientID)).Set(*cr.ctx, c)
 	if err != nil {
 		return fmt.Errorf("Unable to save in clients Repository. Error: %#v", err)
 	}
