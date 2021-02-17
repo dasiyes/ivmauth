@@ -1,57 +1,3 @@
-package authenticating
-
-import (
-	"bytes"
-	"crypto/rsa"
-	"encoding/json"
-	"errors"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"strings"
-
-	"github.com/dgrijalva/jwt-go"
-	"ivmanto.dev/ivmauth/ivmanto"
-	"ivmanto.dev/ivmauth/pksrefreshing"
-	"ivmanto.dev/ivmauth/utils"
-)
-
-// Service is the interface that provides auth methods.
-type Service interface {
-	// RegisterNewRequest registring a new http request for authentication
-	RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBody) (ivmanto.SessionID, error)
-
-	// Validate the auth request attributes
-	Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pksrefreshing.Service) (ivmanto.AccessToken, error)
-
-	// AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
-	// request Header Authorization: Basic XXX
-	AuthenticateClient(r *http.Request) error
-
-	// GetRequestBody considers the contet type header and reads the request body within ivmanto.AuthRequestBody
-	GetRequestBody(r *http.Request) (b *ivmanto.AuthRequestBody, err error)
-}
-
-type service struct {
-	requests ivmanto.RequestRepository
-	clients  ivmanto.ClientRepository
-}
-
-func (s *service) RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBody) (ivmanto.SessionID, error) {
-
-	if len(rh) == 0 || utils.GetSize(body) == 0 {
-		return "", ErrInvalidArgument
-	}
-
-	id := ivmanto.NextSessionID()
-	ar := ivmanto.NewAuthRequest(id, rh, body)
-
-	if err := s.requests.Store(ar); err != nil {
-		return "", err
-	}
-	return ar.SessionID, nil
-}
-
 // Roles [RFC6749]
 // OAuth defines four roles:
 //    resource owner
@@ -77,41 +23,102 @@ func (s *service) RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBod
 // 	A single authorization server may issue access tokens accepted by
 // 	multiple resource servers.
 
+// 1.3.  Authorization Grant 	[RFC6749]
+//  An authorization grant is a credential representing the resource owner’s authorization (to access its protected resources) used by the client to obtain an access token.  This specification defines four grant types -- authorization code, implicit, resource owner password credentials, and client credentials -- as well as an extensibility mechanism for defining additional types.
+
+// 1.3.1.  Authorization Code
+// 	The authorization code is obtained by using an authorization server as an intermediary between the client and resource owner.  Instead of requesting authorization directly from the resource owner, the client directs the resource owner to an authorization server (via its user-agent as defined in [RFC2616]), which in turn directs the resource owner back to the client with the authorization code. Before directing the resource owner back to the client with the authorization code, the authorization server authenticates the resource owner and obtains authorization.  Because the resource owner only authenticates with the authorization server, the resource owner’s credentials are never shared with the client. The authorization code provides a few important security benefits, such as the ability to authenticate the client, as well as the transmission of the access token directly to the client without passing it through the resource owner’s user-agent and potentially exposing it to others, including the resource owner.
+
+// 3.2.1.  Client Authentication
+//	Confidential clients or other clients issued client credentials MUST authenticate with the authorization server as described in Section 2.3 when making requests to the token endpoint.  Client authentication is used for:
+//	o  Enforcing the binding of refresh tokens and authorization codes to the client they were issued to.  Client authentication is critical when an authorization code is transmitted to the redirection endpoint over an insecure channel or when the redirection URI has not been registered in full.
+//	o  Recovering from a compromised client by disabling the client or changing its credentials, thus preventing an attacker from abusing stolen refresh tokens.  Changing a single set of client credentials is significantly faster than revoking an entire set of refresh tokens.
+//	o  Implementing authentication management best practices, which require periodic credential rotation.  Rotation of an entire set of refresh tokens can be challenging, while rotation of a single set of client credentials is significantly easier. A client MAY use the "client_id" request parameter to identify itself when sending requests to the token endpoint.  In the "authorization_code" "grant_type" request to the token endpoint, an unauthenticated client MUST send its "client_id" to prevent itself from inadvertently accepting a code intended for a client with a different "client_id".  This protects the client from substitution of the authentication code.  (It provides no additional security for the protected resource.)
+
 // Validate receives all POST request calls to /auth path and validates
 // them according to OAuth2 [RFC6749]
-func (s *service) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pksrefreshing.Service) (ivmanto.AccessToken, error) {
-	// According to [RFC6479] Protocol Flow - this part is steps (C)-(D):
-	// receives --(C)-- Authorization Grant -->
-	// returns  <-(D)----- Access Token -------
-	// (C)  The client requests an access token by authenticating with the
-	//       authorization server and presenting the authorization grant.
-	// (D)  The authorization server authenticates the client and validates
-	//       the authorization grant, and if valid, issues an access token.
+//
+// According to [RFC6479] Protocol Flow - this part is steps (C)-(D):
+// receives --(C)-- Authorization Grant -->
+// returns  <-(D)----- Access Token -------
+// (C)  The client requests an access token by authenticating with the
+//       authorization server and presenting the authorization grant.
+// (D)  The authorization server authenticates the client and validates
+//       the authorization grant, and if valid, issues an access token.
+//
+// * [1] Get the ClientID / ClientSecret from the req headers. [step (C) client authentication]
+// * [1.1] authenticate the client [step (D) autenticate client]
+// 	 - step 1.1) is done by the method AuthenticateClient, called from authHandler.authenticateRequest
+//
+// * [2] Identify the grant_type [step (C) presents authorization grant] The client receives an authorization grant, which is a credential representing the resource owner’s authorization, expressed using one of four grant types defined in this specification or using an extension grant type.  The authorization grant type depends on the method used by the client to request authorization and the types supported by the authorization server.
+// * [2.1] Switch the logic based on the identified grant_type at [2].
+// * [2.2] validate the authorization grant
+// * [3] issue a new Access Token for the realm IVMANTO. Consider the scopes.
 
-	// 1) Get the ClientID / ClientSecret from the req headers. [step (C) client authentication]
-	// 1.1) authenticate the client [step (D) autenticate client]
-	// step 1.1) is done by the method AuthenticateClient, called from authHandler.authenticateRequest
+package authenticating
 
-	// 2) Identify the grant_type [step (C) presents authorization grant]
-	// The client receives an authorization grant, which is a
-	// credential representing the resource owner’s authorization,
-	// expressed using one of four grant types defined in this
-	// specification or using an extension grant type.  The
-	// authorization grant type depends on the method used by the
-	// client to request authorization and the types supported by the
-	// authorization server.
-	// ...
-	//1.3.  Authorization Grant
-	// An authorization grant is a credential representing the resource
-	// owner’s authorization (to access its protected resources) used by the
-	// client to obtain an access token.  This specification defines four
-	// grant types -- authorization code, implicit, resource owner password
-	// credentials, and client credentials -- as well as an extensibility
-	// mechanism for defining additional types.
+import (
+	"bytes"
+	"crypto/rsa"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strings"
 
-	// Check grant type and identity provider name presence
+	"github.com/dgrijalva/jwt-go"
+	"ivmanto.dev/ivmauth/ivmanto"
+	"ivmanto.dev/ivmauth/pksrefreshing"
+	"ivmanto.dev/ivmauth/utils"
+)
+
+// Service is the interface that provides auth methods.
+type Service interface {
+	// RegisterNewRequest registring a new http request for authentication
+	RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBody) (ivmanto.SessionID, error)
+
+	// Validate the auth request according to OAuth2 sepcification (see the notes at the top of of this file)
+	Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pksrefreshing.Service) (*ivmanto.AccessToken, error)
+
+	// AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
+	// request Header Authorization: Basic XXX
+	AuthenticateClient(r *http.Request) error
+
+	// GetRequestBody considers the contet type header and reads the request body within ivmanto.AuthRequestBody
+	GetRequestBody(r *http.Request) (b *ivmanto.AuthRequestBody, err error)
+
+	// IssueAccessToken for the successfully authenticated and authorized requests [realm IVMANTO]
+	IssueAccessToken(oidt *ivmanto.IDToken) (*ivmanto.AccessToken, error)
+}
+
+type service struct {
+	requests ivmanto.RequestRepository
+	clients  ivmanto.ClientRepository
+}
+
+func (s *service) RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBody) (ivmanto.SessionID, error) {
+
+	if len(rh) == 0 || utils.GetSize(body) == 0 {
+		return "", ErrInvalidArgument
+	}
+
+	id := ivmanto.NextSessionID()
+	ar := ivmanto.NewAuthRequest(id, rh, body)
+
+	if err := s.requests.Store(ar); err != nil {
+		return "", err
+	}
+	return ar.SessionID, nil
+}
+
+func (s *service) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pksrefreshing.Service) (*ivmanto.AccessToken, error) {
+
+	var err error
+
+	// [2]
 	if rh.Get("x-grant-type") == "" || rh.Get("x-token-type") == "" {
-		return ivmanto.AccessToken{}, ivmanto.ErrUnknownGrantType
+		return &ivmanto.AccessToken{}, ivmanto.ErrUnknownGrantType
 	}
 
 	var authGrantType, xgt, idP string
@@ -120,21 +127,21 @@ func (s *service) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pk
 	idP = rh.Get("x-token-type")
 	xgt = rh.Get("x-grant-type")
 
+	// [2.1]
 	switch xgt {
 	case "id_token":
 
-		var err error
 		var tkn *jwt.Token
 
 		tkn, oidtoken, err = validateIDToken(body.IDToken, idP, pks)
 
 		if err != nil || !tkn.Valid {
-			return ivmanto.AccessToken{}, ErrAuthenticating
+			return &ivmanto.AccessToken{}, ErrAuthenticating
 		}
 
 		err = validateOpenIDClaims(oidtoken, body, idP, pks)
 		if err != nil {
-			return ivmanto.AccessToken{}, ErrAuthenticating
+			return &ivmanto.AccessToken{}, ErrAuthenticating
 		}
 
 		authGrantType = "implicit"
@@ -147,31 +154,14 @@ func (s *service) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pk
 		authGrantType = "client_credentials"
 	}
 
+	// [2.2]
 	switch authGrantType {
 
-	// 1.3.1.  Authorization Code
-	// 	The authorization code is obtained by using an authorization server
-	// 	as an intermediary between the client and resource owner.  Instead of
-	// 	requesting authorization directly from the resource owner, the client
-	// 	directs the resource owner to an authorization server (via its
-	// 	user-agent as defined in [RFC2616]), which in turn directs the
-	// 	resource owner back to the client with the authorization code.
-	// 	Before directing the resource owner back to the client with the
-	// 	authorization code, the authorization server authenticates the
-	// 	resource owner and obtains authorization.  Because the resource owner
-	// 	only authenticates with the authorization server, the resource
-	// 	owner’s credentials are never shared with the client.
-	// 	The authorization code provides a few important security benefits,
-	// 	such as the ability to authenticate the client, as well as the
-	// 	transmission of the access token directly to the client without
-	// 	passing it through the resource owner’s user-agent and potentially
-	// 	exposing it to others, including the resource owner.
 	case "authorization_code":
 
 	case "implicit":
 
 		fmt.Printf("...evrything looks good: %#v;\n", oidtoken)
-		// TODO: to issue the Access Token?
 		// TODO: in separate go routine register the user from the IDToken, if not already in the db. if the user email is already in - connect the Identity Provider to the existing account.
 
 	case "password_credentials":
@@ -181,45 +171,15 @@ func (s *service) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pk
 	default:
 
 	}
-	// TODO: 2.1) switch according to the authorization GRANT TYPE
-	// ...
-	// TODO: 2.2) validate the authorization grant
-	// ...
+
 	// TODO: 3) ONLY IF 2.2 is VALID - compose the correct access token object!
-	// ...
-	at := ivmanto.AccessToken{}
+	var at *ivmanto.AccessToken
+	at, _ = s.IssueAccessToken(oidtoken)
+
 	return at, nil
 }
 
-// 3.2.1.  Client Authentication
-// 	Confidential clients or other clients issued client credentials MUST
-// 	authenticate with the authorization server as described in
-// 	Section 2.3 when making requests to the token endpoint.  Client
-// 	authentication is used for:
-// 	o  Enforcing the binding of refresh tokens and authorization codes to
-// 		the client they were issued to.  Client authentication is critical
-// 		when an authorization code is transmitted to the redirection
-// 		endpoint over an insecure channel or when the redirection URI has
-// 		not been registered in full.
-// 	o  Recovering from a compromised client by disabling the client or
-// 		changing its credentials, thus preventing an attacker from abusing
-// 		stolen refresh tokens.  Changing a single set of client
-// 		credentials is significantly faster than revoking an entire set of
-// 		refresh tokens.
-// 	o  Implementing authentication management best practices, which
-// 		require periodic credential rotation.  Rotation of an entire set
-// 		of refresh tokens can be challenging, while rotation of a single
-// 		set of client credentials is significantly easier.
-// 	A client MAY use the "client_id" request parameter to identify itself
-// 	when sending requests to the token endpoint.  In the
-// 	"authorization_code" "grant_type" request to the token endpoint, an
-// 	unauthenticated client MUST send its "client_id" to prevent itself
-// 	from inadvertently accepting a code intended for a client with a
-// 	different "client_id".  This protects the client from substitution of
-// 	the authentication code.  (It provides no additional security for the
-// 	protected resource.)
-
-// AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
+// [3.2.1] AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
 func (s *service) AuthenticateClient(r *http.Request) error {
 
 	var cID, cSec string
@@ -241,7 +201,6 @@ func (s *service) AuthenticateClient(r *http.Request) error {
 		return ErrClientAuth
 	}
 
-	// Find the client registration
 	rc, err := s.clients.Find(ivmanto.ClientID(cID))
 	if err != nil {
 		return err
@@ -299,6 +258,12 @@ func (s *service) GetRequestBody(r *http.Request) (*ivmanto.AuthRequestBody, err
 		}
 	}
 	return &rb, nil
+}
+
+// IssueAccessToken for the successfully authenticated and authorized requests [realm IVMANTO]
+func (s *service) IssueAccessToken(oidt *ivmanto.IDToken) (*ivmanto.AccessToken, error) {
+
+	return nil, nil
 }
 
 // Get the client ID and the Client secret from web form url encoded
@@ -405,8 +370,6 @@ func validateOpenIDClaims(
 	if err = oidt.Valid(); err != nil {
 		return err
 	}
-
-	// {Iss:"https://accounts.google.com", Sub:"111378573917627854055", Aud:"674034520731-svnfvha7sbp971ubg0mckamaac07jhc2.apps.googleusercontent.com", Exp:1613414482, Iat:1613410882, AuthTime:0, Nonce:"NUAAKDvvoM2o7Lwmc3e3q6zcrD8ipZoQ", Acr:"", Amr:"", Azp:"674034520731-svnfvha7sbp971ubg0mckamaac07jhc2.apps.googleusercontent.com", Email:"nikolay.tonev@gmail.com", EmailVerified:true, Name:"Nikolay Tonev", FirstName:"Nikolay", FamilyName:"Tonev", Jti:"7e56fd3faed79724789d7109739942bd5b2cf1e3", Picture:"https://lh3.googleusercontent.com/a-/AOh14Gj07AlGItR3b4Q-hPDlUQ8pl_Fey5UeMHGkDKLVEA=s96-c"}
 
 	var issval string
 

@@ -20,7 +20,7 @@ func NewLoggingService(logger log.Logger, s Service) Service {
 	return &loggingService{logger, s}
 }
 
-func (s *loggingService) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pksrefreshing.Service) (at ivmanto.AccessToken, err error) {
+func (s *loggingService) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pksrefreshing.Service) (at *ivmanto.AccessToken, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "validate",
@@ -66,4 +66,15 @@ func (s *loggingService) GetRequestBody(r *http.Request) (b *ivmanto.AuthRequest
 		)
 	}(time.Now())
 	return s.next.GetRequestBody(r)
+}
+
+func (s *loggingService) IssueAccessToken(oidt *ivmanto.IDToken) (at *ivmanto.AccessToken, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "IssueAccessToken",
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.next.IssueAccessToken(oidt)
 }

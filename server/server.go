@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"ivmanto.dev/ivmauth/authenticating"
@@ -36,6 +37,8 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 	r := chi.NewRouter()
 
 	r.Use(accessControl)
+	r.Use(requestsLogging(s.Logger))
+
 	// TODO: Add compression and other must have middleware functions
 
 	ach := authClientHandler{s.Auth, s.Logger}
@@ -86,6 +89,21 @@ func accessControl(h http.Handler) http.Handler {
 
 		h.ServeHTTP(w, r)
 	})
+}
+
+func requestsLogging(lg kitlog.Logger) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+			_ = level.Debug(lg).Log(
+				"host", r.Host,
+				"method", r.Method,
+				"path", r.RequestURI,
+				"remote", r.RemoteAddr,
+			)
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func encodeError(_ context.Context, err error, w http.ResponseWriter) {
