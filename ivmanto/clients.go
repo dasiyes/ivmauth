@@ -16,6 +16,7 @@ type Client struct {
 	ClientSecret  string
 	ClientProfile ClientProfile
 	Status        ClientStatus
+	Scopes        Scopes
 }
 
 // ClientProfile is a client Descriptor
@@ -31,15 +32,18 @@ func (c *Client) AssignProfile(p ClientProfile) {
 }
 
 // NewClient creates a new client.
-// TODO: write a method to generate the secrets
 func NewClient(id ClientID, status ClientStatus) *Client {
+	// TODO: write a method to generate the secrets
+	// TODO: make the concept for creating and using the scopes
 	profile := ClientProfile{}
+	scopes := Scopes{}
 
 	return &Client{
 		ClientID:      id,
 		ClientSecret:  "",
 		ClientProfile: profile,
 		Status:        status,
+		Scopes:        scopes,
 	}
 }
 
@@ -78,4 +82,10 @@ func (s ClientStatus) String() string {
 		return "NotActive"
 	}
 	return ""
+}
+
+// Scopes is the Ivmanto's authrozation objects
+type Scopes struct {
+	Key string
+	Val []string
 }

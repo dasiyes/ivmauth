@@ -42,7 +42,7 @@ func (s *instrumentingService) Validate(rh http.Header, body *ivmanto.AuthReques
 	return s.next.Validate(rh, body, pks)
 }
 
-func (s *instrumentingService) AuthenticateClient(r *http.Request) (err error) {
+func (s *instrumentingService) AuthenticateClient(r *http.Request) (rc *ivmanto.Client, err error) {
 	defer func(begin time.Time) {
 		s.requestCount.With("method", "AuthenticateClient").Add(1)
 		s.requestLatency.With("method", "AuthenticateClient").Observe(time.Since(begin).Seconds())

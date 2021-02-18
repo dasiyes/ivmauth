@@ -30,9 +30,12 @@ func TestAuthenticateClientAH(t *testing.T) {
 	req := httptest.NewRequest("POST", "http://localhost:8080/v1/auth", nil)
 	req.Header.Set("Authorization", bc)
 
-	err := s.AuthenticateClient(req)
+	rc, err := s.AuthenticateClient(req)
 	if err != nil {
 		t.Errorf("AuthenticateClient returned error: %#v;\n", err)
+	}
+	if rc.ClientID != "xxx.apps.ivmanto.dev" {
+		t.Errorf("AuthenticateClient returned error. ClientID does not match. Returned value %#v;\n %#v;\n", rc.ClientID, "xxx.apps.ivmanto.dev")
 	}
 }
 
@@ -55,9 +58,12 @@ func TestAuthenticateClientWFUE(t *testing.T) {
 	req := httptest.NewRequest("POST", "https://localhost:8080/v1/auth", strings.NewReader(formdata))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	err := s.AuthenticateClient(req)
+	rc, err := s.AuthenticateClient(req)
 	if err != nil {
 		t.Errorf("AuthenticateClient returned error: %#v;\n", err)
+	}
+	if rc.ClientID != "xxx.apps.ivmanto.dev" {
+		t.Errorf("AuthenticateClient returned error. ClientID does not match. Returned value %#v;\n %#v;\n", rc.ClientID, "xxx.apps.ivmanto.dev")
 	}
 }
 

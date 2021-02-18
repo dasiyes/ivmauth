@@ -61,7 +61,6 @@ import (
 	"bytes"
 	"crypto/rsa"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -83,7 +82,7 @@ type Service interface {
 
 	// AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
 	// request Header Authorization: Basic XXX
-	AuthenticateClient(r *http.Request) error
+	AuthenticateClient(r *http.Request) (*ivmanto.Client, error)
 
 	// GetRequestBody considers the contet type header and reads the request body within ivmanto.AuthRequestBody
 	GetRequestBody(r *http.Request) (b *ivmanto.AuthRequestBody, err error)
@@ -100,7 +99,7 @@ type service struct {
 func (s *service) RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBody) (ivmanto.SessionID, error) {
 
 	if len(rh) == 0 || utils.GetSize(body) == 0 {
-		return "", ErrInvalidArgument
+		return "", ivmanto.ErrInvalidArgument
 	}
 
 	id := ivmanto.NextSessionID()
@@ -136,12 +135,12 @@ func (s *service) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pk
 		tkn, oidtoken, err = validateIDToken(body.IDToken, idP, pks)
 
 		if err != nil || !tkn.Valid {
-			return &ivmanto.AccessToken{}, ErrAuthenticating
+			return &ivmanto.AccessToken{}, ivmanto.ErrAuthenticating
 		}
 
 		err = validateOpenIDClaims(oidtoken, body, idP, pks)
 		if err != nil {
-			return &ivmanto.AccessToken{}, ErrAuthenticating
+			return &ivmanto.AccessToken{}, ivmanto.ErrAuthenticating
 		}
 
 		authGrantType = "implicit"
@@ -180,7 +179,7 @@ func (s *service) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pk
 }
 
 // [3.2.1] AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
-func (s *service) AuthenticateClient(r *http.Request) error {
+func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 
 	var cID, cSec string
 	var err error
@@ -190,25 +189,25 @@ func (s *service) AuthenticateClient(r *http.Request) error {
 	case "application/x-www-form-urlencoded":
 		cID, cSec, err = getClientIDSecWFUE(r)
 		if err != nil {
-			return ErrClientAuth
+			return nil, ivmanto.ErrClientAuth
 		}
 	case "application/json":
 		cID, cSec, _ = r.BasicAuth()
 		if cID == "" || cSec == "" {
-			return ErrClientAuth
+			return nil, ivmanto.ErrClientAuth
 		}
 	default:
-		return ErrClientAuth
+		return nil, ivmanto.ErrClientAuth
 	}
 
 	rc, err := s.clients.Find(ivmanto.ClientID(cID))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if rc.ClientSecret != cSec {
-		return ErrClientAuth
+		return nil, ivmanto.ErrClientAuth
 	}
-	return nil
+	return rc, nil
 }
 
 // GetRequestBody considers the contet type header and reads the request body within ivmanto.AuthRequestBody
@@ -220,7 +219,7 @@ func (s *service) GetRequestBody(r *http.Request) (*ivmanto.AuthRequestBody, err
 	if r.Header.Get("Content-Type") == "application/json" {
 
 		if err = json.NewDecoder(r.Body).Decode(&rb); err != nil {
-			return nil, ErrGetRequestBody
+			return nil, ivmanto.ErrGetRequestBody
 		}
 
 	} else if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
@@ -237,7 +236,7 @@ func (s *service) GetRequestBody(r *http.Request) (*ivmanto.AuthRequestBody, err
 		defer r.Body.Close()
 		body, err = ioutil.ReadAll(r.Body)
 		if err != nil {
-			return nil, ErrGetRequestBody
+			return nil, ivmanto.ErrGetRequestBody
 		}
 
 		fp = strings.Split(string(body), "&")
@@ -319,7 +318,7 @@ func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (
 		tKid := token.Header["kid"].(string)
 		alg := token.Method.Alg()
 		if strings.ToUpper(token.Header["typ"].(string)) != "JWT" {
-			return "", ErrAuthenticating
+			return "", ivmanto.ErrAuthenticating
 		}
 		switch alg {
 		case "RS256":
@@ -357,14 +356,14 @@ func validateOpenIDClaims(
 	var err error
 
 	if oidt.Nonce != body.Nonce {
-		return ErrSessionToken
+		return ivmanto.ErrSessionToken
 	}
 
 	// ISSUE: jwt-go package does not support loading the toke claims into IDToken when the AUD type is set to array of[]string. With flat string type works well.
 	// TODO: report the issue to package repo...
 
 	if oidt.Aud != body.AsrCID {
-		return ErrCompromisedAud
+		return ivmanto.ErrCompromisedAud
 	}
 
 	if err = oidt.Valid(); err != nil {
@@ -375,20 +374,20 @@ func validateOpenIDClaims(
 
 	issval, err = pks.GetIssuerVal(idP)
 	if err != nil {
-		return fmt.Errorf("%v inner %v", ErrInvalidIDToken, err)
+		return fmt.Errorf("%v inner %v", ivmanto.ErrInvalidIDToken, err)
 	}
 	if oidt.Iss != issval {
-		return ErrInvalidIDToken
+		return ivmanto.ErrInvalidIDToken
 	}
 
 	if oidt.Azp != "" && body.ClientID != "" {
 		if oidt.Azp != body.ClientID {
-			return fmt.Errorf("%v inner %v", ErrInvalidIDToken, "authorized party not verified")
+			return fmt.Errorf("%v inner %v", ivmanto.ErrInvalidIDToken, "authorized party not verified")
 		}
 	}
 
 	if oidt.Aud != body.ClientID {
-		return ErrInvalidIDToken
+		return ivmanto.ErrInvalidIDToken
 	}
 
 	// TODO: Review what else can be validated here in this method ...
@@ -402,27 +401,3 @@ func NewService(requests ivmanto.RequestRepository, clients ivmanto.ClientReposi
 		clients:  clients,
 	}
 }
-
-// ErrInvalidArgument is returned when one or more arguments are invalid.
-var ErrInvalidArgument = errors.New("invalid argument")
-
-// ErrClientAuth is returned when client Basic authentication fails
-var ErrClientAuth = errors.New("invalid client authentication credentials")
-
-// ErrGetRequestBody is returned when reading the request body
-var ErrGetRequestBody = errors.New("error reading request body")
-
-// ErrAuthenticating is returned when the authentication process fails
-var ErrAuthenticating = errors.New("authentication failed")
-
-// ErrTLS - returned when the content-type is set to "application/x-www-form-urlencoded" and no TLS is used
-var ErrTLS = errors.New("unsecured transport of credentials")
-
-// ErrSessionToken - when the NONCE value from the IDToken does not match the value sent from the client in the auth request body
-var ErrSessionToken = errors.New("invalid session token")
-
-// ErrCompromisedAud - will be returned when the valid of the ClientID returned to the client from the authorization server alongside with the IDToken, does not match the aud value in the IDToken
-var ErrCompromisedAud = errors.New("compromised audience")
-
-// ErrInvalidIDToken - will be returned if the IDToken does not match the requirements of the OPenID standard for IDToken
-var ErrInvalidIDToken = errors.New("invalid openID IDToken")

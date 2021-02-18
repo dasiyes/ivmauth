@@ -2,7 +2,6 @@
 package ivmanto
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -55,12 +54,6 @@ type RequestRepository interface {
 	Find(id SessionID) (*AuthRequest, error)
 	FindAll() []*AuthRequest
 }
-
-// ErrUnknownGrantType is used when could not be find grant-type attribute.
-var ErrUnknownGrantType = errors.New("unknown grant type")
-
-// ErrInvalidArgument is used when some of the required arguments is missing or wrong
-var ErrInvalidArgument = errors.New("invalid argument")
 
 // NextSessionID generates a new tracking ID.
 func NextSessionID() SessionID {

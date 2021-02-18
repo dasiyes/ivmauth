@@ -171,20 +171,20 @@ components:
       description: Object structure for Error resonses
       additionalProperties: false
       required:
-        - error
         - errorCode
+        - error
       properties:
-        error:
-          type: string
-          description: Short name of the error
-          maxLength: 50
-          pattern: '^[0-9A-Za-z ]$'
         errorCode:
           type: integer
           description: Error code from the internal list of errors
           minimum: 0
           maximum: 10000
           format: int32
+        error:
+          type: string
+          description: Short name of the error
+          maxLength: 50
+          pattern: '^[0-9A-Za-z ]$'
         message:
           type: string
           description: additional error information

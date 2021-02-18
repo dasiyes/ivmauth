@@ -32,12 +32,11 @@ func (h *authHandler) router() chi.Router {
 }
 
 func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
 
 	reqbody, err := h.aus.GetRequestBody(r)
 	if err != nil {
 		_ = h.logger.Log("error", err)
-		encodeError(ctx, err, w)
+		ivmanto.EncodeError(context.TODO(), http.StatusBadRequest, err, w)
 		return
 	}
 
@@ -55,7 +54,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	// Validate auth request
 	at, err := h.aus.Validate(r.Header, reqbody, h.pks)
 	if err != nil {
-		encodeError(ctx, err, w)
+		ivmanto.EncodeError(context.TODO(), http.StatusForbidden, err, w)
 		return
 	}
 
@@ -64,7 +63,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		_ = h.logger.Log("error", err)
-		encodeError(ctx, err, w)
+		ivmanto.EncodeError(context.TODO(), http.StatusInternalServerError, err, w)
 		return
 	}
 }
