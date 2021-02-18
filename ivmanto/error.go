@@ -38,6 +38,9 @@ var (
 
 	// ErrCompromisedAud - will be returned when the valid of the ClientID returned to the client from the authorization server alongside with the IDToken, does not match the aud value in the IDToken
 	ErrCompromisedAud = errors.New("compromised audience")
+
+	// ErrUnknownClient is used when a cargo could not be found.
+	ErrUnknownClient = errors.New("unknown client")
 )
 
 const (
@@ -62,9 +65,9 @@ func EncodeError(_ context.Context, rs int, err error, w http.ResponseWriter) {
 			w.Header().Set("WWW-Authenticate", "Newauth realm\"ivmanto\"")
 		}
 		w.WriteHeader(rs)
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
 	}
-
-	w.WriteHeader(http.StatusInternalServerError)
 
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"errorCode": rs, "error": err.Error(),

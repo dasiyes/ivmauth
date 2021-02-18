@@ -29,6 +29,7 @@ func TestAuthenticateClientAH(t *testing.T) {
 	// create a new request to use for the function test
 	req := httptest.NewRequest("POST", "http://localhost:8080/v1/auth", nil)
 	req.Header.Set("Authorization", bc)
+	req.Header.Set("Content-Type", "application/json")
 
 	rc, err := s.AuthenticateClient(req)
 	if err != nil {

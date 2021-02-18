@@ -1,7 +1,6 @@
 package ivmanto
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/pborman/uuid"
@@ -53,9 +52,6 @@ type ClientRepository interface {
 	Find(id ClientID) (*Client, error)
 	FindAll() []*Client
 }
-
-// ErrUnknownCargo is used when a cargo could not be found.
-var ErrUnknownCargo = errors.New("unknown client")
 
 // NextClientID generates a new client ID.
 func NextClientID(appname string) ClientID {

@@ -67,6 +67,7 @@ import (
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/dvsekhvalnov/jose2go/base64url"
 	"ivmanto.dev/ivmauth/ivmanto"
 	"ivmanto.dev/ivmauth/pksrefreshing"
 	"ivmanto.dev/ivmauth/utils"
@@ -184,7 +185,10 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 	var cID, cSec string
 	var err error
 
+	// TODO: ....... X-IVM-CLIENT
+
 	ahct := r.Header.Get("Content-Type")
+
 	switch ahct {
 	case "application/x-www-form-urlencoded":
 		cID, cSec, err = getClientIDSecWFUE(r)
@@ -192,10 +196,21 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 			return nil, ivmanto.ErrClientAuth
 		}
 	case "application/json":
-		cID, cSec, _ = r.BasicAuth()
-		if cID == "" || cSec == "" {
-			return nil, ivmanto.ErrClientAuth
+		xic := r.Header.Get("x-ivm-client")
+		hab := r.Header.Get("Authorization")
+
+		if xic == "" && strings.HasPrefix(hab, "Basic ") {
+			cID, cSec, _ = r.BasicAuth()
+			if cID == "" || cSec == "" {
+				return nil, ivmanto.ErrClientAuth
+			}
+		} else {
+			cID, cSec = getXClient(xic)
+			if cID == "" || cSec == "" {
+				return nil, ivmanto.ErrClientAuth
+			}
 		}
+
 	default:
 		return nil, ivmanto.ErrClientAuth
 	}
@@ -208,6 +223,26 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 		return nil, ivmanto.ErrClientAuth
 	}
 	return rc, nil
+}
+
+// getXClient - retrievs the ClientID and Client Secret from the custom header X-IVM-CLIENT for the cases when the Authorization header is having Bearer token
+func getXClient(xic string) (cid string, csc string) {
+	cis := strings.Split(xic, " ")
+	if len(cis) != 2 && cis[0] == "Basic" {
+		return "", ""
+	}
+
+	dc, err := base64url.Decode(cis[1])
+	if err != nil {
+		return "", ""
+	}
+
+	cp := strings.Split(string(dc), ":")
+	if len(cp) == 1 {
+		return "", ""
+	}
+
+	return cp[0], cp[1]
 }
 
 // GetRequestBody considers the contet type header and reads the request body within ivmanto.AuthRequestBody
