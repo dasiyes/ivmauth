@@ -53,7 +53,12 @@ func authClients(lg kitlog.Logger, au authenticating.Service) func(next http.Han
 			}
 			rsClient, err := au.AuthenticateClient(r)
 			if err != nil {
-				ivmanto.EncodeError(context.TODO(), http.StatusUnauthorized, ivmanto.ErrClientAuth, w)
+				switch err {
+				case ivmanto.ErrBadRequest:
+					ivmanto.EncodeError(context.TODO(), http.StatusBadRequest, ivmanto.ErrClientAuth, w)
+				default:
+					ivmanto.EncodeError(context.TODO(), http.StatusUnauthorized, ivmanto.ErrClientAuth, w)
+				}
 				return
 			}
 			key := rsClient.ClientID

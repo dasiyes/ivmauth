@@ -162,7 +162,7 @@ func storeTestData(c ivmanto.ClientRepository, cid, csc string) {
 
 	client2 := ivmanto.NewClient("xxx.apps.ivmanto.dev", ivmanto.Active)
 	client2.ClientSecret = "ivmanto-2021"
-	if err := c.Store(client1); err != nil {
+	if err := c.Store(client2); err != nil {
 		fmt.Printf("error saving test data: %#v;\n", err)
 	}
 }

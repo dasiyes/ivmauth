@@ -18,6 +18,9 @@ var (
 
 	// # AUTHENTICATION
 
+	// ErrBadRequest is returned when the request does not pass the expected configuration
+	ErrBadRequest = errors.New("bad request")
+
 	// ErrInvalidIDToken is returned when some of the validation points of IDToken are failing
 	ErrInvalidIDToken = errors.New("invalid openId Connect IDToken")
 

@@ -193,7 +193,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 	case "application/x-www-form-urlencoded":
 		cID, cSec, err = getClientIDSecWFUE(r)
 		if err != nil {
-			return nil, ivmanto.ErrClientAuth
+			return nil, ivmanto.ErrBadRequest
 		}
 	case "application/json":
 		xic := r.Header.Get("x-ivm-client")
@@ -202,17 +202,17 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 		if xic == "" && strings.HasPrefix(hab, "Basic ") {
 			cID, cSec, _ = r.BasicAuth()
 			if cID == "" || cSec == "" {
-				return nil, ivmanto.ErrClientAuth
+				return nil, ivmanto.ErrBadRequest
 			}
 		} else {
 			cID, cSec = getXClient(xic)
 			if cID == "" || cSec == "" {
-				return nil, ivmanto.ErrClientAuth
+				return nil, ivmanto.ErrBadRequest
 			}
 		}
 
 	default:
-		return nil, ivmanto.ErrClientAuth
+		return nil, ivmanto.ErrBadRequest
 	}
 
 	rc, err := s.clients.Find(ivmanto.ClientID(cID))
