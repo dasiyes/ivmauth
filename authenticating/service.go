@@ -76,10 +76,10 @@ import (
 // Service is the interface that provides auth methods.
 type Service interface {
 	// RegisterNewRequest registring a new http request for authentication
-	RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBody) (ivmanto.SessionID, error)
+	RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.SessionID, error)
 
 	// Validate the auth request according to OAuth2 sepcification (see the notes at the top of of this file)
-	Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pksrefreshing.Service) (*ivmanto.AccessToken, error)
+	Validate(rh *http.Header, body *ivmanto.AuthRequestBody, pks pksrefreshing.Service, client *ivmanto.Client) (*ivmanto.AccessToken, error)
 
 	// AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
 	// request Header Authorization: Basic XXX
@@ -89,7 +89,7 @@ type Service interface {
 	GetRequestBody(r *http.Request) (b *ivmanto.AuthRequestBody, err error)
 
 	// IssueAccessToken for the successfully authenticated and authorized requests [realm IVMANTO]
-	IssueAccessToken(oidt *ivmanto.IDToken) (*ivmanto.AccessToken, error)
+	IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client) (*ivmanto.AccessToken, error)
 }
 
 type service struct {
@@ -97,14 +97,14 @@ type service struct {
 	clients  ivmanto.ClientRepository
 }
 
-func (s *service) RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBody) (ivmanto.SessionID, error) {
+func (s *service) RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.SessionID, error) {
 
-	if len(rh) == 0 || utils.GetSize(body) == 0 {
+	if len(*rh) == 0 || utils.GetSize(body) == 0 {
 		return "", ivmanto.ErrInvalidArgument
 	}
 
 	id := ivmanto.NextSessionID()
-	ar := ivmanto.NewAuthRequest(id, rh, body)
+	ar := ivmanto.NewAuthRequest(id, *rh, body, client)
 
 	if err := s.requests.Store(ar); err != nil {
 		return "", err
@@ -112,13 +112,17 @@ func (s *service) RegisterNewRequest(rh http.Header, body ivmanto.AuthRequestBod
 	return ar.SessionID, nil
 }
 
-func (s *service) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pksrefreshing.Service) (*ivmanto.AccessToken, error) {
+func (s *service) Validate(
+	rh *http.Header,
+	body *ivmanto.AuthRequestBody,
+	pks pksrefreshing.Service,
+	client *ivmanto.Client) (*ivmanto.AccessToken, error) {
 
 	var err error
 
 	// [2]
 	if rh.Get("x-grant-type") == "" || rh.Get("x-token-type") == "" {
-		return &ivmanto.AccessToken{}, ivmanto.ErrUnknownGrantType
+		return nil, ivmanto.ErrUnknownGrantType
 	}
 
 	var authGrantType, xgt, idP string
@@ -136,12 +140,12 @@ func (s *service) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pk
 		tkn, oidtoken, err = validateIDToken(body.IDToken, idP, pks)
 
 		if err != nil || !tkn.Valid {
-			return &ivmanto.AccessToken{}, ivmanto.ErrAuthenticating
+			return nil, ivmanto.ErrAuthenticating
 		}
 
 		err = validateOpenIDClaims(oidtoken, body, idP, pks)
 		if err != nil {
-			return &ivmanto.AccessToken{}, ivmanto.ErrAuthenticating
+			return nil, ivmanto.ErrAuthenticating
 		}
 
 		authGrantType = "implicit"
@@ -155,6 +159,8 @@ func (s *service) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pk
 	}
 
 	// [2.2]
+	var at *ivmanto.AccessToken
+
 	switch authGrantType {
 
 	case "authorization_code":
@@ -164,6 +170,12 @@ func (s *service) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pk
 		fmt.Printf("...evrything looks good: %#v;\n", oidtoken)
 		// TODO: in separate go routine register the user from the IDToken, if not already in the db. if the user email is already in - connect the Identity Provider to the existing account.
 
+		// TODO: 3) ONLY IF 2.2 is VALID - compose the correct access token object!
+		at, err = s.IssueAccessToken(oidtoken, client)
+		if err != nil {
+			return nil, ivmanto.ErrIssuingAT
+		}
+
 	case "password_credentials":
 
 	case "client_credentials":
@@ -171,10 +183,6 @@ func (s *service) Validate(rh http.Header, body *ivmanto.AuthRequestBody, pks pk
 	default:
 
 	}
-
-	// TODO: 3) ONLY IF 2.2 is VALID - compose the correct access token object!
-	var at *ivmanto.AccessToken
-	at, _ = s.IssueAccessToken(oidtoken)
 
 	return at, nil
 }
@@ -295,9 +303,13 @@ func (s *service) GetRequestBody(r *http.Request) (*ivmanto.AuthRequestBody, err
 }
 
 // IssueAccessToken for the successfully authenticated and authorized requests [realm IVMANTO]
-func (s *service) IssueAccessToken(oidt *ivmanto.IDToken) (*ivmanto.AccessToken, error) {
+func (s *service) IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client) (*ivmanto.AccessToken, error) {
 
-	return nil, nil
+	atcfg := ivmanto.ATCfg{Validity: 3600, Realm: "ivmanto"}
+	scopes := client.Scopes
+
+	iat := ivmanto.NewIvmantoAccessToken(&scopes, &atcfg)
+	return iat, nil
 }
 
 // Get the client ID and the Client secret from web form url encoded

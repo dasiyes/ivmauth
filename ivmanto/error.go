@@ -44,6 +44,15 @@ var (
 
 	// ErrUnknownClient is used when a cargo could not be found.
 	ErrUnknownClient = errors.New("unknown client")
+
+	// ErrInvalidPubliKeySet is used when new key fails to update PublicKeySet.
+	ErrInvalidPubliKeySet = errors.New("invalid public key set")
+
+	// ErrUnknownMethod is used when during Access Token generation the signing method is not defined
+	ErrUnknownMethod = errors.New("unknown signing method")
+
+	// ErrIssuingAT is used when the issue of the Access Token has failed.
+	ErrIssuingAT = errors.New("error generating access token")
 )
 
 const (
@@ -55,6 +64,14 @@ const (
 	// IntErrClientAuth failling operations in client auth
 	IntErrClientAuth
 )
+
+// InvalidPubliKeySet is used when new key fails to update PublicKeySet.
+func InvalidPubliKeySet(err error) error {
+	if err != nil {
+		return errors.New("invalid public key set: " + err.Error())
+	}
+	return ErrInvalidPubliKeySet
+}
 
 // TODO: Completely refactor this method... SHOULD return JSON response easy and fast!
 

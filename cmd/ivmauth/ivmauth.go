@@ -65,7 +65,7 @@ func main() {
 
 	} else {
 
-		ctx := context.Background()
+		ctx := context.TODO()
 		client, err := firestore.NewClient(ctx, projectID)
 		if err != nil {
 			panic(err)
@@ -157,12 +157,12 @@ func storeTestData(c ivmanto.ClientRepository, cid, csc string) {
 	client1 := ivmanto.NewClient(ivmanto.ClientID(cid), ivmanto.Active)
 	client1.ClientSecret = csc
 	if err := c.Store(client1); err != nil {
-		fmt.Printf("error saving test data: %#v;\n", err)
+		fmt.Printf("error saving test dataset 1: %#v;\n", err)
 	}
 
 	client2 := ivmanto.NewClient("xxx.apps.ivmanto.dev", ivmanto.Active)
 	client2.ClientSecret = "ivmanto-2021"
 	if err := c.Store(client2); err != nil {
-		fmt.Printf("error saving test data: %#v;\n", err)
+		fmt.Printf("error saving test dataset 2: %#v;\n", err)
 	}
 }

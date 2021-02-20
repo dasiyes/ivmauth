@@ -9,8 +9,15 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"ivmanto.dev/ivmauth/authenticating"
+	"ivmanto.dev/ivmauth/ivmanto"
 	"ivmanto.dev/ivmauth/pksrefreshing"
 )
+
+// Cid to hold on the ClientID in the request to be transfered over the request context
+var Cid ivmanto.ClientID
+
+// UID to hold the on the user ID...
+var UID ivmanto.UserID
 
 // Server holds the dependencies for a HTTP server
 type Server struct {

@@ -2,6 +2,8 @@
 package ivmanto
 
 import (
+	"fmt"
+	"math/rand"
 	"net/http"
 	"strings"
 	"time"
@@ -17,6 +19,7 @@ type AuthRequest struct {
 	SessionID  SessionID
 	ReqHeaders http.Header
 	Body       AuthRequestBody
+	Client     Client
 	Registered int64
 }
 
@@ -38,12 +41,13 @@ type AuthRequestBody struct {
 }
 
 // NewAuthRequest creates a new, unauthenticated requestor.
-func NewAuthRequest(id SessionID, rh http.Header, body AuthRequestBody) *AuthRequest {
+func NewAuthRequest(id SessionID, rh http.Header, body *AuthRequestBody, client *Client) *AuthRequest {
 	rs := time.Now().Unix()
 	return &AuthRequest{
 		SessionID:  id,
 		ReqHeaders: rh,
-		Body:       body,
+		Body:       *body,
+		Client:     *client,
 		Registered: rs,
 	}
 }
@@ -57,5 +61,15 @@ type RequestRepository interface {
 
 // NextSessionID generates a new tracking ID.
 func NextSessionID() SessionID {
-	return SessionID(strings.Split(strings.ToUpper(uuid.New()), "-")[0])
+	return SessionID(strings.Split(strings.ToUpper(uuid.New()), "-")[4])
+}
+
+// Generate a new token ID
+func genTID(realm string) string {
+
+	newS := strings.Split(strings.ToUpper(uuid.New()), "-")[4]
+	// TODO: possibly generating ns may cause issues with multiple go routines. Consider moving it to a config/db value
+	ns := rand.NewSource(int64(667661))
+	r2 := rand.New(ns)
+	return newS + realm + fmt.Sprintf("-%d", r2)
 }
