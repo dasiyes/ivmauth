@@ -79,7 +79,7 @@ func NewIvmantoAccessToken(scp *[]string, atConfig *ATCfg) *AccessToken {
 		return nil
 	}
 
-	// TODO: make the values...
+	// TODO: [IVM-1] generate and save the refresh token (as part of the user management)
 	rtkn := ""
 
 	return &AccessToken{

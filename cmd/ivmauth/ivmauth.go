@@ -75,7 +75,7 @@ func main() {
 
 		authrequests, _ = firestoredb.NewRequestRepository(&ctx, "authrequests", client)
 		clients, _ = firestoredb.NewClientRepository(&ctx, "clients", client)
-		// TODO: add the rest of the repos
+		// TODO: [IVMCA-12] add the rest of the repos
 	}
 
 	// Facilitate testing by adding some sample data

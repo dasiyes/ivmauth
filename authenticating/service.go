@@ -168,9 +168,8 @@ func (s *service) Validate(
 	case "implicit":
 
 		fmt.Printf("...evrything looks good: %#v;\n", oidtoken)
-		// TODO: in separate go routine register the user from the IDToken, if not already in the db. if the user email is already in - connect the Identity Provider to the existing account.
+		// TODO: [IVM-3] in separate go routine register the user from the IDToken, if not already in the db. if the user email is already in - connect the Identity Provider to the existing account.
 
-		// TODO: 3) ONLY IF 2.2 is VALID - compose the correct access token object!
 		at, err = s.IssueAccessToken(oidtoken, client)
 		if err != nil {
 			return nil, ivmanto.ErrIssuingAT
@@ -192,8 +191,6 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 
 	var cID, cSec string
 	var err error
-
-	// TODO: ....... X-IVM-CLIENT
 
 	ahct := r.Header.Get("Content-Type")
 
@@ -271,7 +268,7 @@ func (s *service) GetRequestBody(r *http.Request) (*ivmanto.AuthRequestBody, err
 		var fp []string
 		var lblval []string
 
-		// TODO: ENABLE after debug completed
+		// TODO: [IVM-5] ENABLE after debug completed
 		// if r.TLS == nil {
 		// 	return "", errTLS
 		// }
@@ -305,7 +302,7 @@ func (s *service) GetRequestBody(r *http.Request) (*ivmanto.AuthRequestBody, err
 // IssueAccessToken for the successfully authenticated and authorized requests [realm IVMANTO]
 func (s *service) IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client) (*ivmanto.AccessToken, error) {
 
-	// TODO: consider to move all these values into config file for the server? or the service?
+	// TODO: [IVM-2] consider to move all these values into config file for the server? or the service?
 	atcfg := ivmanto.ATCfg{Validity: 3600, Realm: "ivmanto", Alg: "RS256", IssuerVal: "https://accounts.ivmanto.com"}
 	scopes := client.Scopes
 
@@ -408,7 +405,7 @@ func validateOpenIDClaims(
 	}
 
 	// ISSUE: jwt-go package does not support loading the toke claims into IDToken when the AUD type is set to array of[]string. With flat string type works well.
-	// TODO: report the issue to package repo...
+	// ? TODO: report the issue to package repo...
 
 	if oidt.Aud != body.AsrCID {
 		return ivmanto.ErrCompromisedAud
@@ -438,7 +435,6 @@ func validateOpenIDClaims(
 		return ivmanto.ErrInvalidIDToken
 	}
 
-	// TODO: Review what else can be validated here in this method ...
 	return nil
 }
 

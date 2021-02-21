@@ -32,8 +32,8 @@ func (c *Client) AssignProfile(p ClientProfile) {
 
 // NewClient creates a new client.
 func NewClient(id ClientID, status ClientStatus) *Client {
-	// TODO: write a method to generate the secrets
-	// TODO: make the concept for creating and using the scopes
+	// TODO: [IVMCA-13] write a method to generate the secrets
+	// TODO: [IVMCA-14] make the concept for creating and using the scopes for Ivmanto's clients
 	profile := ClientProfile{}
 
 	return &Client{
