@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -38,9 +39,13 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 
 	ctx := r.Context()
 	var client ivmanto.Client
+	var ok bool
 
 	if v := ctx.Value(Cid); v != nil {
-		client, _ = v.(ivmanto.Client)
+		client, ok = v.(ivmanto.Client)
+		if !ok {
+			ivmanto.EncodeError(context.TODO(), http.StatusForbidden, errors.New("invalid client type"), w)
+		}
 	}
 
 	reqbody, err := h.aus.GetRequestBody(r)

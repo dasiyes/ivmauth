@@ -63,7 +63,7 @@ func authClients(lg kitlog.Logger, au authenticating.Service) func(next http.Han
 			}
 
 			Cid = rsClient.ClientID
-			ctx := context.WithValue(r.Context(), Cid, rsClient)
+			ctx := context.WithValue(r.Context(), Cid, *rsClient)
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
