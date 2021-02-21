@@ -1,7 +1,6 @@
 package ivmanto
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/pborman/uuid"
@@ -16,6 +15,7 @@ type Client struct {
 	ClientSecret  string
 	ClientProfile ClientProfile
 	Status        ClientStatus
+	Scopes        []string
 }
 
 // ClientProfile is a client Descriptor
@@ -31,8 +31,9 @@ func (c *Client) AssignProfile(p ClientProfile) {
 }
 
 // NewClient creates a new client.
-// TODO: write a method to generate the secrets
 func NewClient(id ClientID, status ClientStatus) *Client {
+	// TODO: write a method to generate the secrets
+	// TODO: make the concept for creating and using the scopes
 	profile := ClientProfile{}
 
 	return &Client{
@@ -40,6 +41,7 @@ func NewClient(id ClientID, status ClientStatus) *Client {
 		ClientSecret:  "",
 		ClientProfile: profile,
 		Status:        status,
+		Scopes:        []string{},
 	}
 }
 
@@ -49,9 +51,6 @@ type ClientRepository interface {
 	Find(id ClientID) (*Client, error)
 	FindAll() []*Client
 }
-
-// ErrUnknownCargo is used when a cargo could not be found.
-var ErrUnknownCargo = errors.New("unknown client")
 
 // NextClientID generates a new client ID.
 func NextClientID(appname string) ClientID {

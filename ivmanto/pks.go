@@ -144,7 +144,7 @@ func (pks *PublicKeySet) Init(newKey []byte, exp int64) error {
 	pks.Expires = exp
 
 	if err := json.Unmarshal(newKey, pks.Jwks); err != nil {
-		return ErrInvalidPubliKeySet(err)
+		return InvalidPubliKeySet(err)
 	}
 	return nil
 }
@@ -152,7 +152,7 @@ func (pks *PublicKeySet) Init(newKey []byte, exp int64) error {
 // GetKid - returns a JWK found by its kid
 func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 	if len(pks.Jwks.Keys) == 0 {
-		return JWK{}, ErrInvalidPubliKeySet(errors.New("Empty set of JWKs"))
+		return JWK{}, InvalidPubliKeySet(errors.New("Empty set of JWKs"))
 	}
 	var n, e string
 	var jwk JWK
@@ -164,7 +164,7 @@ func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 		}
 	}
 	if n == "" && e == "" {
-		return JWK{}, ErrInvalidPubliKeySet(errors.New("JWK not found by the provided kid"))
+		return JWK{}, InvalidPubliKeySet(errors.New("JWK not found by the provided kid"))
 	}
 	return jwk, nil
 }
@@ -172,7 +172,7 @@ func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 // GetKidNE - returns modulus N and pblic exponent E as big.Int and int respectively
 func (pks *PublicKeySet) GetKidNE(kid string) (*big.Int, int, error) {
 	if len(pks.Jwks.Keys) == 0 {
-		return nil, 0, ErrInvalidPubliKeySet(errors.New("Empty set of JWKs"))
+		return nil, 0, InvalidPubliKeySet(errors.New("Empty set of JWKs"))
 	}
 	var n, e string
 	for _, jwk := range pks.Jwks.Keys {
@@ -183,18 +183,14 @@ func (pks *PublicKeySet) GetKidNE(kid string) (*big.Int, int, error) {
 		}
 	}
 	if n == "" && e == "" {
-		return nil, 0, ErrInvalidPubliKeySet(errors.New("JWK not found by the provided kid"))
+		return nil, 0, InvalidPubliKeySet(errors.New("JWK not found by the provided kid"))
 	}
 
 	nb, err := base64url.Decode(n)
 	if err != nil {
-		return nil, 0, ErrInvalidPubliKeySet(errors.New("invalid JWK modulus"))
+		return nil, 0, InvalidPubliKeySet(errors.New("invalid JWK modulus"))
 	}
 	// TODO add a condition to check if the jwk.e is not
-	// if e != "AQAB" && e != "AAEAAQ" {
-	// 	// still need to decode the big-endian int
-	// 	log.Printf("WARNING: need to decode e: %v", e)
-	// }
 	ei := 65537
 
 	bn := new(big.Int)
@@ -212,13 +208,13 @@ func (pks *PublicKeySet) LenJWKS() int {
 
 // NewPublicKeySet creates a new set of Public Key for each of the suported
 // Identity Vendors.
-func NewPublicKeySet(identityProvider string, pkURL *url.URL) *PublicKeySet {
+func NewPublicKeySet(identityProvider string) *PublicKeySet {
 	jwk := JWK{Kty: ""}
 	jwks := JWKS{Keys: []JWK{jwk}}
 
 	return &PublicKeySet{
 		IdentityProvider: identityProvider,
-		URL:              pkURL,
+		URL:              &url.URL{},
 		HTTPClient: &http.Client{
 			Timeout: time.Second * 30,
 		},
@@ -233,12 +229,4 @@ type PublicKeySetRepository interface {
 	Store(pks *PublicKeySet) error
 	Find(IdentityProvider string) (*PublicKeySet, error)
 	FindAll() []*PublicKeySet
-}
-
-// ErrInvalidPubliKeySet is used when new key fails to update PublicKeySet.
-func ErrInvalidPubliKeySet(err error) error {
-	if err != nil {
-		return errors.New("invalid public key set: " + err.Error())
-	}
-	return errors.New("invalid public key set")
 }

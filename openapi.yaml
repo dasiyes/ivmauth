@@ -12,8 +12,11 @@ info:
   license:
     name: MIT
 servers:
-  - url: https://ivmanto.com
+  - url: https://accounts.ivmanto.com/{base_path}
     description: production server address
+    variables:
+      base_path:
+        default: v1
   - url: https://ivmanto.dev
     description: development server address
 paths:
@@ -86,7 +89,7 @@ components:
       description: body json object for requesting authentication
       required:
         - grant_type
-        - scope
+        - scopes
       additionalProperties: false
       properties:
         grant_type:
@@ -94,7 +97,7 @@ components:
           description: defines the Authrozatin Grant Type
           maxLength: 30
           pattern: '^[a-z0-9._]$'
-        scope:
+        scopes:
           type: array
           description: identifies the authroization scope
           items:
@@ -102,12 +105,12 @@ components:
             maxLength: 30
             pattern: '^[0-9a-z._]$'
           maxItems: 10
-        idToken:
+        IDToken:
           type: string
           description: Required only when the grant_type is set to id_token
           pattern: '^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$'
           maxLength: 4000
-        idProvider:
+        IDProvider:
           type: string
           description: Required only when the grant_type is set to id_token
           maxLength: 32
@@ -119,6 +122,16 @@ components:
           description: Required only for grant_type - resource owner password
           pattern: '^[-!$%^&*()_+|~=`{}\[\]:";<>?,.\/a-zA-Z0-9]$'
           maxLength: 65
+        nonce:
+          type: string
+          description: session token to validate the IDToken returned by the Authorization server
+          maxLength: 32
+          pattern: '^[A-Za-z0-9._+/=&]$'
+        asrCID:
+          type: string
+          description: this is the OAUth2 clientID as value returned by the authorization server along with the IDToken response
+          maxLength: 100
+          pattern: '^[-A-Za-z0-9.]$'
 
     # Authentication Request Form Body [NOT RECOMMENDED] content type x-www-form-urlencoded
     AuthRequestFormBody:
@@ -154,6 +167,8 @@ components:
           description: JWT token issued on successful authentication along with the AccessToken
           maxLength: 4000
           pattern: '^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$'
+        scopes:
+          $ref: "#/components/schemas/Scopes"
 
     # Error Model - for responses with Error
     ErrorModel:
@@ -161,20 +176,20 @@ components:
       description: Object structure for Error resonses
       additionalProperties: false
       required:
-        - error
         - errorCode
+        - error
       properties:
-        error:
-          type: string
-          description: Short name of the error
-          maxLength: 50
-          pattern: '^[0-9A-Za-z ]$'
         errorCode:
           type: integer
           description: Error code from the internal list of errors
           minimum: 0
           maximum: 10000
           format: int32
+        error:
+          type: string
+          description: Short name of the error
+          maxLength: 50
+          pattern: '^[0-9A-Za-z ]$'
         message:
           type: string
           description: additional error information
@@ -184,7 +199,7 @@ components:
     # UserProfile is a object to hold the user information
     UserProfile:
       type: object
-      description: |-
+      description: |-2
         This is the schema of the object returned as response on GET in /users/{userId}
       additionalProperties: false
       required:
@@ -198,7 +213,7 @@ components:
         name:
           $ref: '#/components/schemas/Username'
         scopes:
-          $ref: '#/components/schemas/scopes'
+          $ref: "#/components/schemas/Scopes"
 
     # picture url for users avatar
     PictureUrl:
@@ -222,8 +237,8 @@ components:
       maxLength: 320
       pattern: '^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$'      
 
-    # scopes to authorize permission
-    scopes:
+    # Scopes to authorize permission
+    Scopes:
       type: array
       items:
         type: string

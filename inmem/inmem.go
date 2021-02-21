@@ -111,3 +111,40 @@ func NewClientRepository() ivmanto.ClientRepository {
 		clients: make(map[ivmanto.ClientID]*ivmanto.Client),
 	}
 }
+
+// Holds the registered OpenID Providers
+type oidProviderRepository struct {
+	mtx       sync.RWMutex
+	providers map[ivmanto.ProviderName]*ivmanto.OIDProvider
+}
+
+// Store - stores the provider registrations
+func (ip *oidProviderRepository) Store(pr *ivmanto.OIDProvider) error {
+	ip.mtx.Lock()
+	defer ip.mtx.Unlock()
+	ip.providers[pr.ProviderName] = pr
+	return nil
+}
+
+// Find - finds a authentication request in the repository
+func (ip *oidProviderRepository) Find(pr ivmanto.ProviderName) (*ivmanto.OIDProvider, error) {
+	for prvname, oidp := range ip.providers {
+		if prvname == pr {
+			return oidp, nil
+		}
+	}
+	return nil, errors.New("provider not found")
+}
+
+// FindAll - find and returns all authentication request
+func (ip *oidProviderRepository) FindAll() []*ivmanto.OIDProvider {
+	// TODO: implement FindAll
+	return []*ivmanto.OIDProvider{}
+}
+
+// NewOIDProviderRepository - creates a new OpenID Providers repository
+func NewOIDProviderRepository() ivmanto.OIDProviderRepository {
+	return &oidProviderRepository{
+		providers: make(map[ivmanto.ProviderName]*ivmanto.OIDProvider),
+	}
+}

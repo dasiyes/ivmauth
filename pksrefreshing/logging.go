@@ -18,22 +18,18 @@ func NewLoggingService(logger log.Logger, s Service) Service {
 	return &loggingService{logger, s}
 }
 
-func (s *loggingService) NewPKS(identityProvider string, pkURL string) (err error) {
+func (s *loggingService) InitOIDProviders() {
 	defer func(begin time.Time) {
-		s.logger.Log(
-			"method", "pksrefreshing",
-			"identityProvider", identityProvider,
-			"pkURL", pkURL,
+		_ = s.logger.Log(
+			"method", "InitOIDProviders",
 			"took", time.Since(begin),
-			"err", err,
 		)
 	}(time.Now())
-	return s.next.NewPKS(identityProvider, pkURL)
 }
 
 func (s *loggingService) GetRSAPublicKey(identityProvider string, kid string) (n *big.Int, e int, err error) {
 	defer func(begin time.Time) {
-		s.logger.Log(
+		_ = s.logger.Log(
 			"method", "GetRSAPublicKey",
 			"identityProvider", identityProvider,
 			"kid", kid,
@@ -44,25 +40,37 @@ func (s *loggingService) GetRSAPublicKey(identityProvider string, kid string) (n
 	return s.next.GetRSAPublicKey(identityProvider, kid)
 }
 
-func (s *loggingService) GetPKSCache(identityProvider string, pkURL string) (pks *ivmanto.PublicKeySet, err error) {
+func (s *loggingService) GetPKSCache(identityProvider string) (pks *ivmanto.PublicKeySet, err error) {
 	defer func(begin time.Time) {
-		s.logger.Log(
+		_ = s.logger.Log(
 			"method", "GetPKSCache",
 			"identityProvider", identityProvider,
-			"pkURL", pkURL,
 			"took", time.Since(begin),
 			"err", err,
 		)
 	}(time.Now())
-	return s.next.GetPKSCache(identityProvider, pkURL)
+	return s.next.GetPKSCache(identityProvider)
 }
 
 func (s *loggingService) DownloadPKSinCache(identityProvider string) {
 	defer func(begin time.Time) {
-		s.logger.Log(
+		_ = s.logger.Log(
 			"method", "DownloadPKSinCache",
 			"identityProvider", identityProvider,
 			"took", time.Since(begin),
 		)
 	}(time.Now())
+}
+
+func (s *loggingService) GetIssuerVal(provider string) (iss string, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "GetIssuerVal",
+			"identityProvider", provider,
+			"issuer", iss,
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.next.GetIssuerVal(provider)
 }

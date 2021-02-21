@@ -1,8 +1,6 @@
 package server
 
 import (
-	"context"
-	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
@@ -14,6 +12,12 @@ import (
 	"ivmanto.dev/ivmauth/ivmanto"
 	"ivmanto.dev/ivmauth/pksrefreshing"
 )
+
+// Cid to hold on the ClientID in the request to be transfered over the request context
+var Cid ivmanto.ClientID
+
+// UID to hold the on the user ID...
+var UID ivmanto.UserID
 
 // Server holds the dependencies for a HTTP server
 type Server struct {
@@ -35,11 +39,11 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 
 	r := chi.NewRouter()
 
+	// TODO: Review the middleware requirements
 	r.Use(accessControl)
-	// TODO: Add compression and other must have middleware functions
-
-	ach := authClientHandler{s.Auth, s.Logger}
-	r.Use(ach.authClients)
+	// TODO: This logging is "expensive". Remove it on performance issues
+	r.Use(requestsLogging(s.Logger))
+	r.Use(authClients(s.Logger, s.Auth))
 
 	// Route all authentication calls
 	r.Route("/auth", func(r chi.Router) {
@@ -59,48 +63,18 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
 
+// Response to "GET /" with the current version of the Ivmanto's auth service
 func version() http.Handler {
+	var ver []byte
+	var err error
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ver, err := ioutil.ReadFile("version")
+		ver, err = ioutil.ReadFile("version")
 		if err != nil {
-			w.Write([]byte(err.Error()))
+			_, _ = w.Write([]byte(err.Error()))
 			return
 		}
 		w.Header().Set("Content-Type", "text/plain")
-		w.Write(ver)
-		return
-	})
-}
-
-func accessControl(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization, X-TOKEN-TYPE, X-GRANT-TYPE, X-IVM-CLIENT")
-
-		if r.Method == "OPTIONS" {
-			return
-		}
-
-		h.ServeHTTP(w, r)
-	})
-}
-
-func encodeError(_ context.Context, err error, w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	switch err {
-	case ivmanto.ErrUnknownGrantType:
-		w.WriteHeader(http.StatusNotFound)
-	case ivmanto.ErrInvalidArgument:
-		w.WriteHeader(http.StatusBadRequest)
-	case authenticating.ErrClientAuth:
-		w.WriteHeader(http.StatusForbidden)
-	case authenticating.ErrAuthenticating:
-		w.WriteHeader(http.StatusUnauthorized)
-	default:
-		w.WriteHeader(http.StatusInternalServerError)
-	}
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"error": err.Error(),
+		_, _ = w.Write(ver)
 	})
 }

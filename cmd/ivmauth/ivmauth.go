@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net/http"
@@ -8,11 +9,13 @@ import (
 	"os/signal"
 	"syscall"
 
+	"cloud.google.com/go/firestore"
 	"github.com/go-kit/kit/log"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 
 	"ivmanto.dev/ivmauth/authenticating"
+	"ivmanto.dev/ivmauth/firestoredb"
 	"ivmanto.dev/ivmauth/inmem"
 	"ivmanto.dev/ivmauth/ivmanto"
 	"ivmanto.dev/ivmauth/pksrefreshing"
@@ -21,11 +24,15 @@ import (
 
 const (
 	defaultPort = "8080"
+	defaultGCP  = "ivmauth"
 )
 
 func main() {
 	var (
-		port = envString("PORT", defaultPort)
+		port      = envString("PORT", defaultPort)
+		cid       = envString("clientID", "")
+		csc       = envString("clientSecret", "")
+		projectID = envString("GCP_PROJECT", defaultGCP)
 
 		httpAddr = flag.String("http.addr", ":"+port, "HTTP listen [localhost]:port")
 		inmemory = flag.Bool("inmem", false, "use in-memory repositories")
@@ -39,25 +46,40 @@ func main() {
 		logger = log.With(logger, "ts", log.DefaultTimestamp)
 	}
 
-	// setup repositories // TODO: [uncomment and set once hte DB is place or inmemory implemented ]
+	// SETUP repositories
 	var (
 		authrequests ivmanto.RequestRepository
 		pubkeys      ivmanto.PublicKeySetRepository
+		oidprv       ivmanto.OIDProviderRepository
 		clients      ivmanto.ClientRepository
 	)
 
 	// The Public Key Set is always in mem cache
 	pubkeys = inmem.NewPKSRepository()
+	oidprv = inmem.NewOIDProviderRepository()
 
 	if *inmemory {
+
 		authrequests = inmem.NewRequestRepository()
 		clients = inmem.NewClientRepository()
+
 	} else {
-		// TODO: implement db repositories
+
+		ctx := context.TODO()
+		client, err := firestore.NewClient(ctx, projectID)
+		if err != nil {
+			panic(err)
+		}
+
+		defer client.Close()
+
+		authrequests, _ = firestoredb.NewRequestRepository(&ctx, "authrequests", client)
+		clients, _ = firestoredb.NewClientRepository(&ctx, "clients", client)
+		// TODO: add the rest of the repos
 	}
 
 	// Facilitate testing by adding some sample data
-	storeTestData(clients)
+	storeTestData(clients, cid, csc)
 
 	fieldKeys := []string{"method"}
 
@@ -87,7 +109,7 @@ func main() {
 
 	var pkr pksrefreshing.Service
 	{
-		pkr = pksrefreshing.NewService(pubkeys)
+		pkr = pksrefreshing.NewService(pubkeys, oidprv)
 		pkr = pksrefreshing.NewLoggingService(log.With(logger, "component", "pksrefreshing"), pkr)
 		pkr = pksrefreshing.NewInstrumentingService(
 			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
@@ -111,7 +133,7 @@ func main() {
 
 	errs := make(chan error, 2)
 	go func() {
-		logger.Log("transport", "http", "address", *httpAddr, "msg", "listening")
+		_ = logger.Log("transport", "http", "address", *httpAddr, "msg", "listening")
 		errs <- http.ListenAndServe(*httpAddr, srv)
 	}()
 	go func() {
@@ -120,7 +142,7 @@ func main() {
 		errs <- fmt.Errorf("%s", <-c)
 	}()
 
-	logger.Log("terminated", <-errs)
+	_ = logger.Log("terminated", <-errs)
 }
 
 func envString(env, fallback string) string {
@@ -131,16 +153,16 @@ func envString(env, fallback string) string {
 	return e
 }
 
-func storeTestData(c ivmanto.ClientRepository) {
-	client1 := ivmanto.NewClient("674034520731-svnfvha7sbp971ubg0mckamaac07jhc2.apps.googleusercontent.com", ivmanto.Active)
-	client1.ClientSecret = "NIyjiaWxKeemVStQT83MMlne"
+func storeTestData(c ivmanto.ClientRepository, cid, csc string) {
+	client1 := ivmanto.NewClient(ivmanto.ClientID(cid), ivmanto.Active)
+	client1.ClientSecret = csc
 	if err := c.Store(client1); err != nil {
-		fmt.Printf("error saving test data: %#v;\n", err)
+		fmt.Printf("error saving test dataset 1: %#v;\n", err)
 	}
 
 	client2 := ivmanto.NewClient("xxx.apps.ivmanto.dev", ivmanto.Active)
 	client2.ClientSecret = "ivmanto-2021"
-	if err := c.Store(client1); err != nil {
-		fmt.Printf("error saving test data: %#v;\n", err)
+	if err := c.Store(client2); err != nil {
+		fmt.Printf("error saving test dataset 2: %#v;\n", err)
 	}
 }
