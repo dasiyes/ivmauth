@@ -35,23 +35,43 @@ type ivmantoATClaims struct {
 
 // ATCfg is the configuration object for the Access Token
 type ATCfg struct {
-	Validity int
-	Realm    string
+	Validity  int
+	Realm     string
+	Alg       string
+	IssuerVal string
 }
 
-// NewIvmantoAccessToken creates a new response to a successful authentication request
-func NewIvmantoAccessToken(scp *[]string, atConfig interface{}) *AccessToken {
+// NewIvmantoAccessToken creates a new response to a successful authentication request.
+// @realm could be comma-separated list of application that accept this AT.\
+// default signing method alg is RS256; default realm if missing is ivm;
+func NewIvmantoAccessToken(scp *[]string, atConfig *ATCfg) *AccessToken {
 
-	var atcfg, _ = atConfig.(ATCfg)
-	var realm = atcfg.Realm
+	var realm = atConfig.Realm
+	var validity = atConfig.Validity
+	var alg = atConfig.Alg
+	var issval = atConfig.IssuerVal
+	var sm jwt.SigningMethodRSA
+
 	if len(realm) < 3 {
 		realm = "ivm"
 	}
-	clm := newIvmATC(atcfg.Validity, realm)
+	if issval == "" {
+		issval = "https://accounts.ivmanto.com"
+	}
 
-	sm := jwt.SigningMethodRSA{
-		Name: "RS256",
-		Hash: crypto.SHA256,
+	clm := newIvmATC(validity, realm, issval)
+
+	switch alg {
+	case "RS256":
+		sm = jwt.SigningMethodRSA{
+			Name: "RS256",
+			Hash: crypto.SHA256,
+		}
+	default:
+		sm = jwt.SigningMethodRSA{
+			Name: "RS256",
+			Hash: crypto.SHA256,
+		}
 	}
 
 	at, err := newJWToken(clm, &sm)
@@ -65,21 +85,22 @@ func NewIvmantoAccessToken(scp *[]string, atConfig interface{}) *AccessToken {
 	return &AccessToken{
 		AccessToken:  at,
 		TokenType:    "Bearer",
-		ExpiresIn:    atcfg.Validity,
+		ExpiresIn:    validity,
 		RefreshToken: rtkn,
 		Scope:        *scp,
 	}
 }
 
 // newIvmATC generates a new ivmantoATClaims set. @validity in seconds
-func newIvmATC(validity int, realm string) *ivmantoATClaims {
+func newIvmATC(validity int, realm string, issval string) *ivmantoATClaims {
 
 	tn := time.Now().Unix()
 	tid := genTID(realm[:3])
 
 	// TODO: Move the iss and aud values into a configuration/db document for abstraction of the service
+	// TODO: consider to change the content of the AUD. The meaing should be the receiver of the token should identify itslef withing the value of AUD.
 	return &ivmantoATClaims{
-		iss: "https://accounts.ivmanto.com",
+		iss: issval,
 		sub: "",
 		aud: "realm:[" + realm + "]",
 		exp: tn + int64(validity),
@@ -106,7 +127,7 @@ func newJWToken(claims jwt.Claims, sm jwt.SigningMethod) (string, error) {
 
 		// TODO: think about how to use this key and how to roate it !!!
 		// TODO: implement kid ?!
-		key, err := rsa.GenerateKey(rand.Reader, 256)
+		key, err := rsa.GenerateKey(rand.Reader, 2048)
 
 		if err != nil {
 			return "", err

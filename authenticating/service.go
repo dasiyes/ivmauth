@@ -305,7 +305,8 @@ func (s *service) GetRequestBody(r *http.Request) (*ivmanto.AuthRequestBody, err
 // IssueAccessToken for the successfully authenticated and authorized requests [realm IVMANTO]
 func (s *service) IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client) (*ivmanto.AccessToken, error) {
 
-	atcfg := ivmanto.ATCfg{Validity: 3600, Realm: "ivmanto"}
+	// TODO: consider to move all these values into config file for the server? or the service?
+	atcfg := ivmanto.ATCfg{Validity: 3600, Realm: "ivmanto", Alg: "RS256", IssuerVal: "https://accounts.ivmanto.com"}
 	scopes := client.Scopes
 
 	iat := ivmanto.NewIvmantoAccessToken(&scopes, &atcfg)

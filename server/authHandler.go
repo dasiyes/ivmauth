@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -64,7 +63,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	}
 
 	// ? Registering auth request
-	_, _ = h.aus.RegisterNewRequest(&r.Header, reqbody, &client)
+	// _, _ = h.aus.RegisterNewRequest(&r.Header, reqbody, &client)
 
 	// Validate auth request. Authenticated client's scope to consider
 	at, err := h.aus.Validate(&r.Header, reqbody, h.pks, &client)
@@ -72,8 +71,6 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 		ivmanto.EncodeError(context.TODO(), http.StatusForbidden, err, w)
 		return
 	}
-
-	fmt.Printf("access token:\n\n %v;\n", at)
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err := json.NewEncoder(w).Encode(at); err != nil {

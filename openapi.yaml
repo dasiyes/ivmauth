@@ -12,8 +12,11 @@ info:
   license:
     name: MIT
 servers:
-  - url: https://ivmanto.com
+  - url: https://accounts.ivmanto.com/{base_path}
     description: production server address
+    variables:
+      base_path:
+        default: v1
   - url: https://ivmanto.dev
     description: development server address
 paths:
@@ -164,6 +167,8 @@ components:
           description: JWT token issued on successful authentication along with the AccessToken
           maxLength: 4000
           pattern: '^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$'
+        scopes:
+          $ref: "#/components/schemas/Scopes"
 
     # Error Model - for responses with Error
     ErrorModel:
@@ -194,7 +199,7 @@ components:
     # UserProfile is a object to hold the user information
     UserProfile:
       type: object
-      description: |-
+      description: |-2
         This is the schema of the object returned as response on GET in /users/{userId}
       additionalProperties: false
       required:
@@ -208,7 +213,7 @@ components:
         name:
           $ref: '#/components/schemas/Username'
         scopes:
-          $ref: '#/components/schemas/scopes'
+          $ref: "#/components/schemas/Scopes"
 
     # picture url for users avatar
     PictureUrl:
@@ -232,8 +237,8 @@ components:
       maxLength: 320
       pattern: '^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$'      
 
-    # scopes to authorize permission
-    scopes:
+    # Scopes to authorize permission
+    Scopes:
       type: array
       items:
         type: string

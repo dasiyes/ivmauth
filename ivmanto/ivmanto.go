@@ -2,6 +2,7 @@
 package ivmanto
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -67,9 +68,13 @@ func NextSessionID() SessionID {
 // Generate a new token ID
 func genTID(realm string) string {
 
-	newS := strings.Split(strings.ToUpper(uuid.New()), "-")[4]
+	// newS := strings.Split(strings.ToUpper(uuid.New()), "-")[4]
+	newS := realm
 	// TODO: possibly generating ns may cause issues with multiple go routines. Consider moving it to a config/db value
-	ns := rand.NewSource(int64(667661))
+	ns := rand.NewSource(int64(47))
 	r2 := rand.New(ns)
-	return newS + realm + fmt.Sprintf("-%d", r2)
+	src := []byte(newS + fmt.Sprintf("%d", *r2))
+	dst := make([]byte, hex.EncodedLen(len(src)))
+	_ = hex.Encode(dst, src)
+	return string(dst)
 }
