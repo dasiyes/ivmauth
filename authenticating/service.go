@@ -73,6 +73,24 @@ import (
 	"ivmanto.dev/ivmauth/utils"
 )
 
+// TODO: Review the service concept against the checklist below:
+// **Authentication Framework Evaluation Checklist**
+// - Provides the ability to exchange credentials (username/password, token, and so on) for a valid session.
+// - Supports proper session management (www.owasp.org/index.php/Session_Management_Cheat_Sheet).
+// - Lets users opt in to two-factor authentication.
+// - In a browser-based environment, properly marks the session cookie as HTTPOnly (www.owasp.org/index.php/HttpOnly) and secure (www.owasp.org/index.php/SecureFlag).
+// - Provides support for Cross-Site Request Forgery (CSRF; goo.gl/TwcSJX) protection/ defenses.
+// - Supports token-based authentication mechanisms (such as OAuth).
+// - Supports proper password storage (www.owasp.org/index.php/Password_Storage_Cheat_Sheet).
+// - Provides integration with third-party authentication providers.
+// - Logs all authentication activity (and supports proper audit trails  of login/ logout, token  creation  and exchange, revocation,  and so on).
+// - Has a public record of good security response, disclosure, and fixes.
+// - Supports secure account-recovery flows (third-party authentication providers make this easier).
+// - Never exposes credentials in plaintext, whether in user interfaces, URLs, storage, logs, or network communications.
+// - Enforces use of credentials with sufficient entropy.
+// - Protects against online brute-force attacks.
+// - Protects against session fixation attacks.
+
 // Service is the interface that provides auth methods.
 type Service interface {
 	// RegisterNewRequest registring a new http request for authentication
@@ -152,6 +170,7 @@ func (s *service) Validate(
 
 	case "password":
 		authGrantType = "password_credentials"
+		// TODO: [IVM-6] implement password fllow
 	case "code":
 		authGrantType = "authorization_code"
 	default:
@@ -169,6 +188,7 @@ func (s *service) Validate(
 
 		fmt.Printf("...evrything looks good: %#v;\n", oidtoken)
 		// TODO: [IVM-3] in separate go routine register the user from the IDToken, if not already in the db. if the user email is already in - connect the Identity Provider to the existing account.
+		go checkUserRegistration(oidtoken)
 
 		at, err = s.IssueAccessToken(oidtoken, client)
 		if err != nil {
@@ -436,6 +456,12 @@ func validateOpenIDClaims(
 	}
 
 	return nil
+}
+
+// Checking the users if the user from openID token is registred or is new
+func checkUserRegistration(oidtoken *ivmanto.IDToken) {
+	// TODO: find and connect the user repository
+
 }
 
 // NewService creates a authenticating service with necessary dependencies.

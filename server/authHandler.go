@@ -44,6 +44,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 		client, ok = v.(ivmanto.Client)
 		if !ok {
 			ivmanto.EncodeError(context.TODO(), http.StatusForbidden, errors.New("invalid client type"), w)
+			return
 		}
 	}
 
