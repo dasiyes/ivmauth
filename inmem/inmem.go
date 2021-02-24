@@ -148,3 +148,40 @@ func NewOIDProviderRepository() ivmanto.OIDProviderRepository {
 		providers: make(map[ivmanto.ProviderName]*ivmanto.OIDProvider),
 	}
 }
+
+// Holds the registered users
+type userRepository struct {
+	mtx   sync.RWMutex
+	users map[ivmanto.UserID]*ivmanto.User
+}
+
+// Store - stores the clients registrations
+func (ur *userRepository) Store(u *ivmanto.User) error {
+	ur.mtx.Lock()
+	defer ur.mtx.Unlock()
+	ur.users[u.UserID] = u
+	return nil
+}
+
+// Find - finds a authentication request in the repository
+func (ur *userRepository) Find(id ivmanto.UserID) (*ivmanto.User, error) {
+	for userID, user := range ur.users {
+		if userID == id {
+			return user, nil
+		}
+	}
+	return nil, errors.New("user not found")
+}
+
+// FindAll - find and returns all authentication request
+func (ur *userRepository) FindAll() []*ivmanto.User {
+	// TODO: implement FindAll
+	return []*ivmanto.User{}
+}
+
+// NewUserRepository - creates a new users repository
+func NewUserRepository() ivmanto.UserRepository {
+	return &userRepository{
+		users: make(map[ivmanto.UserID]*ivmanto.User),
+	}
+}

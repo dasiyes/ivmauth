@@ -68,6 +68,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dvsekhvalnov/jose2go/base64url"
+	"ivmanto.dev/ivmauth/firestoredb"
 	"ivmanto.dev/ivmauth/ivmanto"
 	"ivmanto.dev/ivmauth/pksrefreshing"
 	"ivmanto.dev/ivmauth/utils"
@@ -113,6 +114,7 @@ type Service interface {
 type service struct {
 	requests ivmanto.RequestRepository
 	clients  ivmanto.ClientRepository
+	users    ivmanto.UserRepository
 }
 
 func (s *service) RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.SessionID, error) {
@@ -186,9 +188,7 @@ func (s *service) Validate(
 
 	case "implicit":
 
-		fmt.Printf("...evrything looks good: %#v;\n", oidtoken)
-		// TODO: [IVM-3] in separate go routine register the user from the IDToken, if not already in the db. if the user email is already in - connect the Identity Provider to the existing account.
-		go checkUserRegistration(oidtoken)
+		go s.CheckUserRegistration(oidtoken)
 
 		at, err = s.IssueAccessToken(oidtoken, client)
 		if err != nil {
@@ -330,6 +330,39 @@ func (s *service) IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client
 	return iat, nil
 }
 
+// Checking the users if the user from openID token is registred or is new
+func (s *service) CheckUserRegistration(oidtoken *ivmanto.IDToken) {
+
+	usr, err := s.users.Find(ivmanto.UserID(oidtoken.Email))
+	if err != nil {
+		if err == firestoredb.ErrUserNotFound {
+			nUsr, err := ivmanto.NewUser(ivmanto.UserID(oidtoken.Email))
+			if err != nil {
+				fmt.Printf("error while creating a new user: %#v;\n", err)
+			}
+			nUsr.Name = oidtoken.Name
+			nUsr.Avatar = oidtoken.Picture
+			nUsr.Status = ivmanto.EntryStatus(ivmanto.Draft)
+			nUsr.OIDCProvider = oidtoken.Iss
+
+			if err = s.users.Store(nUsr); err != nil {
+				fmt.Printf("error saving new user: %#v;\n", err)
+				return
+			}
+			fmt.Printf("user %#v successfully registred\n", nUsr.UserID)
+			return
+		}
+		fmt.Printf("error while searching for a user: %#v;\n", err)
+		return
+	}
+	if usr.OIDCProvider == "" {
+		usr.OIDCProvider = oidtoken.Iss
+		_ = s.users.Store(usr)
+	}
+	fmt.Printf("user %#v already registered in the db.", usr.UserID)
+	return
+}
+
 // Get the client ID and the Client secret from web form url encoded
 func getClientIDSecWFUE(r *http.Request) (cID string, cSec string, err error) {
 
@@ -455,19 +488,19 @@ func validateOpenIDClaims(
 		return ivmanto.ErrInvalidIDToken
 	}
 
+	// TODO: Check if this key is available in the OpenID spec for other Identity Providers
+	if !oidt.EmailVerified {
+		return ivmanto.ErrInvalidIDToken
+	}
+
 	return nil
 }
 
-// Checking the users if the user from openID token is registred or is new
-func checkUserRegistration(oidtoken *ivmanto.IDToken) {
-	// TODO: find and connect the user repository
-
-}
-
 // NewService creates a authenticating service with necessary dependencies.
-func NewService(requests ivmanto.RequestRepository, clients ivmanto.ClientRepository) Service {
+func NewService(requests ivmanto.RequestRepository, clients ivmanto.ClientRepository, users ivmanto.UserRepository) Service {
 	return &service{
 		requests: requests,
 		clients:  clients,
+		users:    users,
 	}
 }

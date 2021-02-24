@@ -14,7 +14,7 @@ type Client struct {
 	ClientID      ClientID
 	ClientSecret  string
 	ClientProfile ClientProfile
-	Status        ClientStatus
+	Status        EntryStatus
 	Scopes        []string
 }
 
@@ -31,7 +31,7 @@ func (c *Client) AssignProfile(p ClientProfile) {
 }
 
 // NewClient creates a new client.
-func NewClient(id ClientID, status ClientStatus) *Client {
+func NewClient(id ClientID, status EntryStatus) *Client {
 	// TODO: write a method to generate the secrets
 	// TODO: make the concept for creating and using the scopes for Ivmanto's clients
 	profile := ClientProfile{}
@@ -57,17 +57,17 @@ func NextClientID(appname string) ClientID {
 	return ClientID(strings.Split(strings.ToUpper(uuid.New()), "-")[4] + "-" + appname + "-" + "ivmanto.dev")
 }
 
-// ClientStatus describes status of a client registration.
-type ClientStatus int
+// EntryStatus describes status of a client registration.
+type EntryStatus int
 
 // Valid client statuses.
 const (
-	Draft ClientStatus = iota
+	Draft EntryStatus = iota
 	Active
 	NotActive
 )
 
-func (s ClientStatus) String() string {
+func (s EntryStatus) String() string {
 	switch s {
 	case Draft:
 		return "Draft"

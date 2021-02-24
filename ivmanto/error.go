@@ -42,7 +42,7 @@ var (
 	// ErrCompromisedAud - will be returned when the valid of the ClientID returned to the client from the authorization server alongside with the IDToken, does not match the aud value in the IDToken
 	ErrCompromisedAud = errors.New("compromised audience")
 
-	// ErrUnknownClient is used when a cargo could not be found.
+	// ErrUnknownClient is used when a client could not be found.
 	ErrUnknownClient = errors.New("unknown client")
 
 	// ErrInvalidPubliKeySet is used when new key fails to update PublicKeySet.
