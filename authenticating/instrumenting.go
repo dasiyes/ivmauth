@@ -73,3 +73,10 @@ func (s *instrumentingService) IssueAccessToken(oidt *ivmanto.IDToken, client *i
 
 	return s.next.IssueAccessToken(oidt, client)
 }
+
+func (s *instrumentingService) CheckUserRegistration(oidtoken *ivmanto.IDToken) {
+	defer func(begin time.Time) {
+		s.requestCount.With("method", "CheckUserRegistration").Add(1)
+		s.requestLatency.With("method", "CheckUserRegistration").Observe(time.Since(begin).Seconds())
+	}(time.Now())
+}

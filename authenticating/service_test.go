@@ -10,6 +10,7 @@ import (
 	"ivmanto.dev/ivmauth/ivmanto"
 )
 
+// TODO:	AuthenticateClient
 // TestAuthenticateClientAH - testing client authentication over Basic Authorization Header
 func TestAuthenticateClientAH(t *testing.T) {
 
@@ -86,4 +87,45 @@ func (r *mockClientRepository) Find(id ivmanto.ClientID) (*ivmanto.Client, error
 
 func (r *mockClientRepository) FindAll() []*ivmanto.Client {
 	return []*ivmanto.Client{r.client}
+}
+
+// TODO: RegisterNewRequest
+
+// TODO: Validate
+
+// TODO: GetRequestBody
+
+// TODO: IssueAccessToken
+
+// TODO: CheckUserRegistration
+// TestCheckUserRegistration - checking if a user is alredy registred and if not create a new one
+func TestCheckUserRegistration(t *testing.T) {
+	var users mockUserRepository
+	s := NewService(nil, nil, &users)
+
+	oid := ivmanto.IDToken{
+		Email: "nikolay.tonev55@gmail.com",
+	}
+	// TODO: find the way to test if the function works well...
+	s.CheckUserRegistration(&oid)
+}
+
+type mockUserRepository struct {
+	user *ivmanto.User
+}
+
+func (r *mockUserRepository) Store(u *ivmanto.User) error {
+	r.user = u
+	return nil
+}
+
+func (r *mockUserRepository) Find(id ivmanto.UserID) (*ivmanto.User, error) {
+	if r.user != nil {
+		return r.user, nil
+	}
+	return nil, errors.New("unknown client")
+}
+
+func (r *mockUserRepository) FindAll() []*ivmanto.User {
+	return []*ivmanto.User{}
 }

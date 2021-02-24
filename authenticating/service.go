@@ -109,6 +109,9 @@ type Service interface {
 
 	// IssueAccessToken for the successfully authenticated and authorized requests [realm IVMANTO]
 	IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client) (*ivmanto.AccessToken, error)
+
+	// CheckUserRegistration search for the user from oidtoken in the db. Id not found a new one will be registered.
+	CheckUserRegistration(oidtoken *ivmanto.IDToken)
 }
 
 type service struct {
@@ -328,6 +331,7 @@ func (s *service) IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client
 
 	iat := ivmanto.NewIvmantoAccessToken(&scopes, &atcfg)
 	return iat, nil
+
 }
 
 // Checking the users if the user from openID token is registred or is new
