@@ -83,3 +83,13 @@ func (s *loggingService) IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto
 	}(time.Now())
 	return s.next.IssueAccessToken(oidt, client)
 }
+
+func (s *loggingService) CheckUserRegistration(oidtoken *ivmanto.IDToken) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "CheckUserRegistration",
+			"tokenId", oidtoken.Jti,
+			"took", time.Since(begin),
+		)
+	}(time.Now())
+}

@@ -52,6 +52,7 @@ func main() {
 		pubkeys      ivmanto.PublicKeySetRepository
 		oidprv       ivmanto.OIDProviderRepository
 		clients      ivmanto.ClientRepository
+		users        ivmanto.UserRepository
 	)
 
 	// The Public Key Set is always in mem cache
@@ -62,6 +63,7 @@ func main() {
 
 		authrequests = inmem.NewRequestRepository()
 		clients = inmem.NewClientRepository()
+		users = inmem.NewUserRepository()
 
 	} else {
 
@@ -75,7 +77,9 @@ func main() {
 
 		authrequests, _ = firestoredb.NewRequestRepository(&ctx, "authrequests", client)
 		clients, _ = firestoredb.NewClientRepository(&ctx, "clients", client)
-		// TODO: [IVMCA-12] add the rest of the repos
+		users, _ = firestoredb.NewUserRepository(&ctx, "users", client)
+		// TODO: add the rest of the repos
+
 	}
 
 	// Facilitate testing by adding some sample data
@@ -88,7 +92,7 @@ func main() {
 	// initiating services
 	var au authenticating.Service
 	{
-		au = authenticating.NewService(authrequests, clients)
+		au = authenticating.NewService(authrequests, clients, users)
 		au = authenticating.NewLoggingService(log.With(logger, "component", "authenticating"), au)
 		au = authenticating.NewInstrumentingService(
 			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{

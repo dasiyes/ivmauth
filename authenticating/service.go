@@ -68,10 +68,29 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dvsekhvalnov/jose2go/base64url"
+	"ivmanto.dev/ivmauth/firestoredb"
 	"ivmanto.dev/ivmauth/ivmanto"
 	"ivmanto.dev/ivmauth/pksrefreshing"
 	"ivmanto.dev/ivmauth/utils"
 )
+
+// TODO: Review the service concept against the checklist below:
+// **Authentication Framework Evaluation Checklist**
+// - Provides the ability to exchange credentials (username/password, token, and so on) for a valid session.
+// - Supports proper session management (www.owasp.org/index.php/Session_Management_Cheat_Sheet).
+// - Lets users opt in to two-factor authentication.
+// - In a browser-based environment, properly marks the session cookie as HTTPOnly (www.owasp.org/index.php/HttpOnly) and secure (www.owasp.org/index.php/SecureFlag).
+// - Provides support for Cross-Site Request Forgery (CSRF; goo.gl/TwcSJX) protection/ defenses.
+// - Supports token-based authentication mechanisms (such as OAuth).
+// - Supports proper password storage (www.owasp.org/index.php/Password_Storage_Cheat_Sheet).
+// - Provides integration with third-party authentication providers.
+// - Logs all authentication activity (and supports proper audit trails  of login/ logout, token  creation  and exchange, revocation,  and so on).
+// - Has a public record of good security response, disclosure, and fixes.
+// - Supports secure account-recovery flows (third-party authentication providers make this easier).
+// - Never exposes credentials in plaintext, whether in user interfaces, URLs, storage, logs, or network communications.
+// - Enforces use of credentials with sufficient entropy.
+// - Protects against online brute-force attacks.
+// - Protects against session fixation attacks.
 
 // Service is the interface that provides auth methods.
 type Service interface {
@@ -90,11 +109,15 @@ type Service interface {
 
 	// IssueAccessToken for the successfully authenticated and authorized requests [realm IVMANTO]
 	IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client) (*ivmanto.AccessToken, error)
+
+	// CheckUserRegistration search for the user from oidtoken in the db. Id not found a new one will be registered.
+	CheckUserRegistration(oidtoken *ivmanto.IDToken)
 }
 
 type service struct {
 	requests ivmanto.RequestRepository
 	clients  ivmanto.ClientRepository
+	users    ivmanto.UserRepository
 }
 
 func (s *service) RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.SessionID, error) {
@@ -152,6 +175,7 @@ func (s *service) Validate(
 
 	case "password":
 		authGrantType = "password_credentials"
+		// TODO: [IVM-6] implement password fllow
 	case "code":
 		authGrantType = "authorization_code"
 	default:
@@ -167,8 +191,7 @@ func (s *service) Validate(
 
 	case "implicit":
 
-		fmt.Printf("...evrything looks good: %#v;\n", oidtoken)
-		// TODO: [IVM-3] in separate go routine register the user from the IDToken, if not already in the db. if the user email is already in - connect the Identity Provider to the existing account.
+		go s.CheckUserRegistration(oidtoken)
 
 		at, err = s.IssueAccessToken(oidtoken, client)
 		if err != nil {
@@ -308,6 +331,40 @@ func (s *service) IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client
 
 	iat := ivmanto.NewIvmantoAccessToken(&scopes, &atcfg)
 	return iat, nil
+
+}
+
+// Checking the users if the user from openID token is registred or is new
+func (s *service) CheckUserRegistration(oidtoken *ivmanto.IDToken) {
+
+	usr, err := s.users.Find(ivmanto.UserID(oidtoken.Email))
+	if err != nil {
+		if err == firestoredb.ErrUserNotFound {
+			nUsr, err := ivmanto.NewUser(ivmanto.UserID(oidtoken.Email))
+			if err != nil {
+				fmt.Printf("error while creating a new user: %#v;\n", err)
+			}
+			nUsr.Name = oidtoken.Name
+			nUsr.Avatar = oidtoken.Picture
+			nUsr.Status = ivmanto.EntryStatus(ivmanto.Draft)
+			nUsr.OIDCProvider = oidtoken.Iss
+
+			if err = s.users.Store(nUsr); err != nil {
+				fmt.Printf("error saving new user: %#v;\n", err)
+				return
+			}
+			fmt.Printf("user %#v successfully registred\n", nUsr.UserID)
+			return
+		}
+		fmt.Printf("error while searching for a user: %#v;\n", err)
+		return
+	}
+	if usr.OIDCProvider == "" {
+		usr.OIDCProvider = oidtoken.Iss
+		_ = s.users.Store(usr)
+	}
+	fmt.Printf("user %#v already registered in the db.", usr.UserID)
+	return
 }
 
 // Get the client ID and the Client secret from web form url encoded
@@ -435,13 +492,19 @@ func validateOpenIDClaims(
 		return ivmanto.ErrInvalidIDToken
 	}
 
+	// TODO: Check if this key is available in the OpenID spec for other Identity Providers
+	if !oidt.EmailVerified {
+		return ivmanto.ErrInvalidIDToken
+	}
+
 	return nil
 }
 
 // NewService creates a authenticating service with necessary dependencies.
-func NewService(requests ivmanto.RequestRepository, clients ivmanto.ClientRepository) Service {
+func NewService(requests ivmanto.RequestRepository, clients ivmanto.ClientRepository, users ivmanto.UserRepository) Service {
 	return &service{
 		requests: requests,
 		clients:  clients,
+		users:    users,
 	}
 }

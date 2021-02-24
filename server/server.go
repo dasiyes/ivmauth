@@ -13,6 +13,16 @@ import (
 	"ivmanto.dev/ivmauth/pksrefreshing"
 )
 
+// TODO: Authorization process review against the checklist below:
+// **Authorization Framework Evaluation Checklist**
+// - Supports a provider-based model and lets you configure alternative authorization and role-mapping providers.
+// - Supports delegating authorization and role-mapping providers to allow evaluating multiple types  of policies  in the context  of a single request.
+// - Enables dynamic role evaluation to reevaluate user roles in the context of a specific action or access to some  resource.
+// - Includes policy-simulation capabilities to answer the following questions: Can user X access resource Y? Who can access re- source Y?
+// - Allows policy modeling in native application terminology, as opposed to generic  HTTP terms.
+// - Provides PEP for all major components of the application under consideration.
+// - Meets your scalability and latency requirements.
+
 // Cid to hold on the ClientID in the request to be transfered over the request context
 var Cid ivmanto.ClientID
 
