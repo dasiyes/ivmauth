@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	kitlog "github.com/go-kit/kit/log"
@@ -75,8 +76,16 @@ func isReqWhitelisted(r *http.Request) bool {
 
 	// TODO: Move the whitelisted strings in external storage envvar? / config?
 	mr := r.Method + " " + r.URL.Path
+	fmt.Printf("request path: %#v;\n", mr)
+
 	switch mr {
 	case "GET /version":
+		return true
+	case "GET /metrics":
+		return true
+	case "GET /metrics/api/v1/query":
+		return true
+	case "GET /metrics/api/v1/query_range":
 		return true
 	default:
 		return false

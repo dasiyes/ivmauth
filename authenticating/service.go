@@ -256,7 +256,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 // getXClient - retrievs the ClientID and Client Secret from the custom header X-IVM-CLIENT for the cases when the Authorization header is having Bearer token
 func getXClient(xic string) (cid string, csc string) {
 	cis := strings.Split(xic, " ")
-	if len(cis) != 2 && cis[0] == "Basic" {
+	if len(cis) != 2 || cis[0] != "Basic" {
 		return "", ""
 	}
 
