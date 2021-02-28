@@ -15,7 +15,7 @@ import (
 func TestAuthenticateClientAH(t *testing.T) {
 
 	var clients mockClientRepository
-	s := NewService(nil, &clients, nil)
+	s := NewService(nil, &clients, nil, nil)
 
 	// prep the client credentials for Auth Header
 	bc := "Basic " + base64url.Encode([]byte("xxx.apps.ivmanto.dev:ivmanto-2021"))
@@ -45,7 +45,7 @@ func TestAuthenticateClientAH(t *testing.T) {
 func TestAuthenticateClientWFUE(t *testing.T) {
 
 	var clients mockClientRepository
-	s := NewService(nil, &clients, nil)
+	s := NewService(nil, &clients, nil, nil)
 
 	// prep the client credentials for Auth Header
 	formdata := "grant_type=refresh_token&refresh_token=tGzv3JOkF0XG5Qx2TlKWIA&client_id=xxx.apps.ivmanto.dev&client_secret=ivmanto-2021"
@@ -101,7 +101,7 @@ func (r *mockClientRepository) FindAll() []*ivmanto.Client {
 // TestCheckUserRegistration - checking if a user is alredy registred and if not create a new one
 func TestCheckUserRegistration(t *testing.T) {
 	var users mockUserRepository
-	s := NewService(nil, nil, &users)
+	s := NewService(nil, nil, &users, nil)
 
 	oid := ivmanto.IDToken{
 		Email: "nikolay.tonev55@gmail.com",

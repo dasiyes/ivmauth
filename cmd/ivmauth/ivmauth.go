@@ -15,6 +15,7 @@ import (
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 
 	"ivmanto.dev/ivmauth/authenticating"
+	ivmcfg "ivmanto.dev/ivmauth/config"
 	"ivmanto.dev/ivmauth/firestoredb"
 	"ivmanto.dev/ivmauth/inmem"
 	"ivmanto.dev/ivmauth/ivmanto"
@@ -22,20 +23,19 @@ import (
 	"ivmanto.dev/ivmauth/server"
 )
 
-const (
-	defaultPort = "8080"
-	defaultGCP  = "ivmauth"
-)
-
 func main() {
-	var (
-		port      = envString("PORT", defaultPort)
-		cid       = envString("clientID", "")
-		csc       = envString("clientSecret", "")
-		projectID = envString("GCP_PROJECT", defaultGCP)
 
-		httpAddr = flag.String("http.addr", ":"+port, "HTTP listen [localhost]:port")
+	var (
+		mc  = context.Background()
+		cfg = ivmcfg.Init()
+	)
+
+	type Cfgk string
+
+	var (
 		inmemory = flag.Bool("inmem", false, "use in-memory repositories")
+		// TODO:
+		env = flag.String("env", "dev", "The environment where the service will run. It will define the config file name to load by adding suffix '-$env' to 'config'. Accepted values: dev|staging|prod ")
 	)
 
 	flag.Parse()
@@ -45,6 +45,16 @@ func main() {
 		logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 		logger = log.With(logger, "ts", log.DefaultTimestamp)
 	}
+
+	// Load service configuration
+	if err := cfg.LoadCfg(env, log.With(logger, "component", "config")); err != nil {
+		panic(err)
+	}
+
+	var (
+		httpAddr  = cfg.GetHTTPAddr()
+		projectID = cfg.GCPPID()
+	)
 
 	// SETUP repositories
 	var (
@@ -67,7 +77,7 @@ func main() {
 
 	} else {
 
-		ctx := context.TODO()
+		ctx := context.WithValue(mc, Cfgk("ivm"), cfg)
 		client, err := firestore.NewClient(ctx, projectID)
 		if err != nil {
 			panic(err)
@@ -83,7 +93,10 @@ func main() {
 	}
 
 	// Facilitate testing by adding some sample data
-	storeTestData(clients, cid, csc)
+	//TODO: initiate cis snd csc
+	if *env == "dev" {
+		storeTestData(clients, "", "")
+	}
 
 	fieldKeys := []string{"method"}
 
@@ -92,7 +105,7 @@ func main() {
 	// initiating services
 	var au authenticating.Service
 	{
-		au = authenticating.NewService(authrequests, clients, users)
+		au = authenticating.NewService(authrequests, clients, users, cfg)
 		au = authenticating.NewLoggingService(log.With(logger, "component", "authenticating"), au)
 		au = authenticating.NewInstrumentingService(
 			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
@@ -137,8 +150,8 @@ func main() {
 
 	errs := make(chan error, 2)
 	go func() {
-		_ = logger.Log("transport", "http", "address", *httpAddr, "msg", "listening")
-		errs <- http.ListenAndServe(*httpAddr, srv)
+		_ = logger.Log("transport", "http", "address", httpAddr, "msg", "listening")
+		errs <- http.ListenAndServe(httpAddr, srv)
 	}()
 	go func() {
 		c := make(chan os.Signal, 1)
@@ -149,24 +162,10 @@ func main() {
 	_ = logger.Log("terminated", <-errs)
 }
 
-func envString(env, fallback string) string {
-	e := os.Getenv(env)
-	if e == "" {
-		return fallback
-	}
-	return e
-}
-
 func storeTestData(c ivmanto.ClientRepository, cid, csc string) {
 	client1 := ivmanto.NewClient(ivmanto.ClientID(cid), ivmanto.Active)
 	client1.ClientSecret = csc
 	if err := c.Store(client1); err != nil {
 		fmt.Printf("error saving test dataset 1: %#v;\n", err)
-	}
-
-	client2 := ivmanto.NewClient("xxx.apps.ivmanto.dev", ivmanto.Active)
-	client2.ClientSecret = "ivmanto-2021"
-	if err := c.Store(client2); err != nil {
-		fmt.Printf("error saving test dataset 2: %#v;\n", err)
 	}
 }

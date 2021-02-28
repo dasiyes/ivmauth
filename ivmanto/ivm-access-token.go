@@ -38,7 +38,7 @@ type ATCfg struct {
 	Validity  int
 	Realm     string
 	Alg       string
-	IssuerVal string
+	IssuerVal string `yaml:"issuer"`
 }
 
 // NewIvmantoAccessToken creates a new response to a successful authentication request.
