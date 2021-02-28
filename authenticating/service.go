@@ -68,6 +68,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dvsekhvalnov/jose2go/base64url"
+	"ivmanto.dev/ivmauth/config"
 	"ivmanto.dev/ivmauth/firestoredb"
 	"ivmanto.dev/ivmauth/ivmanto"
 	"ivmanto.dev/ivmauth/pksrefreshing"
@@ -118,6 +119,7 @@ type service struct {
 	requests ivmanto.RequestRepository
 	clients  ivmanto.ClientRepository
 	users    ivmanto.UserRepository
+	config   config.IvmCfg
 }
 
 func (s *service) RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.SessionID, error) {
@@ -256,7 +258,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 // getXClient - retrievs the ClientID and Client Secret from the custom header X-IVM-CLIENT for the cases when the Authorization header is having Bearer token
 func getXClient(xic string) (cid string, csc string) {
 	cis := strings.Split(xic, " ")
-	if len(cis) != 2 && cis[0] == "Basic" {
+	if len(cis) != 2 || cis[0] != "Basic" {
 		return "", ""
 	}
 
@@ -325,11 +327,10 @@ func (s *service) GetRequestBody(r *http.Request) (*ivmanto.AuthRequestBody, err
 // IssueAccessToken for the successfully authenticated and authorized requests [realm IVMANTO]
 func (s *service) IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client) (*ivmanto.AccessToken, error) {
 
-	// TODO: [IVM-2] consider to move all these values into config file for the server? or the service?
-	atcfg := ivmanto.ATCfg{Validity: 3600, Realm: "ivmanto", Alg: "RS256", IssuerVal: "https://accounts.ivmanto.com"}
+	atcfg := s.config.GetATC()
 	scopes := client.Scopes
 
-	iat := ivmanto.NewIvmantoAccessToken(&scopes, &atcfg)
+	iat := ivmanto.NewIvmantoAccessToken(&scopes, atcfg)
 	return iat, nil
 
 }
@@ -501,10 +502,15 @@ func validateOpenIDClaims(
 }
 
 // NewService creates a authenticating service with necessary dependencies.
-func NewService(requests ivmanto.RequestRepository, clients ivmanto.ClientRepository, users ivmanto.UserRepository) Service {
+func NewService(requests ivmanto.RequestRepository,
+	clients ivmanto.ClientRepository,
+	users ivmanto.UserRepository,
+	config config.IvmCfg) Service {
+
 	return &service{
 		requests: requests,
 		clients:  clients,
 		users:    users,
+		config:   config,
 	}
 }
