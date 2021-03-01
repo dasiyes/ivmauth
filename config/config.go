@@ -40,7 +40,7 @@ type IvmCfg interface {
 	GCPPID() string
 
 	// Environment returns the environment configured in the system
-	Environment() string
+	Environment() ivmEnvT
 
 	// GetATC will return config options for the creting access token service
 	GetATC() *ivmanto.ATCfg
@@ -99,13 +99,14 @@ func (c *ivmCfg) LoadCfg(rtaenv *string, lg log.Logger) error {
 }
 
 // init will initially load the config from the cf file
+//  - expand environment variables
 func (c *ivmCfg) init(cf string) error {
+
 	confContent, err := ioutil.ReadFile(cf)
 	if err != nil {
 		return err
 	}
 
-	// expand environment variables
 	confContent = []byte(os.ExpandEnv(string(confContent)))
 
 	if err := yaml.Unmarshal(confContent, c); err != nil {
@@ -126,10 +127,11 @@ func (c *ivmCfg) GCPPID() string {
 }
 
 // Env will return the environment configured in the system.
-func (c *ivmCfg) Environment() string {
-	return string(c.Env.EnvType)
+func (c *ivmCfg) Environment() ivmEnvT {
+	return c.Env.EnvType
 }
 
+// GetATC will return config options for the creting access token service
 func (c *ivmCfg) GetATC() *ivmanto.ATCfg {
 
 	var validity int = c.Atc.Validity

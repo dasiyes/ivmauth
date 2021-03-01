@@ -109,13 +109,13 @@ func main() {
 		au = authenticating.NewLoggingService(log.With(logger, "component", "authenticating"), au)
 		au = authenticating.NewInstrumentingService(
 			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
-				Namespace: "api",
+				Namespace: "ivmauth",
 				Subsystem: "authenticating_service",
 				Name:      "request_count",
 				Help:      "Number of requests received.",
 			}, fieldKeys),
 			kitprometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
-				Namespace: "api",
+				Namespace: "ivmauth",
 				Subsystem: "authenticating_service",
 				Name:      "request_latency_microseconds",
 				Help:      "Total duration of requests in microseconds.",
@@ -130,13 +130,13 @@ func main() {
 		pkr = pksrefreshing.NewLoggingService(log.With(logger, "component", "pksrefreshing"), pkr)
 		pkr = pksrefreshing.NewInstrumentingService(
 			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
-				Namespace: "api",
+				Namespace: "ivmauth",
 				Subsystem: "pksrefreshing_service",
 				Name:      "request_count",
 				Help:      "Number of requests received.",
 			}, fieldKeys),
 			kitprometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
-				Namespace: "api",
+				Namespace: "ivmauth",
 				Subsystem: "pksrefreshing_service",
 				Name:      "request_latency_microseconds",
 				Help:      "Total duration of requests in microseconds.",
