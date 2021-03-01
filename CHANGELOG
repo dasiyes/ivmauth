@@ -1,3 +1,8 @@
+v0.0.7  Implements client password authorization grant type
+
+v0.0.6  Implements Config file for bringing configuration option to the service.
+        Supports environment types: dev | staging | prod 
+
 v0.0.5  Register the user from the Google's OneTap IDToken, if not yet registred.
 
 v0.0.4  Authorization Grant type implicit for Ivmanto's web app client. Authenticating OpenID IDToken. Google as Indentity Provider implemented as of this version.
