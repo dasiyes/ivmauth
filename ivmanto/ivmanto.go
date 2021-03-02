@@ -30,6 +30,7 @@ type AuthRequestBody struct {
 	GrantType string `json:"grant_type,omitempty"`
 	ClientID  string `json:"client_id,omitempty"`
 	IDToken   string
+	Name      string
 	Email     string
 	Password  string
 	Scopes    []string

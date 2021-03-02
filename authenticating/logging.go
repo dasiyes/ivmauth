@@ -93,3 +93,14 @@ func (s *loggingService) CheckUserRegistration(oidtoken *ivmanto.IDToken) {
 		)
 	}(time.Now())
 }
+
+func (s *loggingService) RegisterUser(names, email, password string) (u *ivmanto.User, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "RegisterUser",
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.next.RegisterUser(names, email, password)
+}

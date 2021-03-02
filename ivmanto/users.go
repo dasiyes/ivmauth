@@ -1,9 +1,7 @@
 package ivmanto
 
 import (
-	"strings"
-
-	"github.com/google/uuid"
+	"github.com/rs/xid"
 )
 
 // UserID uniquely identifies a particular client.
@@ -55,5 +53,5 @@ type userProfile struct {
 
 // NewSubCode generates a new subject code value.
 func NewSubCode() SubCode {
-	return SubCode(strings.ToUpper(string(uuid.NodeID())))
+	return SubCode(xid.New().String())
 }

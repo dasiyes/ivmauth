@@ -11,7 +11,8 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/pborman/uuid v1.2.0
 	github.com/prometheus/client_golang v1.9.0
-	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
+	github.com/rs/xid v1.2.1 // indirect
+	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/mod v0.4.1 // indirect
 	golang.org/x/net v0.0.0-20210220033124-5f55cee0dc0d // indirect
 	golang.org/x/sys v0.0.0-20210220050731-9a76102bfb43 // indirect

@@ -86,12 +86,11 @@ func (c *ivmCfg) LoadCfg(rtaenv *string, lg log.Logger) error {
 	var cf string = "config-" + *rtaenv + ".yaml"
 
 	if err = c.init(cf); err != nil {
-		level.Debug(lg).Log("load config error", err)
-		err = nil
+		_ = level.Debug(lg).Log("load config error", err)
 	}
 
 	if string(c.Env.EnvType) != *rtaenv {
-		level.Debug(lg).Log("WARNNING", "Missmatch environment setup. Runtime argument takes over.")
+		_ = level.Debug(lg).Log("WARNNING", "Missmatch environment setup. Runtime argument takes over")
 		c.Env.EnvType = ivmEnvT(*rtaenv)
 	}
 

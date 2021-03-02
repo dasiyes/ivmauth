@@ -114,6 +114,9 @@ type Service interface {
 
 	// CheckUserRegistration search for the user from oidtoken in the db. Id not found a new one will be registered.
 	CheckUserRegistration(oidtoken *ivmanto.IDToken)
+
+	// RegisterUser will create a new user in the ivmauth db
+	RegisterUser(names, email, password string) (*ivmanto.User, error)
 }
 
 type service struct {
@@ -383,6 +386,37 @@ func (s *service) IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client
 
 }
 
+// Registration of new user on Ivmanto realm
+func (s *service) RegisterUser(names, email, password string) (*ivmanto.User, error) {
+
+	usr, err := s.users.Find(ivmanto.UserID(email))
+	if err != nil {
+		if err == firestoredb.ErrUserNotFound {
+			nUsr, err := ivmanto.NewUser(ivmanto.UserID(email))
+			if err != nil {
+				return nil, err
+			}
+			nUsr.Name = names
+			nUsr.Status = ivmanto.EntryStatus(ivmanto.Draft)
+			hp, err := hashPass([]byte(password))
+			if err != nil {
+				return nil, err
+			}
+			nUsr.Password = string(hp)
+
+			if err = s.users.Store(nUsr); err != nil {
+				return nil, fmt.Errorf("error saving new user: %#v", err)
+			}
+			fmt.Printf("user %#v successfully registred\n", nUsr.UserID)
+			return nUsr, nil
+		}
+
+		return nil, fmt.Errorf("error while searching for a user: %#v", err)
+	}
+
+	return nil, fmt.Errorf("user %#v already registered in the db", usr.UserID)
+}
+
 // Checking the users if the user from openID token is registred or is new
 func (s *service) CheckUserRegistration(oidtoken *ivmanto.IDToken) {
 
@@ -413,7 +447,6 @@ func (s *service) CheckUserRegistration(oidtoken *ivmanto.IDToken) {
 		_ = s.users.Store(usr)
 	}
 	fmt.Printf("user %#v already registered in the db.", usr.UserID)
-	return
 }
 
 // Get the client ID and the Client secret from web form url encoded
