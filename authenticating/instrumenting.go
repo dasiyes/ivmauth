@@ -89,3 +89,12 @@ func (s *instrumentingService) RegisterUser(names, email, password string) (*ivm
 
 	return s.next.RegisterUser(names, email, password)
 }
+
+func (s *instrumentingService) UpdateUser(u *ivmanto.User) error {
+	defer func(begin time.Time) {
+		s.requestCount.With("method", "RegisterUser").Add(1)
+		s.requestLatency.With("method", "RegisterUser").Observe(time.Since(begin).Seconds())
+	}(time.Now())
+
+	return s.next.UpdateUser(u)
+}

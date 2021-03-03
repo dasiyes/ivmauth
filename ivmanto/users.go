@@ -22,6 +22,14 @@ type User struct {
 	Status       EntryStatus
 	OIDCProvider string
 	SubCode      SubCode
+	RefreshToken string
+}
+
+// UpdateRefreshToken updates the Refresh Token for the user
+func (u *User) UpdateRefreshToken(rt string) {
+	if rt != "" {
+		u.RefreshToken = rt
+	}
 }
 
 // UserRepository provides access to the users storage.

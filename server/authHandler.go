@@ -9,6 +9,7 @@ import (
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/rs/xid"
 
 	"ivmanto.dev/ivmauth/authenticating"
 	"ivmanto.dev/ivmauth/ivmanto"
@@ -116,7 +117,14 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 
 	at, err := h.aus.IssueAccessToken(&ivmanto.IDToken{
 		Sub: string(usr.SubCode),
+		Jti: xid.New().String(),
 	}, &client)
+
+	usr.UpdateRefreshToken(at.RefreshToken)
+
+	if err = h.aus.UpdateUser(usr); err != nil {
+		h.logger.Log("error update user in the db", err.Error())
+	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err := json.NewEncoder(w).Encode(at); err != nil {

@@ -117,6 +117,9 @@ type Service interface {
 
 	// RegisterUser will create a new user in the ivmauth db
 	RegisterUser(names, email, password string) (*ivmanto.User, error)
+
+	// UpdateUser will update the user object from the parameter in the db
+	UpdateUser(u *ivmanto.User) error
 }
 
 type service struct {
@@ -249,11 +252,16 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 	var cID, cSec string
 	var err error
 	var host string = r.Host
+	var origin string = r.Header.Get("Origin")
+	var referer = r.Referer()
 	var env = s.config.Environment()
 
 	switch env {
 	case config.Dev:
-		if host != "localhost:8888" {
+		if host != "localhost:8888" ||
+			origin != "http://localhost:7667" ||
+			referer != "http://localhost:7667/" {
+
 			return nil, ivmanto.ErrBadRequest
 		}
 	case config.Staging:
@@ -261,7 +269,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 			return nil, ivmanto.ErrBadRequest
 		}
 	case config.Prod:
-		if host != "accounts.ivmanto.com" {
+		if host != "accounts.ivmanto.com" || !strings.Contains(origin, "ivmanto.com") {
 			return nil, ivmanto.ErrBadRequest
 		}
 	default:
@@ -415,6 +423,13 @@ func (s *service) RegisterUser(names, email, password string) (*ivmanto.User, er
 	}
 
 	return nil, fmt.Errorf("user %#v already registered in the db", usr.UserID)
+}
+
+func (s *service) UpdateUser(u *ivmanto.User) error {
+	if err := s.users.Store(u); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Checking the users if the user from openID token is registred or is new
