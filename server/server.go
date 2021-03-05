@@ -55,14 +55,14 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 	r.Use(requestsLogging(s.Logger))
 	r.Use(authClients(s.Logger, s.Auth))
 
+	r.Method("GET", "/version", version())
+	r.Method("GET", "/metrics", promhttp.Handler())
+
 	// Route all authentication calls
 	r.Route("/auth", func(r chi.Router) {
 		h := authHandler{s.Auth, s.Pks, s.Logger}
-		r.Mount("/v1", h.router())
+		r.Mount("/", h.router())
 	})
-
-	r.Method("GET", "/version", version())
-	r.Method("GET", "/metrics", promhttp.Handler())
 
 	s.router = r
 

@@ -68,6 +68,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dvsekhvalnov/jose2go/base64url"
+	"golang.org/x/crypto/bcrypt"
 	"ivmanto.dev/ivmauth/config"
 	"ivmanto.dev/ivmauth/firestoredb"
 	"ivmanto.dev/ivmauth/ivmanto"
@@ -113,6 +114,12 @@ type Service interface {
 
 	// CheckUserRegistration search for the user from oidtoken in the db. Id not found a new one will be registered.
 	CheckUserRegistration(oidtoken *ivmanto.IDToken)
+
+	// RegisterUser will create a new user in the ivmauth db
+	RegisterUser(names, email, password string) (*ivmanto.User, error)
+
+	// UpdateUser will update the user object from the parameter in the db
+	UpdateUser(u *ivmanto.User) error
 }
 
 type service struct {
@@ -145,16 +152,19 @@ func (s *service) Validate(
 
 	var err error
 
-	// [2]
-	if rh.Get("x-grant-type") == "" || rh.Get("x-token-type") == "" {
-		return nil, ivmanto.ErrUnknownGrantType
-	}
-
 	var authGrantType, xgt, idP string
 	var oidtoken *ivmanto.IDToken
+	var usr *ivmanto.User
 
 	idP = rh.Get("x-token-type")
 	xgt = rh.Get("x-grant-type")
+
+	// [2]
+	if xgt == "" {
+		return nil, ivmanto.ErrUnknownGrantType
+	} else if xgt == "id_token" && idP == "" {
+		return nil, ivmanto.ErrBadRequest
+	}
 
 	// [2.1]
 	switch xgt {
@@ -176,8 +186,21 @@ func (s *service) Validate(
 		authGrantType = "implicit"
 
 	case "password":
+
 		authGrantType = "password_credentials"
+
 		// TODO: [IVM-6] implement password fllow
+		usr, err = s.users.Find(ivmanto.UserID(body.Email))
+		if err != nil {
+			return nil, err
+		}
+
+		err = bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(body.Password))
+		if err != nil {
+			return nil, ivmanto.ErrAuthenticating
+		}
+		usr.Password = ""
+
 	case "code":
 		authGrantType = "authorization_code"
 	default:
@@ -202,6 +225,12 @@ func (s *service) Validate(
 
 	case "password_credentials":
 
+		oidt := ivmanto.IDToken{Email: string(usr.UserID), Sub: string(usr.SubCode)}
+		at, err = s.IssueAccessToken(&oidt, client)
+		if err != nil {
+			return nil, ivmanto.ErrIssuingAT
+		}
+
 	case "client_credentials":
 
 	default:
@@ -212,20 +241,50 @@ func (s *service) Validate(
 }
 
 // [3.2.1] AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
+// A server MUST respond with a 400 (Bad Request) status code to any
+// HTTP/1.1 request message that lacks a Host header field [x] and to any
+// request message that contains more than one Host header field [x] or a
+// Host header field with an invalid field-value [x].
+//
+// TODO: OpenID Connect guidences to follow (https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication)
 func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 
 	var cID, cSec string
 	var err error
+	var host string = r.Host
+	var origin string = r.Header.Get("Origin")
+	var referer = r.Referer()
+	var env = s.config.Environment()
+
+	switch env {
+	case config.Dev:
+		if host != "localhost:8888" ||
+			origin != "http://localhost:7667" ||
+			referer != "http://localhost:7667/" {
+
+			return nil, ivmanto.ErrBadRequest
+		}
+	case config.Staging:
+		if host != "ivmauth-dev-xmywgxnrfq-ey.a.run.app" {
+			return nil, ivmanto.ErrBadRequest
+		}
+	case config.Prod:
+		if host != "accounts.ivmanto.com" || !strings.Contains(origin, "ivmanto.com") {
+			return nil, ivmanto.ErrBadRequest
+		}
+	default:
+		return nil, ivmanto.ErrBadRequest
+	}
 
 	ahct := r.Header.Get("Content-Type")
 
-	switch ahct {
-	case "application/x-www-form-urlencoded":
+	switch {
+	case ahct == "application/x-www-form-urlencoded":
 		cID, cSec, err = getClientIDSecWFUE(r)
 		if err != nil {
 			return nil, ivmanto.ErrBadRequest
 		}
-	case "application/json":
+	case strings.HasPrefix(ahct, "application/json"):
 		xic := r.Header.Get("x-ivm-client")
 		hab := r.Header.Get("Authorization")
 
@@ -281,7 +340,7 @@ func (s *service) GetRequestBody(r *http.Request) (*ivmanto.AuthRequestBody, err
 	var err error
 	var rb ivmanto.AuthRequestBody
 
-	if r.Header.Get("Content-Type") == "application/json" {
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
 
 		if err = json.NewDecoder(r.Body).Decode(&rb); err != nil {
 			return nil, ivmanto.ErrGetRequestBody
@@ -332,7 +391,45 @@ func (s *service) IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client
 
 	iat := ivmanto.NewIvmantoAccessToken(&scopes, atcfg)
 	return iat, nil
+}
 
+// Registration of new user on Ivmanto realm
+func (s *service) RegisterUser(names, email, password string) (*ivmanto.User, error) {
+
+	usr, err := s.users.Find(ivmanto.UserID(email))
+	if err != nil {
+		if err == firestoredb.ErrUserNotFound {
+			nUsr, err := ivmanto.NewUser(ivmanto.UserID(email))
+			if err != nil {
+				return nil, err
+			}
+			nUsr.Name = names
+			nUsr.Status = ivmanto.EntryStatus(ivmanto.Draft)
+			hp, err := hashPass([]byte(password))
+			if err != nil {
+				return nil, err
+			}
+			nUsr.Password = string(hp)
+
+			if err = s.users.Store(nUsr); err != nil {
+				return nil, fmt.Errorf("error saving new user: %#v", err)
+			}
+			fmt.Printf("user %#v successfully registred\n", nUsr.UserID)
+			return nUsr, nil
+		}
+
+		return nil, fmt.Errorf("error while searching for a user: %#v", err)
+	}
+
+	return nil, fmt.Errorf("user %#v already registered in the db", usr.UserID)
+}
+
+// UpdateUser will update the user changes in the DB
+func (s *service) UpdateUser(u *ivmanto.User) error {
+	if err := s.users.Store(u); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Checking the users if the user from openID token is registred or is new
@@ -365,7 +462,6 @@ func (s *service) CheckUserRegistration(oidtoken *ivmanto.IDToken) {
 		_ = s.users.Store(usr)
 	}
 	fmt.Printf("user %#v already registered in the db.", usr.UserID)
-	return
 }
 
 // Get the client ID and the Client secret from web form url encoded
@@ -513,4 +609,8 @@ func NewService(requests ivmanto.RequestRepository,
 		users:    users,
 		config:   config,
 	}
+}
+
+func hashPass(p []byte) ([]byte, error) {
+	return bcrypt.GenerateFromPassword(p, 12)
 }

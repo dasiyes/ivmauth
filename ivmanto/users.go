@@ -1,9 +1,7 @@
 package ivmanto
 
 import (
-	"strings"
-
-	"github.com/google/uuid"
+	"github.com/rs/xid"
 )
 
 // UserID uniquely identifies a particular client.
@@ -24,6 +22,14 @@ type User struct {
 	Status       EntryStatus
 	OIDCProvider string
 	SubCode      SubCode
+	RefreshToken string
+}
+
+// UpdateRefreshToken updates the Refresh Token for the user
+func (u *User) UpdateRefreshToken(rt string) {
+	if rt != "" {
+		u.RefreshToken = rt
+	}
 }
 
 // UserRepository provides access to the users storage.
@@ -55,5 +61,5 @@ type userProfile struct {
 
 // NewSubCode generates a new subject code value.
 func NewSubCode() SubCode {
-	return SubCode(strings.ToUpper(string(uuid.NodeID())))
+	return SubCode(xid.New().String())
 }

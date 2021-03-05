@@ -60,6 +60,7 @@ func NewIvmantoAccessToken(scp *[]string, atConfig *ATCfg) *AccessToken {
 	}
 
 	clm := newIvmATC(validity, realm, issval)
+	rtclm := newIvmATC(0, realm, issval)
 
 	switch alg {
 	case "RS256":
@@ -78,9 +79,10 @@ func NewIvmantoAccessToken(scp *[]string, atConfig *ATCfg) *AccessToken {
 	if err != nil {
 		return nil
 	}
-
-	// TODO: [IVM-1] generate and save the refresh token (as part of the user management)
-	rtkn := ""
+	rtkn, err := newJWToken(rtclm, &sm)
+	if err != nil {
+		return nil
+	}
 
 	return &AccessToken{
 		AccessToken:  at,

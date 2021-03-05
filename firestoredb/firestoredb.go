@@ -134,14 +134,16 @@ func (ur *userRepository) Find(id ivmanto.UserID) (*ivmanto.User, error) {
 			return nil, err
 			//continue
 		}
+
 		err = doc.DataTo(&u)
 		if err != nil {
 			return nil, err
 			//continue
 		}
-		if u.UserID == id {
+		if ivmanto.UserID(doc.Ref.ID) == id {
 			break
 		}
+		u = ivmanto.User{}
 	}
 	return &u, nil
 }
