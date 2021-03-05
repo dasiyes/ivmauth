@@ -391,7 +391,6 @@ func (s *service) IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client
 
 	iat := ivmanto.NewIvmantoAccessToken(&scopes, atcfg)
 	return iat, nil
-
 }
 
 // Registration of new user on Ivmanto realm
@@ -425,6 +424,7 @@ func (s *service) RegisterUser(names, email, password string) (*ivmanto.User, er
 	return nil, fmt.Errorf("user %#v already registered in the db", usr.UserID)
 }
 
+// UpdateUser will update the user changes in the DB
 func (s *service) UpdateUser(u *ivmanto.User) error {
 	if err := s.users.Store(u); err != nil {
 		return err
