@@ -114,6 +114,12 @@ type Service interface {
 
 	// CheckUserRegistration search for the user from oidtoken in the db. Id not found a new one will be registered.
 	CheckUserRegistration(oidtoken *ivmanto.IDToken)
+
+	// RegisterUser will create a new user in the ivmauth db
+	RegisterUser(names, email, password string) (*ivmanto.User, error)
+
+	// UpdateUser will update the user object from the parameter in the db
+	UpdateUser(u *ivmanto.User) error
 }
 
 type service struct {
@@ -246,11 +252,16 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 	var cID, cSec string
 	var err error
 	var host string = r.Host
+	var origin string = r.Header.Get("Origin")
+	var referer = r.Referer()
 	var env = s.config.Environment()
 
 	switch env {
 	case config.Dev:
-		if host != "localhost:8888" {
+		if host != "localhost:8888" ||
+			origin != "http://localhost:7667" ||
+			referer != "http://localhost:7667/" {
+
 			return nil, ivmanto.ErrBadRequest
 		}
 	case config.Staging:
@@ -258,7 +269,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 			return nil, ivmanto.ErrBadRequest
 		}
 	case config.Prod:
-		if host != "accounts.ivmanto.com" {
+		if host != "accounts.ivmanto.com" || !strings.Contains(origin, "ivmanto.com") {
 			return nil, ivmanto.ErrBadRequest
 		}
 	default:
@@ -380,7 +391,45 @@ func (s *service) IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client
 
 	iat := ivmanto.NewIvmantoAccessToken(&scopes, atcfg)
 	return iat, nil
+}
 
+// Registration of new user on Ivmanto realm
+func (s *service) RegisterUser(names, email, password string) (*ivmanto.User, error) {
+
+	usr, err := s.users.Find(ivmanto.UserID(email))
+	if err != nil {
+		if err == firestoredb.ErrUserNotFound {
+			nUsr, err := ivmanto.NewUser(ivmanto.UserID(email))
+			if err != nil {
+				return nil, err
+			}
+			nUsr.Name = names
+			nUsr.Status = ivmanto.EntryStatus(ivmanto.Draft)
+			hp, err := hashPass([]byte(password))
+			if err != nil {
+				return nil, err
+			}
+			nUsr.Password = string(hp)
+
+			if err = s.users.Store(nUsr); err != nil {
+				return nil, fmt.Errorf("error saving new user: %#v", err)
+			}
+			fmt.Printf("user %#v successfully registred\n", nUsr.UserID)
+			return nUsr, nil
+		}
+
+		return nil, fmt.Errorf("error while searching for a user: %#v", err)
+	}
+
+	return nil, fmt.Errorf("user %#v already registered in the db", usr.UserID)
+}
+
+// UpdateUser will update the user changes in the DB
+func (s *service) UpdateUser(u *ivmanto.User) error {
+	if err := s.users.Store(u); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Checking the users if the user from openID token is registred or is new
@@ -413,7 +462,6 @@ func (s *service) CheckUserRegistration(oidtoken *ivmanto.IDToken) {
 		_ = s.users.Store(usr)
 	}
 	fmt.Printf("user %#v already registered in the db.", usr.UserID)
-	return
 }
 
 // Get the client ID and the Client secret from web form url encoded
