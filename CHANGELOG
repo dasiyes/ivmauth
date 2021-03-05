@@ -1,4 +1,8 @@
-v0.0.7  Implements client password authorization grant type
+v0.0.8  Session Manager and Session Repository implemented.
+        Create a new session on successful authnetication.
+         
+v0.0.7  Implements client password authorization grant type.
+        Refresh token issued along with Access Token and stored within the user record.
 
 v0.0.6  Implements Config file for bringing configuration option to the service.
         Supports environment types: dev | staging | prod 

@@ -8,7 +8,7 @@ env:
 
 # server configuration
 server:
-  host: '127.0.0.1'
+  host: ''
   port: ${PORT}
 
 # cloud environment config
