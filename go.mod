@@ -8,10 +8,9 @@ require (
 	github.com/dvsekhvalnov/jose2go v1.5.0
 	github.com/go-chi/chi v1.5.1
 	github.com/go-kit/kit v0.10.0
-	github.com/google/uuid v1.1.2
 	github.com/pborman/uuid v1.2.0
 	github.com/prometheus/client_golang v1.9.0
-	github.com/rs/xid v1.2.1 // indirect
+	github.com/rs/xid v1.2.1
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/mod v0.4.1 // indirect
 	golang.org/x/net v0.0.0-20210220033124-5f55cee0dc0d // indirect

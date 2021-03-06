@@ -4,7 +4,7 @@
 # FROM golang:1.15-buster as builder
 
 # My attempt to get eu.gcr.io image
-FROM golang:1.16-buster
+FROM golang:1.16-buster AS build
 
 # Create and change to the app directory.
 WORKDIR /ivmauth
@@ -21,16 +21,17 @@ COPY . ./
 # Build the binary.
 RUN go build -o cmd/ivmauth/ivmauth -v -mod=readonly cmd/ivmauth/ivmauth.go 
 
-# Use the official Debian slim image for a lean production container.
-# https://hub.docker.com/_/debian
-# https://docs.docker.com/develop/develop-images/multistage-build/#use-multi-stage-builds
-FROM debian:buster-slim
-RUN set -x && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+# Use the alpine image for a lean production container.
+FROM alpine:3.13 AS base
+RUN mkdir /lib64 && ln -s /lib/libc.musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
+RUN apk --no-cache add ca-certificates
+
+WORKDIR /root/
 
 # Copy the binary to the production image from the builder stage.
-COPY --from=builder /ivmauth/cmd/ivmauth/ivmauth /ivmauth/cmd/ivmauth/ivmauth
+COPY --from=build /ivmauth/cmd/ivmauth/ivmauth .
+COPY --from=build /ivmauth/config-dev.yaml .
+COPY --from=build /ivmauth/version .
 
 # Run the web service on container startup.
-CMD ["/ivmauth/cmd/ivmauth/ivmauth"]
+CMD ["./ivmauth"]
