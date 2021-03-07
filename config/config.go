@@ -86,7 +86,8 @@ func (c *ivmCfg) LoadCfg(rtaenv *string, lg log.Logger) error {
 	var cf string = "config-" + *rtaenv + ".yaml"
 
 	if err = c.init(cf); err != nil {
-		_ = level.Debug(lg).Log("load config error", err)
+		_ = level.Debug(lg).Log("load-config-error", err)
+		return err
 	}
 
 	if string(c.Env.EnvType) != *rtaenv {

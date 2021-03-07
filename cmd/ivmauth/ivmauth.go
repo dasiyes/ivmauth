@@ -48,7 +48,8 @@ func main() {
 
 	// Load service configuration
 	if err := cfg.LoadCfg(env, log.With(logger, "component", "config")); err != nil {
-		panic(err)
+		logger.Log("Exit", "Unable to proceed starting the server...")
+		os.Exit(1)
 	}
 
 	var (
@@ -80,7 +81,8 @@ func main() {
 		ctx := context.WithValue(mc, Cfgk("ivm"), cfg)
 		client, err := firestore.NewClient(ctx, projectID)
 		if err != nil {
-			panic(err)
+			logger.Log("Firestore client init error", err.Error(), "Exit", "Unable to proceed starting the server...")
+			os.Exit(1)
 		}
 
 		defer client.Close()
