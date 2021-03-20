@@ -9,6 +9,6 @@ steps:
 # Deploy container image to Cloud Run. All arguments here: https://cloud.google.com/sdk/gcloud/reference/run/deploy
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: gcloud
-  args: ['run', 'deploy', 'ivmauth-staging', '--image', 'eu.gcr.io/ivmauth/ivmauth-staging', '--region', 'europe-west4', '--platform', 'managed', '--memory', '1024', '--cpu', '2', '--no-allow-unauthenticated', '--service-account', 'ivm-sm@ivmanto-ca-stage.iam.gserviceaccount.com', '--min-instances', '1', '--max-instances', '2']
+  args: ['run', 'deploy', 'ivmauth-staging', '--image', 'eu.gcr.io/ivmauth/ivmauth-staging', '--region', 'europe-west4', '--platform', 'managed', '--memory', '1024', '--cpu', '2', '--no-allow-unauthenticated', '--service-account', 'ivmauth-sa@ivmauth.iam.gserviceaccount.com', '--min-instances', '1', '--max-instances', '2']
 images:
 - eu.gcr.io/ivmauth/ivmauth-staging
