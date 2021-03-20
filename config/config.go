@@ -1,4 +1,4 @@
-// Package config is package specific to ivmauth service to handle all configuration options for the service
+// Package config is package specific to ivmauth service to handle all its configuration options
 package config
 
 import (
@@ -56,8 +56,8 @@ type ivmCfg struct {
 
 type ivmEnv struct {
 	EnvType ivmEnvT `yaml:"env_type"`
-	cif     string
-	csc     string
+	// cif     string
+	// csc     string
 }
 
 type ivmEnvT string
@@ -73,7 +73,7 @@ type ivmCloud struct {
 	ProjectID string `yaml:"project_id"`
 }
 
-// Init vreates a new empty instance of ivmCfg object
+// Init creates a new empty instance of ivmCfg object
 func Init() IvmCfg {
 	return &ivmCfg{}
 }
