@@ -9,7 +9,7 @@ steps:
 # Deploy container image to Cloud Run. All arguments here: https://cloud.google.com/sdk/gcloud/reference/run/deploy
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: gcloud
-  args: ['run', 'deploy', 'ivmauth-staging', 
+  args: ['beta', 'run', 'deploy', 'ivmauth-staging', 
     '--image', 'eu.gcr.io/ivmauth/ivmauth-staging', 
     '--region', 'europe-west4', 
     '--platform', 'managed', 
