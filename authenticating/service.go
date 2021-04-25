@@ -254,18 +254,11 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 	var cID, cSec string
 	var err error
 
-	// The address where the request was sent to. Should be domain where this library is authoritative to! []
-	var host string
-	if r.Proto == "HTTP/1.1" {
-		host = r.Host
-	} else if r.Proto == "HTTP/2" {
-		fmt.Printf("INFO: http/2 host from URL.Host: %v\n", r.URL.Host)
-		fmt.Printf("INFO: http/2 host from r.Header.Get(`Host`): %v\n", r.Header.Get("Host"))
-		host = r.URL.Host
-	}
+	fmt.Printf("INFO: r.Proto: %v, host from r.URL.Host: %v\n", r.Proto, r.URL.Host)
+	fmt.Printf("INFO: r.Proto: %v, host from r.Header.Get(`Host`): %v\n", r.Proto, r.Header.Get("Host"))
 
-	fmt.Printf("INFO: http/2 host from URL.Host: %v\n", r.URL.Host)
-	fmt.Printf("INFO: http/2 host from r.Header.Get(`Host`): %v\n", r.Header.Get("Host"))
+	// The address where the request was sent to. Should be domain where this library is authoritative to! []
+	var host string = r.Host
 
 	// The origin is the address where the request is sent from. Since the CORS is allowed, this value should be controlling the originates from where the library accepts calls from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin]
 	var origin string = r.Header.Get("Origin")
@@ -326,9 +319,11 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 
 	rc, err := s.clients.Find(ivmanto.ClientID(cID))
 	if err != nil {
+		fmt.Printf("Error while finding clientID in the database: %v", err.Error())
 		return nil, err
 	}
 	if rc.ClientSecret != cSec {
+		fmt.Printf("Client secret provided within the request %v, does not match the one in the DB\n", err.Error())
 		return nil, ivmanto.ErrClientAuth
 	}
 	return rc, nil

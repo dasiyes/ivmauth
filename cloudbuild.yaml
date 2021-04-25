@@ -14,7 +14,7 @@ steps:
     '--region', 'europe-west4', 
     '--platform', 'managed', 
     '--memory', '1024', '--cpu', '2',
-    '--use-http2', 
+    '--no-use-http2', 
     '--no-allow-unauthenticated', 
     '--service-account', 'ivmauth-sa@ivmauth.iam.gserviceaccount.com', 
     '--min-instances', '1', '--max-instances', '2'
