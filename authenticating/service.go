@@ -264,6 +264,9 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 		host = r.URL.Host
 	}
 
+	fmt.Printf("INFO: http/2 host from URL.Host: %v\n", r.URL.Host)
+	fmt.Printf("INFO: http/2 host from r.Header.Get(`Host`): %v\n", r.Header.Get("Host"))
+
 	// The origin is the address where the request is sent from. Since the CORS is allowed, this value should be controlling the originates from where the library accepts calls from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin]
 	var origin string = r.Header.Get("Origin")
 
