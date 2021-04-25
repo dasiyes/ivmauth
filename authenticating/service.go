@@ -255,7 +255,14 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 	var err error
 
 	// The address where the request was sent to. Should be domain where this library is authoritative to! []
-	var host string = r.Host
+	var host string
+	if r.Proto == "HTTP/1.1" {
+		host = r.Host
+	} else if r.Proto == "HTTP/2" {
+		fmt.Printf("INFO: http/2 host from URL.Host: %v\n", r.URL.Host)
+		fmt.Printf("INFO: http/2 host from r.Header.Get(`Host`): %v\n", r.Header.Get("Host"))
+		host = r.URL.Host
+	}
 
 	// The origin is the address where the request is sent from. Since the CORS is allowed, this value should be controlling the originates from where the library accepts calls from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin]
 	var origin string = r.Header.Get("Origin")
@@ -267,7 +274,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 	var expected_host = s.config.GetHost()
 
 	if host != expected_host || host == "" || expected_host == "" {
-		fmt.Printf("BadRequest: host %v does not match the expected value of %v\nOr one of them is empty value\n", host, expected_host)
+		fmt.Printf("BadRequest: host: %v,does not match the expected value of: %v, or one of them is empty value\n", host, expected_host)
 		return nil, ivmanto.ErrBadRequest
 	}
 
