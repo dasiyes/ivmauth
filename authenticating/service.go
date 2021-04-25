@@ -256,6 +256,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 
 	fmt.Printf("INFO: r.Proto: %v, host from r.URL.Host: %v\n", r.Proto, r.URL.Host)
 	fmt.Printf("INFO: r.Proto: %v, host from r.Header.Get(`Host`): %v\n", r.Proto, r.Header.Get("Host"))
+	fmt.Printf("INFO: r.Proto: %v, host from r.Host: %v\n", r.Proto, r.Host)
 
 	// The address where the request was sent to. Should be domain where this library is authoritative to! []
 	var host string = r.Host
@@ -286,6 +287,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 	}
 
 	ahct := r.Header.Get("Content-Type")
+	fmt.Printf("INFO: content header value: %v\n", ahct)
 
 	switch {
 	case ahct == "application/x-www-form-urlencoded":
