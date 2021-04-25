@@ -254,10 +254,6 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 	var cID, cSec string
 	var err error
 
-	fmt.Printf("INFO: r.Proto: %v, host from r.URL.Host: %v\n", r.Proto, r.URL.Host)
-	fmt.Printf("INFO: r.Proto: %v, host from r.Header.Get(`Host`): %v\n", r.Proto, r.Header.Get("Host"))
-	fmt.Printf("INFO: r.Proto: %v, host from r.Host: %v\n", r.Proto, r.Host)
-
 	// The address where the request was sent to. Should be domain where this library is authoritative to! []
 	var host string = r.Host
 
@@ -308,6 +304,9 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 			}
 		} else {
 			cID, cSec = getXClient(xic)
+
+			fmt.Printf("cID %v and cSec %v extracted from x-ivm-client header", cID, cSec)
+
 			if cID == "" || cSec == "" {
 				fmt.Printf("BadRequest: [x-ivm-client] header empty value for clientID: %v, or client secret xxx\n", cID)
 				return nil, ivmanto.ErrBadRequest
@@ -328,6 +327,8 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 		fmt.Printf("Client secret provided within the request %v, does not match the one in the DB\n", err.Error())
 		return nil, ivmanto.ErrClientAuth
 	}
+
+	fmt.Printf("found req client: %v\n", rc)
 	return rc, nil
 }
 
