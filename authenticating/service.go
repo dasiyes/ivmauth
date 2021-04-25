@@ -298,6 +298,9 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 
 		if xic == "" && strings.HasPrefix(hab, "Basic ") {
 			cID, cSec, _ = r.BasicAuth()
+
+			fmt.Printf("INFO: clientID: %v, cSec: %v\n", cID, cSec)
+
 			if cID == "" || cSec == "" {
 				fmt.Printf("BadRequest: [Authorization] header empty value for clientID: %v, or client secret xxx\n", cID)
 				return nil, ivmanto.ErrBadRequest
@@ -334,6 +337,9 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 
 // getXClient - retrievs the ClientID and Client Secret from the custom header X-IVM-CLIENT for the cases when the Authorization header is having Bearer token
 func getXClient(xic string) (cid string, csc string) {
+
+	fmt.Printf("xic: %v", xic)
+
 	cis := strings.Split(xic, " ")
 	if len(cis) != 2 || cis[0] != "Basic" {
 		return "", ""

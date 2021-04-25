@@ -68,8 +68,13 @@ func (cr *clientRepository) Find(id ivmanto.ClientID) (*ivmanto.Client, error) {
 
 	var c ivmanto.Client
 
+	fmt.Printf("... search for clientID %v\n", id)
+
 	for {
 		doc, err := iter.Next()
+
+		fmt.Printf("err of the cycle: %v", err.Error())
+
 		if err == iterator.Done {
 			return nil, ErrClientNotFound
 		}
