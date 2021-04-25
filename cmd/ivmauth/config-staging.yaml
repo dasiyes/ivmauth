@@ -1,0 +1,24 @@
+# ivmauth service configuration file
+
+# environment
+env:
+  # accepting: dev|staging|prod
+  env_type: staging
+  # host name to be used for requests validation and the library (e.g. ivmauth) considers itself authoritative.
+  host: accounts.ivmanto.dev
+
+# server configuration
+server:
+  host: ''
+  port: ${PORT}
+
+# cloud environment config
+cloud_env:
+  project_id: 'ivmauth'
+
+# access token config
+atc:
+  validity: 3600
+  realm:    "ivmanto.com"
+  alg:      "RS256"
+  issuer:   "https://accounts.ivmanto.com"
