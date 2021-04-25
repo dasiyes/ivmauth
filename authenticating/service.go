@@ -242,38 +242,44 @@ func (s *service) Validate(
 
 // [3.2.1] AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
 // A server MUST respond with a 400 (Bad Request) status code to any
-// HTTP/1.1 request message that lacks a Host header field [x] and to any
-// request message that contains more than one Host header field [x] or a
-// Host header field with an invalid field-value [x].
+//  [x] HTTP/1.1 request message that lacks a Host header field
+//  and
+//  [x] to any request message that contains more than one Host header field
+//	or
+//  [x] a Host header field with an invalid field-value .
 //
 // TODO: OpenID Connect guidences to follow (https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication)
 func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 
 	var cID, cSec string
 	var err error
+
+	// The address where the request was sent to. Should be domain where this library is authoritative to! []
 	var host string = r.Host
+
+	// The origin is the address where the request is sent from. Since the CORS is allowed, this value should be controlling the originates from where the library accepts calls from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin]
 	var origin string = r.Header.Get("Origin")
+
+	// The refrerrer value, as a difference from the origin, will include the full path from where the request was sent from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer]
 	var referer = r.Referer()
+
 	var env = s.config.Environment()
+	var expected_host = s.config.GetHost()
 
-	switch env {
-	case config.Dev:
-		if host != "localhost:8888" ||
-			origin != "http://localhost:7667" ||
-			referer != "http://localhost:7667/" {
-
-			return nil, ivmanto.ErrBadRequest
-		}
-	case config.Staging:
-		if host != "ivmauth-dev-xmywgxnrfq-ey.a.run.app" {
-			return nil, ivmanto.ErrBadRequest
-		}
-	case config.Prod:
-		if host != "accounts.ivmanto.com" || !strings.Contains(origin, "ivmanto.com") {
-			return nil, ivmanto.ErrBadRequest
-		}
-	default:
+	if host != expected_host || host == "" || expected_host == "" {
+		fmt.Printf("BadRequest: host %v does not match the expected value of %v\nOr one of them is empty value\n", host, expected_host)
 		return nil, ivmanto.ErrBadRequest
+	}
+
+	if origin == "" && env == "prod" {
+		//TODO: implement db support for taking the array of allowed origins
+		fmt.Printf("BadRequest: missing origin value\n")
+		return nil, ivmanto.ErrBadRequest
+	}
+
+	if referer == "" {
+		//TODO: consider if this value must be part of the client Authentication process...
+		fmt.Printf("NOTE: missing referer value\n")
 	}
 
 	ahct := r.Header.Get("Content-Type")
@@ -282,6 +288,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 	case ahct == "application/x-www-form-urlencoded":
 		cID, cSec, err = getClientIDSecWFUE(r)
 		if err != nil {
+			fmt.Printf("Badrequest: error getting clientID and client secret from application/x-www-form-urlencoded request. Error: %v", err.Error())
 			return nil, ivmanto.ErrBadRequest
 		}
 	case strings.HasPrefix(ahct, "application/json"):
@@ -291,16 +298,19 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 		if xic == "" && strings.HasPrefix(hab, "Basic ") {
 			cID, cSec, _ = r.BasicAuth()
 			if cID == "" || cSec == "" {
+				fmt.Printf("BadRequest: [Authorization] header empty value for clientID: %v, or client secret xxx\n", cID)
 				return nil, ivmanto.ErrBadRequest
 			}
 		} else {
 			cID, cSec = getXClient(xic)
 			if cID == "" || cSec == "" {
+				fmt.Printf("BadRequest: [x-ivm-client] header empty value for clientID: %v, or client secret xxx\n", cID)
 				return nil, ivmanto.ErrBadRequest
 			}
 		}
 
 	default:
+		fmt.Printf("BadRequest: unsupported content type: %v", ahct)
 		return nil, ivmanto.ErrBadRequest
 	}
 

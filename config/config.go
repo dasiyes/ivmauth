@@ -42,6 +42,9 @@ type IvmCfg interface {
 	// Environment returns the environment configured in the system
 	Environment() ivmEnvT
 
+	// GetHost return the host string that will be used to validate the requests
+	GetHost() string
+
 	// GetATC will return config options for the creting access token service
 	GetATC() *ivmanto.ATCfg
 }
@@ -56,8 +59,7 @@ type ivmCfg struct {
 
 type ivmEnv struct {
 	EnvType ivmEnvT `yaml:"env_type"`
-	// cif     string
-	// csc     string
+	Host    string  `yaml:"host"`
 }
 
 type ivmEnvT string
@@ -129,6 +131,11 @@ func (c *ivmCfg) GCPPID() string {
 // Env will return the environment configured in the system.
 func (c *ivmCfg) Environment() ivmEnvT {
 	return c.Env.EnvType
+}
+
+// GetHost return the host string that will be used to validate the requests
+func (c *ivmCfg) GetHost() string {
+	return c.Env.Host
 }
 
 // GetATC will return config options for the creting access token service

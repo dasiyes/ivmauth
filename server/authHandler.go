@@ -67,7 +67,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 		// go h.pks.InitOIDProviders()
 	}
 
-	// ? Registering auth request
+	// ? Registering auth request (NOT REQUIRED - moved to middleware requestLogging)
 	// _, _ = h.aus.RegisterNewRequest(&r.Header, reqbody, &client)
 
 	// Validate auth request. Authenticated client's scope to consider
@@ -115,7 +115,7 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	at, err := h.aus.IssueAccessToken(&ivmanto.IDToken{
+	at, _ := h.aus.IssueAccessToken(&ivmanto.IDToken{
 		Sub: string(usr.SubCode),
 		Jti: xid.New().String(),
 	}, &client)
