@@ -81,7 +81,7 @@ func main() {
 		ctx := context.WithValue(mc, Cfgk("ivm"), cfg)
 		client, err := firestore.NewClient(ctx, projectID)
 		if err != nil {
-			logger.Log("Firestore client init error", err.Error(), "Exit", "Unable to proceed starting the server...")
+			logger.Log("firestore client init error", err.Error(), "Exit", "Unable to proceed starting the server...")
 			os.Exit(1)
 		}
 
