@@ -11,6 +11,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/dasiyes/ivmsesman"
+	_ "github.com/dasiyes/ivmsesman/providers/inmem"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
