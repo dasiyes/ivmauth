@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"github.com/dasiyes/ivmsesman"
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -31,19 +32,20 @@ var UID ivmanto.UserID
 
 // Server holds the dependencies for a HTTP server
 type Server struct {
-	Auth authenticating.Service
-	Pks  pksrefreshing.Service
-
+	Auth   authenticating.Service
+	Pks    pksrefreshing.Service
+	Sm     *ivmsesman.Sesman
 	Logger kitlog.Logger
 
 	router chi.Router
 }
 
 // New returns a new HTTP server.
-func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Logger) *Server {
+func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Logger, sm *ivmsesman.Sesman) *Server {
 	s := &Server{
 		Auth:   au,
 		Pks:    pks,
+		Sm:     sm,
 		Logger: logger,
 	}
 
@@ -60,7 +62,7 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 
 	// Route all authentication calls
 	r.Route("/auth", func(r chi.Router) {
-		h := authHandler{s.Auth, s.Pks, s.Logger}
+		h := authHandler{s.Auth, s.Pks, s.Logger, s.Sm}
 		r.Mount("/", h.router())
 	})
 

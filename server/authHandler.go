@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/dasiyes/ivmsesman"
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -17,10 +18,10 @@ import (
 )
 
 type authHandler struct {
-	aus authenticating.Service
-	pks pksrefreshing.Service
-
+	aus    authenticating.Service
+	pks    pksrefreshing.Service
 	logger kitlog.Logger
+	sm     *ivmsesman.Sesman
 }
 
 func (h *authHandler) router() chi.Router {
@@ -67,7 +68,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 		// go h.pks.InitOIDProviders()
 	}
 
-	// ? Registering auth request
+	// ? Registering auth request (NOT REQUIRED - moved to middleware requestLogging)
 	// _, _ = h.aus.RegisterNewRequest(&r.Header, reqbody, &client)
 
 	// Validate auth request. Authenticated client's scope to consider
@@ -76,6 +77,10 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 		ivmanto.EncodeError(context.TODO(), http.StatusForbidden, err, w)
 		return
 	}
+
+	// Get a new session for the authenticated request
+	ns := h.sm.SessionStart(w, r)
+	_ = level.Debug(h.logger).Log("sessionID", ns.SessionID())
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err := json.NewEncoder(w).Encode(at); err != nil {
@@ -115,7 +120,7 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	at, err := h.aus.IssueAccessToken(&ivmanto.IDToken{
+	at, _ := h.aus.IssueAccessToken(&ivmanto.IDToken{
 		Sub: string(usr.SubCode),
 		Jti: xid.New().String(),
 	}, &client)

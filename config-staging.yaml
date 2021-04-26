@@ -1,9 +1,11 @@
 # ivmauth service configuration file
 
 # environment
-env: 
-  env_type: dev
-  host: http://localhost:8888
+env:
+  # accepting: dev|staging|prod
+  env_type: staging
+  # host name to be used for requests validation and the library (e.g. ivmauth) considers itself authoritative.
+  host: accounts.ivmanto.dev
 
 # server configuration
 server:
@@ -13,6 +15,11 @@ server:
 # cloud environment config
 cloud_env:
   project_id: 'ivmauth'
+
+# session man config
+sesman_config:
+  cookie_name: "ivmid"
+  max_lifetime: 3600
 
 # access token config
 atc:

@@ -8,12 +8,18 @@ env:
 
 # server configuration
 server:
-  host: '127.0.0.1'
+  host: ''
   port: ${PORT}
 
 # cloud environment config
 cloud_env:
   project_id: 'ivmauth'
+
+# session man config
+sesman_config:
+  cookie_name: "ivmid"
+  max_lifetime: 3600
+  visit_cookie_name: "iv"
 
 # access token config
 atc:

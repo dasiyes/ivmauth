@@ -10,7 +10,10 @@ import (
 	"syscall"
 
 	"cloud.google.com/go/firestore"
+	"github.com/dasiyes/ivmsesman"
+	_ "github.com/dasiyes/ivmsesman/providers/inmem"
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 
@@ -48,7 +51,8 @@ func main() {
 
 	// Load service configuration
 	if err := cfg.LoadCfg(env, log.With(logger, "component", "config")); err != nil {
-		panic(err)
+		logger.Log("Exit", "Unable to proceed starting the server...")
+		os.Exit(1)
 	}
 
 	var (
@@ -80,7 +84,8 @@ func main() {
 		ctx := context.WithValue(mc, Cfgk("ivm"), cfg)
 		client, err := firestore.NewClient(ctx, projectID)
 		if err != nil {
-			panic(err)
+			logger.Log("firestore client init error", err.Error(), "Exit", "Unable to proceed starting the server...")
+			os.Exit(1)
 		}
 
 		defer client.Close()
@@ -101,6 +106,16 @@ func main() {
 	fieldKeys := []string{"method"}
 
 	// Configure some questionable dependencies.
+
+	// Create a Session Manager
+	sm, err := ivmsesman.NewSesman(ivmsesman.Memory, (*ivmsesman.SesCfg)(cfg.GetSessManCfg()))
+	if err != nil {
+		_ = level.Error(logger).Log("error-sesman", err.Error())
+		os.Exit(1)
+	}
+
+	// Running GC in separate go routine
+	go sm.GC()
 
 	// initiating services
 	var au authenticating.Service
@@ -146,7 +161,7 @@ func main() {
 	}
 
 	// creating a new http server to handle the requests
-	srv := server.New(au, pkr, log.With(logger, "component", "http"))
+	srv := server.New(au, pkr, log.With(logger, "component", "http"), sm)
 
 	errs := make(chan error, 2)
 	go func() {
