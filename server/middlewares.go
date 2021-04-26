@@ -33,6 +33,8 @@ func requestsLogging(lg kitlog.Logger) func(next http.Handler) http.Handler {
 
 			_ = level.Debug(lg).Log(
 				"host", r.Host,
+				"origin", r.Header.Get("Origin"),
+				"referrer", r.Header.Get("Referer"),
 				"method", r.Method,
 				"path", r.RequestURI,
 				"remote", r.RemoteAddr,
@@ -42,7 +44,7 @@ func requestsLogging(lg kitlog.Logger) func(next http.Handler) http.Handler {
 	}
 }
 
-// Handles the requests logging
+// Handles the client authentication requests
 func authClients(lg kitlog.Logger, au authenticating.Service) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
