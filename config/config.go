@@ -39,6 +39,9 @@ type IvmCfg interface {
 	// GCPPID return the projectID for the GCP
 	GCPPID() string
 
+	// GetSessManCfg returns the session manager config
+	GetSessManCfg() *SessionManagerConfig
+
 	// Environment returns the environment configured in the system
 	Environment() ivmEnvT
 
@@ -51,10 +54,11 @@ type IvmCfg interface {
 
 // IvmCfg will hold the config option to be used across the service
 type ivmCfg struct {
-	Env      ivmEnv
-	Server   ivmServer
-	CloudEnv ivmCloud `yaml:"cloud_env"`
-	Atc      ivmanto.ATCfg
+	Env       ivmEnv
+	Server    ivmServer
+	CloudEnv  ivmCloud             `yaml:"cloud_env"`
+	SesManCfg SessionManagerConfig `yaml:"sesman_config"`
+	Atc       ivmanto.ATCfg
 }
 
 type ivmEnv struct {
@@ -73,6 +77,12 @@ type ivmServer struct {
 
 type ivmCloud struct {
 	ProjectID string `yaml:"project_id"`
+}
+
+type SessionManagerConfig struct {
+	CookieName      string `yaml:"cookie_name"`
+	Maxlifetime     int64  `yaml:"max_lifetime"`
+	VisitCookieName string `yaml:"visit_cookie_name"`
 }
 
 // Init creates a new empty instance of ivmCfg object
@@ -168,4 +178,8 @@ func (c *ivmCfg) GetATC() *ivmanto.ATCfg {
 		Alg:       alg,
 		IssuerVal: issuer,
 	}
+}
+
+func (c *ivmCfg) GetSessManCfg() *SessionManagerConfig {
+	return &c.SesManCfg
 }

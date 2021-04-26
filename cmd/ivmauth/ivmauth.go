@@ -10,7 +10,9 @@ import (
 	"syscall"
 
 	"cloud.google.com/go/firestore"
+	"github.com/dasiyes/ivmsesman"
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 
@@ -104,6 +106,16 @@ func main() {
 
 	// Configure some questionable dependencies.
 
+	// Create a Session Manager
+	sm, err := ivmsesman.NewSesman(ivmsesman.Memory, (*ivmsesman.SesCfg)(cfg.GetSessManCfg()))
+	if err != nil {
+		_ = level.Error(logger).Log("error-sesman", err.Error())
+		os.Exit(1)
+	}
+
+	// Running GC in separate go routine
+	go sm.GC()
+
 	// initiating services
 	var au authenticating.Service
 	{
@@ -148,7 +160,7 @@ func main() {
 	}
 
 	// creating a new http server to handle the requests
-	srv := server.New(au, pkr, log.With(logger, "component", "http"))
+	srv := server.New(au, pkr, log.With(logger, "component", "http"), sm)
 
 	errs := make(chan error, 2)
 	go func() {
