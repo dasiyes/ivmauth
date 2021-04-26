@@ -81,7 +81,7 @@ func (cr *clientRepository) Find(id ivmanto.ClientID) (*ivmanto.Client, error) {
 			if strings.Contains(err.Error(), "Missing or insufficient permissions") {
 				return nil, ErrInsufficientPermissions
 			} else {
-				fmt.Printf("err while iterate firstoreDB: %v", err.Error())
+				fmt.Printf("err while iterate firestoreDB: %v", err.Error())
 			}
 			continue
 		}
@@ -140,8 +140,12 @@ func (ur *userRepository) Find(id ivmanto.UserID) (*ivmanto.User, error) {
 			return nil, ErrUserNotFound
 		}
 		if err != nil {
-			return nil, err
-			//continue
+			if strings.Contains(err.Error(), "Missing or insufficient permissions") {
+				return nil, ErrInsufficientPermissions
+			} else {
+				fmt.Printf("err while iterate firestoreDB: %v", err.Error())
+			}
+			continue
 		}
 
 		err = doc.DataTo(&u)

@@ -248,6 +248,17 @@ func (s *service) Validate(
 //	or
 //  [x] a Host header field with an invalid field-value .
 //
+// Ivmanto authentication library (ivmauth) will authenticate clientIDs provided in 3 ways as followig:
+//  * content-ype: "application/x-www-form-urlencoded":
+//    - clientID and clientSecret as query parameters from the request body
+//      Example: qs.stringify({'client_id': 'xxx.apps.ivmanto.dev', 'client_secret': 'ivmanto-2021'});
+//
+//  * content-type: "application/json":
+//    - Header "Authorization" as Base64 encoded string of "clientID:clientSecret";
+//		- Header "X-IVM-CLIENT" as Base64 encoded string of "clientID:clientSecret";
+//
+// ** All 3 places are check for each request.
+//
 // TODO: OpenID Connect guidences to follow (https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication)
 func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 
@@ -279,11 +290,10 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 
 	if referer == "" {
 		//TODO: consider if this value must be part of the client Authentication process...
-		fmt.Printf("NOTE: missing referer value\n")
+		fmt.Printf("INFO: missing referer value\n")
 	}
 
 	ahct := r.Header.Get("Content-Type")
-	fmt.Printf("INFO: content header value: %v\n", ahct)
 
 	switch {
 	case ahct == "application/x-www-form-urlencoded":
@@ -298,18 +308,12 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 
 		if xic == "" && strings.HasPrefix(hab, "Basic ") {
 			cID, cSec, _ = r.BasicAuth()
-
-			fmt.Printf("INFO: clientID: %v, cSec: %v\n", cID, cSec)
-
 			if cID == "" || cSec == "" {
 				fmt.Printf("BadRequest: [Authorization] header empty value for clientID: %v, or client secret xxx\n", cID)
 				return nil, ivmanto.ErrBadRequest
 			}
 		} else {
 			cID, cSec = getXClient(xic)
-
-			fmt.Printf("cID %v and cSec %v extracted from x-ivm-client header", cID, cSec)
-
 			if cID == "" || cSec == "" {
 				fmt.Printf("BadRequest: [x-ivm-client] header empty value for clientID: %v, or client secret xxx\n", cID)
 				return nil, ivmanto.ErrBadRequest
@@ -317,21 +321,20 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 		}
 
 	default:
-		fmt.Printf("BadRequest: unsupported content type: %v", ahct)
+		fmt.Printf("BadRequest: unsupported content-type: %v", ahct)
 		return nil, ivmanto.ErrBadRequest
 	}
 
 	rc, err := s.clients.Find(ivmanto.ClientID(cID))
 	if err != nil {
-		fmt.Printf("Error while finding clientID in the database: %v", err.Error())
+		fmt.Printf("while finding clientID: %v in the database error raised: %v\n", cID, err.Error())
 		return nil, err
 	}
 	if rc.ClientSecret != cSec {
-		fmt.Printf("Client secret provided within the request %v, does not match the one in the DB\n", err.Error())
+		fmt.Printf("client secret provided within the request %v, does not match the one in the DB\n", err.Error())
 		return nil, ivmanto.ErrClientAuth
 	}
 
-	fmt.Printf("found req client: %v\n", rc)
 	return rc, nil
 }
 
