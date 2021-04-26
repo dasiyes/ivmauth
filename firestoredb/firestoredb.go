@@ -3,6 +3,7 @@ package firestoredb
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
@@ -19,7 +20,7 @@ type requestRepository struct {
 func (rr *requestRepository) Store(ar *ivmanto.AuthRequest) error {
 	_, _, err := rr.client.Collection(rr.collection).Add(*rr.ctx, ar)
 	if err != nil {
-		return fmt.Errorf("Unable to save in requestRepository. Error: %#v", err)
+		return fmt.Errorf("unable to save in request repository. Error: %#v", err)
 	}
 	return nil
 }
@@ -56,7 +57,7 @@ type clientRepository struct {
 func (cr *clientRepository) Store(c *ivmanto.Client) error {
 	_, err := cr.client.Collection(cr.collection).Doc(string(c.ClientID)).Set(*cr.ctx, c)
 	if err != nil {
-		return fmt.Errorf("Unable to save in clients Repository. Error: %#v", err)
+		return fmt.Errorf("unable to save in clients repository. error: %#v", err)
 	}
 	return nil
 }
@@ -68,12 +69,20 @@ func (cr *clientRepository) Find(id ivmanto.ClientID) (*ivmanto.Client, error) {
 
 	var c ivmanto.Client
 
+	fmt.Printf("... search for clientID %v\n", id)
+
 	for {
 		doc, err := iter.Next()
+
 		if err == iterator.Done {
 			return nil, ErrClientNotFound
 		}
 		if err != nil {
+			if strings.Contains(err.Error(), "Missing or insufficient permissions") {
+				return nil, ErrInsufficientPermissions
+			} else {
+				fmt.Printf("err while iterate firestoreDB: %v", err.Error())
+			}
 			continue
 		}
 		err = doc.DataTo(&c)
@@ -113,7 +122,7 @@ type userRepository struct {
 func (ur *userRepository) Store(u *ivmanto.User) error {
 	_, err := ur.client.Collection(ur.collection).Doc(string(u.UserID)).Set(*ur.ctx, u)
 	if err != nil {
-		return fmt.Errorf("Unable to save in clients Repository. Error: %#v", err)
+		return fmt.Errorf("unable to save in clients repository. error: %#v", err)
 	}
 	return nil
 }
@@ -131,13 +140,18 @@ func (ur *userRepository) Find(id ivmanto.UserID) (*ivmanto.User, error) {
 			return nil, ErrUserNotFound
 		}
 		if err != nil {
-			return nil, err
-			//continue
+			if strings.Contains(err.Error(), "Missing or insufficient permissions") {
+				return nil, ErrInsufficientPermissions
+			} else {
+				fmt.Printf("err while iterate firestoreDB: %v", err.Error())
+			}
+			continue
 		}
 
 		err = doc.DataTo(&u)
 		if err != nil {
 			return nil, err
+			// TODO: review the error for missing permissions
 			//continue
 		}
 		if ivmanto.UserID(doc.Ref.ID) == id {
