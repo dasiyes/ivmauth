@@ -19,6 +19,8 @@ func accessControl(h http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization, X-TOKEN-TYPE, X-GRANT-TYPE, X-IVM-CLIENT")
 
 		if r.Method == "OPTIONS" {
+			w.Header().Set("Access-Control-Max-Age", "3600")
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 
