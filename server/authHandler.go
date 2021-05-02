@@ -29,6 +29,7 @@ func (h *authHandler) router() chi.Router {
 
 	r.Route("/", func(r chi.Router) {
 		r.Post("/", h.authenticateRequest)
+		r.Get("/", h.initAuthCode)
 		r.Route("/users", func(r chi.Router) {
 			r.Post("/", h.userRegistration)
 		})
@@ -137,4 +138,11 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 		ivmanto.EncodeError(context.TODO(), http.StatusInternalServerError, err, w)
 		return
 	}
+}
+
+func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	_ = level.Debug(h.logger).Log("GET-/auth", q)
+	w.WriteHeader(http.StatusNoContent)
+	w.Write([]byte(`{"tbd": "next steps"}`))
 }
