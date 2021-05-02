@@ -142,7 +142,7 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 
 func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	_ = level.Debug(h.logger).Log("GET-/auth", q)
+	_ = level.Debug(h.logger).Log("GET-/auth", r.URL.RawQuery, "state", q.Get("state"))
 	w.WriteHeader(http.StatusNoContent)
 	w.Write([]byte(`{"tbd": "next steps"}`))
 }
