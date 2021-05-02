@@ -16,7 +16,7 @@ steps:
     '--memory', '1024', '--cpu', '2',
     '--no-use-http2', 
     '--no-allow-unauthenticated', 
-    '--service-account', 'ivmauth-sa@ivmauth.iam.gserviceaccount.com', 
+    #'--service-account', 'ivmauth-sa@ivmauth.iam.gserviceaccount.com', 
     '--min-instances', '1', '--max-instances', '2'
     ]
 images:
