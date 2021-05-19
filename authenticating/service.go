@@ -276,6 +276,9 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 
 	var env = s.config.Environment()
 	var expected_host = s.config.GetHost()
+	if env == "staging" {
+		expected_host = "ivmauth-staging-xmywgxnrfq-ez.a.run.app"
+	}
 
 	if host != expected_host || host == "" || expected_host == "" {
 		fmt.Printf("BadRequest: host: %v,does not match the expected value of: %v, or one of them is empty value\n", host, expected_host)
