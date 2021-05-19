@@ -64,6 +64,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
@@ -336,6 +337,10 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 		// OAuth flow authorization code grant type - GET /auth
 	} else if r.Method == "GET" {
 
+		r.URL.RawQuery, err = url.QueryUnescape(r.URL.RawQuery)
+		if err != nil {
+			fmt.Printf("error unescaping URL query %v\n", err)
+		}
 		q := r.URL.Query()
 		cID = q.Get("client_id")
 		if cID == "" {
