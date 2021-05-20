@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/dasiyes/ivmsesman"
@@ -11,6 +12,7 @@ import (
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/rs/xid"
+	"github.com/segmentio/ksuid"
 
 	"ivmanto.dev/ivmauth/authenticating"
 	"ivmanto.dev/ivmauth/ivmanto"
@@ -141,8 +143,16 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
+
+	// The query is already unescaped in the middleware authenticatedClient
 	q := r.URL.Query()
 	_ = level.Debug(h.logger).Log("GET-/auth", r.URL.RawQuery, "state", q.Get("state"))
-	w.WriteHeader(http.StatusNoContent)
-	w.Write([]byte(`{"tbd": "next steps"}`))
+	// TODO: save the pair auth-code & state in the database
+	code := ksuid.New().String()
+
+	ru := fmt.Sprintf("%s?code=%s&state=%s", q.Get("redirect_uri"), code, q.Get("state"))
+
+	w.Header().Set("Location", ru)
+	w.WriteHeader(http.StatusSeeOther)
+	w.Write(nil)
 }
