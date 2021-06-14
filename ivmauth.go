@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"embed"
 	"flag"
 	"fmt"
 	"net/http"
@@ -11,7 +12,9 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/dasiyes/ivmsesman"
-	_ "github.com/dasiyes/ivmsesman/providers/inmem"
+	_ "github.com/dasiyes/ivmsesman/providers/firestore"
+
+	// _ "github.com/dasiyes/ivmsesman/providers/inmem"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
@@ -25,6 +28,9 @@ import (
 	"ivmanto.dev/ivmauth/pksrefreshing"
 	"ivmanto.dev/ivmauth/server"
 )
+
+//go:embed `assets/*`
+var assets embed.FS
 
 func main() {
 
@@ -108,7 +114,8 @@ func main() {
 	// Configure some questionable dependencies.
 
 	// Create a Session Manager
-	sm, err := ivmsesman.NewSesman(ivmsesman.Memory, (*ivmsesman.SesCfg)(cfg.GetSessManCfg()))
+	sm, err := ivmsesman.NewSesman(ivmsesman.Firestore, (*ivmsesman.SesCfg)(cfg.GetSessManCfg()))
+
 	if err != nil {
 		_ = level.Error(logger).Log("error-sesman", err.Error())
 		os.Exit(1)
@@ -161,7 +168,7 @@ func main() {
 	}
 
 	// creating a new http server to handle the requests
-	srv := server.New(au, pkr, log.With(logger, "component", "http"), sm)
+	srv := server.New(au, pkr, log.With(logger, "component", "http"), sm, &assets)
 
 	errs := make(chan error, 2)
 	go func() {

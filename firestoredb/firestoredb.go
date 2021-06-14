@@ -26,7 +26,7 @@ func (rr *requestRepository) Store(ar *ivmanto.AuthRequest) error {
 }
 
 // Store - stores the authentication request
-func (rr *requestRepository) Find(id ivmanto.SessionID) (*ivmanto.AuthRequest, error) {
+func (rr *requestRepository) Find(id ivmanto.AuthRequestID) (*ivmanto.AuthRequest, error) {
 	// TODO: implement the logic
 	return nil, nil
 }

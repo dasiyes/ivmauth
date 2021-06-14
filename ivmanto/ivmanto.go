@@ -12,16 +12,16 @@ import (
 	"github.com/pborman/uuid"
 )
 
-// SessionID uniquely identifies an auth session.
-type SessionID string
+// AuthRequestID uniquely identifies an auth session.
+type AuthRequestID string
 
 // AuthRequest is the central class in the domain model.
 type AuthRequest struct {
-	SessionID  SessionID
-	ReqHeaders http.Header
-	Body       AuthRequestBody
-	Client     Client
-	Registered int64
+	AuthRequestID AuthRequestID
+	ReqHeaders    http.Header
+	Body          AuthRequestBody
+	Client        Client
+	Registered    int64
 }
 
 // AuthRequestBody is the json object expected to receive
@@ -43,27 +43,27 @@ type AuthRequestBody struct {
 }
 
 // NewAuthRequest creates a new, unauthenticated requestor.
-func NewAuthRequest(id SessionID, rh http.Header, body *AuthRequestBody, client *Client) *AuthRequest {
+func NewAuthRequest(id AuthRequestID, rh http.Header, body *AuthRequestBody, client *Client) *AuthRequest {
 	rs := time.Now().Unix()
 	return &AuthRequest{
-		SessionID:  id,
-		ReqHeaders: rh,
-		Body:       *body,
-		Client:     *client,
-		Registered: rs,
+		AuthRequestID: id,
+		ReqHeaders:    rh,
+		Body:          *body,
+		Client:        *client,
+		Registered:    rs,
 	}
 }
 
 // RequestRepository provides access to a requests store.
 type RequestRepository interface {
 	Store(authreq *AuthRequest) error
-	Find(id SessionID) (*AuthRequest, error)
+	Find(id AuthRequestID) (*AuthRequest, error)
 	FindAll() []*AuthRequest
 }
 
-// NextSessionID generates a new tracking ID.
-func NextSessionID() SessionID {
-	return SessionID(strings.Split(strings.ToUpper(uuid.New()), "-")[4])
+// NextAuthRequestID generates a new tracking ID.
+func NextAuthRequestID() AuthRequestID {
+	return AuthRequestID(strings.Split(strings.ToUpper(uuid.New()), "-")[4])
 }
 
 // Generate a new token ID

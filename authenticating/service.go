@@ -98,7 +98,7 @@ import (
 // Service is the interface that provides auth methods.
 type Service interface {
 	// RegisterNewRequest registring a new http request for authentication
-	RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.SessionID, error)
+	RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.AuthRequestID, error)
 
 	// Validate the auth request according to OAuth2 sepcification (see the notes at the top of of this file)
 	Validate(rh *http.Header, body *ivmanto.AuthRequestBody, pks pksrefreshing.Service, client *ivmanto.Client) (*ivmanto.AccessToken, error)
@@ -130,19 +130,19 @@ type service struct {
 	config   config.IvmCfg
 }
 
-func (s *service) RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.SessionID, error) {
+func (s *service) RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.AuthRequestID, error) {
 
 	if len(*rh) == 0 || utils.GetSize(body) == 0 {
 		return "", ivmanto.ErrInvalidArgument
 	}
 
-	id := ivmanto.NextSessionID()
+	id := ivmanto.NextAuthRequestID()
 	ar := ivmanto.NewAuthRequest(id, *rh, body, client)
 
 	if err := s.requests.Store(ar); err != nil {
 		return "", err
 	}
-	return ar.SessionID, nil
+	return ar.AuthRequestID, nil
 }
 
 func (s *service) Validate(
