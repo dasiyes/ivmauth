@@ -19,7 +19,7 @@ RUN go mod download
 COPY . ./
 
 # Build the binary.
-RUN go build -o cmd/ivmauth/ivmauth -v -mod=readonly ivmauth.go 
+RUN go build -o ivmauth -v -mod=readonly ivmauth.go 
 
 # Use the alpine image for a lean production container.
 FROM alpine:3.13 AS base
@@ -29,7 +29,7 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /root/
 
 # Copy the binary to the production image from the builder stage.
-COPY --from=build /ivmauth/cmd/ivmauth/ivmauth .
+COPY --from=build /ivmauth/ivmauth .
 COPY --from=build /ivmauth/config-staging.yaml .
 COPY --from=build /ivmauth/version .
 
