@@ -20,7 +20,9 @@ cloud_env:
 sesman_config:
   cookie_name: "ivmid"
   max_lifetime: 3600
-
+  visit_cookie_name: "iv"
+  project_id: "ivmauth"
+  
 # access token config
 atc:
   validity: 3600
