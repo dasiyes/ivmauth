@@ -121,9 +121,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Running GC in separate go routine
-	go sm.GC()
-
 	// initiating services
 	var au authenticating.Service
 	{
