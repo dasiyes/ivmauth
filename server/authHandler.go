@@ -163,7 +163,7 @@ func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: save the pair auth-code & state in the database
 	code := ksuid.New().String()
-	rurl := "/login"
+	rurl := "/auth/login"
 
 	ru := fmt.Sprintf("%s?code=%s&state=%s", rurl, code, q.Get("state"))
 
