@@ -163,8 +163,9 @@ func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: save the pair auth-code & state in the database
 	code := ksuid.New().String()
+	rurl := "/login"
 
-	ru := fmt.Sprintf("%s?code=%s&state=%s", q.Get("/login"), code, q.Get("state"))
+	ru := fmt.Sprintf("%s?code=%s&state=%s", rurl, code, q.Get("state"))
 
 	// TODO: connect to sessions db and change the sessionState from 'New' to 'AuthCodeInit'
 	w.Header().Set("Location", ru)
