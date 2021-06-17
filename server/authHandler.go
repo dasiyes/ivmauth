@@ -38,6 +38,7 @@ func (h *authHandler) router() chi.Router {
 	r.Route("/", func(r chi.Router) {
 		r.Post("/", h.authenticateRequest)
 		r.Get("/", h.initAuthCode)
+		r.Get("/login", h.loginPage)
 		r.Route("/users", func(r chi.Router) {
 			r.Post("/", h.userRegistration)
 		})
@@ -156,8 +157,6 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 
 func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
 
-	loginPage(w, r)
-
 	// The query is already unescaped in the middleware authenticatedClient
 	q := r.URL.Query()
 	_ = level.Debug(h.logger).Log("GET-/auth", r.URL.RawQuery, "state", q.Get("state"))
@@ -174,7 +173,7 @@ func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
 }
 
 // Response to "GET /" with the current version of the Ivmanto's auth service
-func loginPage(w http.ResponseWriter, r *http.Request) {
+func (h *authHandler) loginPage(w http.ResponseWriter, r *http.Request) {
 	var page = Page{Ver: "v1.0.0"}
 
 	if pusher, ok := w.(http.Pusher); ok {
