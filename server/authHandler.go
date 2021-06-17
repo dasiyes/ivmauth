@@ -168,6 +168,10 @@ func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
 	ru := fmt.Sprintf("%s?code=%s&state=%s", rurl, code, q.Get("state"))
 
 	// TODO: connect to sessions db and change the sessionState from 'New' to 'AuthCodeInit'
+
+	// This should be done by the SessionManager with saving in the DB
+	r.Header.Set("X-Session-State", "AuthCodeInit")
+
 	w.Header().Set("Location", ru)
 	w.WriteHeader(http.StatusSeeOther)
 	w.Write(nil)
