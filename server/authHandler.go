@@ -170,7 +170,13 @@ func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
 	// TODO: connect to sessions db and change the sessionState from 'New' to 'AuthCodeInit'
 
 	// This should be done by the SessionManager with saving in the DB
-	w.Header().Set("X-Session-State", "AuthCodeInit")
+	r.Header.Set("X-Session-State", "AuthCodeInit")
+
+	ok, err := h.sm.ChangeState(w, r)
+	if !ok && err != nil {
+		_ = level.Error(h.logger).Log("ErrorChangeSessionState", err.Error())
+	}
+
 	w.Header().Set("Location", ru)
 	w.WriteHeader(http.StatusSeeOther)
 	w.Write(nil)
