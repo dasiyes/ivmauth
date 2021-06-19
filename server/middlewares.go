@@ -91,6 +91,8 @@ func isReqWhitelisted(r *http.Request) bool {
 		return true
 	case "GET /metrics/api/v1/query_range":
 		return true
+	case "GET /auth/login":
+		return true
 	default:
 		return false
 	}
