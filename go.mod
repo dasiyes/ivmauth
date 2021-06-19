@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	cloud.google.com/go/firestore v1.5.0
-	github.com/dasiyes/ivmsesman v0.3.16
+	github.com/dasiyes/ivmsesman v0.3.17
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dvsekhvalnov/jose2go v1.5.0
 	github.com/go-chi/chi v1.5.1
