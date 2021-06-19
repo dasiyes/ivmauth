@@ -21,7 +21,7 @@ sesman_config:
   cookie_name: "ivmid"
   max_lifetime: 3600
   visit_cookie_name: "iv"
-  project_id: "ivmauth"
+  project_id: $FIRESTORE_PROJECT_ID
   
 # access token config
 atc:
