@@ -162,7 +162,7 @@ func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
 	_ = level.Debug(h.logger).Log("GET-/auth", r.URL.RawQuery, "state", q.Get("state"))
 
 	// TODO: save the pair auth-code & state in the database
-	h.aus.RegisterNewRequest()
+	//h.aus.RegisterNewRequest()
 
 	code := ksuid.New().String()
 	rurl := "/auth"
