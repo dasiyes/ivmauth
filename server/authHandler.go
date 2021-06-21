@@ -190,28 +190,13 @@ func (h *authHandler) loginPage(w http.ResponseWriter, r *http.Request) {
 	if pusher, ok := w.(http.Pusher); ok {
 		// Push is supported.
 		fmt.Printf("...=== PUSH is Supported ===...\n")
-		if err := pusher.Push("/assets/stylesheet/ivmdev.min.css", nil); err != nil {
-			fmt.Printf("Failed to push-1: %v\n", err)
-		}
-		if err := pusher.Push("/assets/stylesheet/navbar-top-fixed.css", nil); err != nil {
-			fmt.Printf("Failed to push-2\n: %v", err)
-		}
-		if err := pusher.Push("/assets/js/bootstrap.bundle.min.js", nil); err != nil {
-			fmt.Printf("Failed to push-3\n: %v", err)
-		}
-		if err := pusher.Push("/assets/images/logo.svg", nil); err != nil {
-			fmt.Printf("Failed to push-4\n: %v", err)
-		}
-		if err := pusher.Push("/assets/stylesheet/ivmdev.css.map", nil); err != nil {
-			fmt.Printf("Failed to push-5\n: %v", err)
-		}
-
+		_ = pusher
 	} else {
 		fmt.Printf("...=== PUSH is NOT Supported ===...\n")
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	t, _ := template.ParseFS(fscontent, "assets/html/login.html")
+	t, _ := template.ParseFS(fscontent, "assets/index.html")
 	t.Execute(w, page)
 }
 
