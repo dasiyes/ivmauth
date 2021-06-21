@@ -58,7 +58,7 @@ a:focus {
 
 a:hover {
 	text-decoration: none;
-  color: #20c997;
+  color: #57b846;
 }
 
 /*---------------------------------------------*/
@@ -251,7 +251,7 @@ iframe {
   top: -1px;
   left: -1px;
   pointer-events: none;
-  border: 1px solid #20c997;
+  border: 1px solid #57b846;
   border-radius: 3px;
 
   visibility: hidden;
@@ -315,11 +315,11 @@ iframe {
 }
 
 .btn-show-pass:hover {
-  color: #20c997;
+  color: #57b846;
 }
 
 .btn-show-pass.active {
-  color: #20c997;
+  color: #57b846;
 }
 
 /*==================================================================
@@ -412,7 +412,7 @@ iframe {
 }
 
 .login100-form-btn:hover {
-  background-color: #20c997;
+  background-color: #57b846;
 }
 
 
