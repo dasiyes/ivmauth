@@ -21,8 +21,6 @@ import (
 	"ivmanto.dev/ivmauth/pksrefreshing"
 )
 
-var fscontent *embed.FS
-
 type authHandler struct {
 	aus    authenticating.Service
 	pks    pksrefreshing.Service
@@ -44,9 +42,7 @@ func (h *authHandler) router() chi.Router {
 		})
 	})
 
-	fscontent = h.fsc
 	r.Method("GET", "/docs", http.StripPrefix("/auth/v1/docs", http.FileServer(http.Dir("authenticating/docs"))))
-	r.Method("GET", "/assets/", http.StripPrefix("/auth/v1/assets", http.FileServer(http.FS(fscontent))))
 
 	return r
 }
@@ -196,7 +192,7 @@ func (h *authHandler) loginPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	t, _ := template.ParseFS(fscontent, "assets/index.html")
+	t, _ := template.ParseFS(h.fsc, "assets/index.html")
 	t.Execute(w, page)
 }
 

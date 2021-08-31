@@ -15,6 +15,8 @@ import (
 	"ivmanto.dev/ivmauth/pksrefreshing"
 )
 
+var fscontent *embed.FS
+
 // TODO: Authorization process review against the checklist below:
 // **Authorization Framework Evaluation Checklist**
 // - Supports a provider-based model and lets you configure alternative authorization and role-mapping providers.
@@ -62,6 +64,12 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 
 	r.Method("GET", "/version", version())
 	r.Method("GET", "/metrics", promhttp.Handler())
+
+	// fileServer := http.FileServer(http.Dir("./assets"))
+	// r.Method("GET", "/assets/*", http.StripPrefix("/assets/", fileServer))
+
+	fscontent = fs
+	r.Method("GET", "/assets/*", http.StripPrefix("/auth/v1/assets", http.FileServer(http.FS(fscontent))))
 
 	// Route all authentication calls
 	r.Route("/auth", func(r chi.Router) {
