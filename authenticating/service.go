@@ -278,7 +278,8 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 	var env = s.config.Environment()
 	var expected_host = s.config.GetHost()
 	if env == "staging" {
-		expected_host = "ivmauth-staging-xmywgxnrfq-ez.a.run.app"
+		// expected_host = "ivmauth-staging-xmywgxnrfq-ez.a.run.app"
+		expected_host = "ivmanto.dev"
 	}
 
 	if host != expected_host || host == "" || expected_host == "" {
