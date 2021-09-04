@@ -86,13 +86,9 @@ func isReqWhitelisted(r *http.Request) bool {
 	switch {
 	case mr == "GET /version":
 		return true
-	case mr == "GET /metrics":
+	case strings.HasPrefix(mr, "GET /metrics/"):
 		return true
 	case strings.HasPrefix(mr, "GET /assets/"):
-		return true
-	case mr == "GET /metrics/api/v1/query":
-		return true
-	case mr == "GET /metrics/api/v1/query_range":
 		return true
 	case mr == "GET /auth/login":
 		return true

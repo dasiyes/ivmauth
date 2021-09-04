@@ -14,8 +14,8 @@ steps:
     '--region', 'europe-west4', 
     '--platform', 'managed', 
     '--memory', '1024', '--cpu', '2',
-    '--no-use-http2', 
-    '--no-allow-unauthenticated', 
+    # '--no-use-http2', 
+    '--allow-unauthenticated', 
     '--service-account', 'ivmauth-staging@ivmauth.iam.gserviceaccount.com', 
     '--min-instances', '0', '--max-instances', '2',
     '--set-env-vars','FIRESTORE_PROJECT_ID=ivmauth']
