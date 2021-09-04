@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -82,18 +83,18 @@ func isReqWhitelisted(r *http.Request) bool {
 	mr := r.Method + " " + r.URL.Path
 	fmt.Printf("request path: %#v;\n", mr)
 
-	switch mr {
-	case "GET /version":
+	switch {
+	case mr == "GET /version":
 		return true
-	case "GET /metrics":
+	case mr == "GET /metrics":
 		return true
-	case "GET /assets":
+	case strings.HasPrefix(mr, "GET /assets/"):
 		return true
-	case "GET /metrics/api/v1/query":
+	case mr == "GET /metrics/api/v1/query":
 		return true
-	case "GET /metrics/api/v1/query_range":
+	case mr == "GET /metrics/api/v1/query_range":
 		return true
-	case "GET /auth/login":
+	case mr == "GET /auth/login":
 		return true
 	default:
 		return false
