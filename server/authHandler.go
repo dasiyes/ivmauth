@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -25,7 +24,6 @@ import (
 type authHandler struct {
 	aus    authenticating.Service
 	pks    pksrefreshing.Service
-	fsc    *embed.FS
 	logger kitlog.Logger
 	sm     *ivmsesman.Sesman
 }

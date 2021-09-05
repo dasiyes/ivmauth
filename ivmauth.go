@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"embed"
 	"flag"
 	"fmt"
 	"net/http"
@@ -28,9 +27,6 @@ import (
 	"ivmanto.dev/ivmauth/pksrefreshing"
 	"ivmanto.dev/ivmauth/server"
 )
-
-//go:embed `assets/*`
-var assets embed.FS
 
 func main() {
 
@@ -165,7 +161,7 @@ func main() {
 	}
 
 	// creating a new http server to handle the requests
-	srv := server.New(au, pkr, log.With(logger, "component", "http"), sm, &assets)
+	srv := server.New(au, pkr, log.With(logger, "component", "http"), sm)
 
 	errs := make(chan error, 2)
 	go func() {

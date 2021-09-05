@@ -1,8 +1,6 @@
 package server
 
 import (
-	"embed"
-
 	"net/http"
 
 	"github.com/dasiyes/ivmsesman"
@@ -32,23 +30,21 @@ var UID ivmanto.UserID
 
 // Server holds the dependencies for a HTTP server
 type Server struct {
-	Auth    authenticating.Service
-	Pks     pksrefreshing.Service
-	Sm      *ivmsesman.Sesman
-	Content *embed.FS
-	Logger  kitlog.Logger
+	Auth   authenticating.Service
+	Pks    pksrefreshing.Service
+	Sm     *ivmsesman.Sesman
+	Logger kitlog.Logger
 
 	router chi.Router
 }
 
 // New returns a new HTTP server.
-func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Logger, sm *ivmsesman.Sesman, fs *embed.FS) *Server {
+func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Logger, sm *ivmsesman.Sesman) *Server {
 	s := &Server{
-		Auth:    au,
-		Pks:     pks,
-		Sm:      sm,
-		Content: fs,
-		Logger:  logger,
+		Auth:   au,
+		Pks:    pks,
+		Sm:     sm,
+		Logger: logger,
 	}
 
 	r := chi.NewRouter()
@@ -61,7 +57,7 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 
 	// Route all authentication calls
 	r.Route("/auth", func(r chi.Router) {
-		h := authHandler{s.Auth, s.Pks, s.Content, s.Logger, s.Sm}
+		h := authHandler{s.Auth, s.Pks, s.Logger, s.Sm}
 		r.Mount("/", h.router())
 	})
 
