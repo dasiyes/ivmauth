@@ -6,13 +6,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/dasiyes/ivmsesman"
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/xid"
 	"github.com/segmentio/ksuid"
 
@@ -32,11 +33,12 @@ type authHandler struct {
 func (h *authHandler) router() chi.Router {
 
 	r := chi.NewRouter()
+	r.Method("GET", "/metrics", promhttp.Handler())
 
 	r.Route("/", func(r chi.Router) {
 		r.Post("/", h.authenticateRequest)
 		r.Get("/", h.initAuthCode)
-		r.Get("/login", h.loginPage)
+		r.Get("/version", h.version)
 		r.Route("/users", func(r chi.Router) {
 			r.Post("/", h.userRegistration)
 		})
@@ -180,24 +182,15 @@ func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
 }
 
 // Response to "GET /" with the current version of the Ivmanto's auth service
-func (h *authHandler) loginPage(w http.ResponseWriter, r *http.Request) {
-	var page = Page{Ver: "v1.0.0"}
+func (h *authHandler) version(w http.ResponseWriter, r *http.Request) {
+	var ver []byte
+	var err error
 
-	if pusher, ok := w.(http.Pusher); ok {
-		// Push is supported.
-		fmt.Printf("...=== PUSH is Supported ===...\n")
-		_ = pusher
-	} else {
-		fmt.Printf("...=== PUSH is NOT Supported ===...\n")
+	ver, err = ioutil.ReadFile("version")
+	if err != nil {
+		_, _ = w.Write([]byte(err.Error()))
+		return
 	}
-
-	w.Header().Set("Content-Type", "text/html")
-	t, _ := template.ParseFS(h.fsc, "assets/index.html")
-	t.Execute(w, page)
-}
-
-// Page - data for the login screen (if any required)
-type Page struct {
-	Ver  string
-	Body string
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write(ver)
 }
