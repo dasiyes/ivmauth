@@ -13,7 +13,7 @@ steps:
     '--image', 'eu.gcr.io/ivmauth/ivmauth-staging', 
     '--region', 'europe-west4', 
     '--platform', 'managed', 
-    '--memory', '1024', '--cpu', '2',
+    '--memory', '1Gi', '--cpu', '2',
     # '--no-use-http2', 
     '--no-allow-unauthenticated', 
     '--service-account', 'ivmauth-staging@ivmauth.iam.gserviceaccount.com', 
