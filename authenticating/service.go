@@ -350,13 +350,16 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 		}
 	}
 
+	// TODO: remove after debug
+	fmt.Printf("provided clientID: %v\n", cID)
+
 	rc, err := s.clients.Find(ivmanto.ClientID(cID))
 	if err != nil {
 		fmt.Printf("while finding clientID: %v in the database error raised: %v\n", cID, err.Error())
 		return nil, err
 	}
 	if rc.ClientSecret != cSec && r.Method != "GET" {
-		fmt.Printf("client secret provided within the request %v, does not match the one in the DB\n", err.Error())
+		fmt.Printf("client secret provided within the request %v, does not match the one in the DB\n", rc.ClientSecret)
 		return nil, ivmanto.ErrClientAuth
 	}
 
@@ -366,7 +369,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 // getXClient - retrievs the ClientID and Client Secret from the custom header X-IVM-CLIENT for the cases when the Authorization header is having Bearer token
 func getXClient(xic string) (cid string, csc string) {
 
-	fmt.Printf("xic: %v", xic)
+	fmt.Printf("xic: %v\n", xic)
 
 	cis := strings.Split(xic, " ")
 	if len(cis) != 2 || cis[0] != "Basic" {

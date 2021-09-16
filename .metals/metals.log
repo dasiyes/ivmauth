@@ -37,3 +37,21 @@ Aug 27, 2021 4:05:25 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notif
 INFO: Unsupported notification method: $/setTrace
 Aug 27, 2021 8:30:29 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
 INFO: Unsupported notification method: $/setTrace
+[0m2021.09.09 17:52:22 INFO  Started: Metals version 0.10.6 in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth' for client Visual Studio Code 1.60.0.[0m
+[0m2021.09.09 17:52:23 INFO  time: initialize in 0.61s[0m
+[0m2021.09.09 17:52:23 WARN  Build server is not auto-connectable.[0m
+[0m2021.09.09 17:52:23 WARN  no build tool detected in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. [0m
+Sep 10, 2021 1:15:47 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Sep 10, 2021 1:15:47 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Sep 10, 2021 1:15:47 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Sep 10, 2021 1:15:48 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Sep 13, 2021 1:28:50 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+[0m2021.09.15 23:36:40 INFO  Started: Metals version 0.10.6 in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth' for client Visual Studio Code 1.60.1.[0m
+[0m2021.09.15 23:36:46 INFO  time: initialize in 6.41s[0m
+[0m2021.09.15 23:37:41 WARN  Build server is not auto-connectable.[0m
+[0m2021.09.15 23:37:41 WARN  no build tool detected in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. [0m
