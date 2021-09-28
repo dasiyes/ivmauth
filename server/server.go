@@ -61,6 +61,12 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 		r.Mount("/", h.router())
 	})
 
+	// authorize end-point
+	r.Route("/authorize", func(r chi.Router) {
+		h := authorizeHandler{s.Auth, s.Pks, s.Logger, s.Sm}
+		r.Mount("/", h.router())
+	})
+
 	s.router = r
 
 	return s
