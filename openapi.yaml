@@ -16,7 +16,7 @@ servers:
     description: production server address
     variables:
       base_path:
-        default: v1
+        default: app
   - url: https://ivmanto.dev
     description: development server address
 paths:

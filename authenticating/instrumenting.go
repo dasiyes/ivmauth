@@ -24,7 +24,7 @@ func NewInstrumentingService(counter metrics.Counter, latency metrics.Histogram,
 	}
 }
 
-func (s *instrumentingService) RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.SessionID, error) {
+func (s *instrumentingService) RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.AuthRequestID, error) {
 	defer func(begin time.Time) {
 		s.requestCount.With("method", "RegisterNewRequest").Add(1)
 		s.requestLatency.With("method", "RegisterNewRequest").Observe(time.Since(begin).Seconds())

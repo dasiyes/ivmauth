@@ -64,6 +64,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
@@ -97,7 +98,7 @@ import (
 // Service is the interface that provides auth methods.
 type Service interface {
 	// RegisterNewRequest registring a new http request for authentication
-	RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.SessionID, error)
+	RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.AuthRequestID, error)
 
 	// Validate the auth request according to OAuth2 sepcification (see the notes at the top of of this file)
 	Validate(rh *http.Header, body *ivmanto.AuthRequestBody, pks pksrefreshing.Service, client *ivmanto.Client) (*ivmanto.AccessToken, error)
@@ -129,19 +130,19 @@ type service struct {
 	config   config.IvmCfg
 }
 
-func (s *service) RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.SessionID, error) {
+func (s *service) RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.AuthRequestID, error) {
 
 	if len(*rh) == 0 || utils.GetSize(body) == 0 {
 		return "", ivmanto.ErrInvalidArgument
 	}
 
-	id := ivmanto.NextSessionID()
+	id := ivmanto.NextAuthRequestID()
 	ar := ivmanto.NewAuthRequest(id, *rh, body, client)
 
 	if err := s.requests.Store(ar); err != nil {
 		return "", err
 	}
-	return ar.SessionID, nil
+	return ar.AuthRequestID, nil
 }
 
 func (s *service) Validate(
@@ -276,6 +277,10 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 
 	var env = s.config.Environment()
 	var expected_host = s.config.GetHost()
+	if env == "staging" {
+		// expected_host = "ivmauth-staging-xmywgxnrfq-ez.a.run.app"
+		expected_host = "ivmanto.dev"
+	}
 
 	if host != expected_host || host == "" || expected_host == "" {
 		fmt.Printf("BadRequest: host: %v,does not match the expected value of: %v, or one of them is empty value\n", host, expected_host)
@@ -293,45 +298,68 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 		fmt.Printf("INFO: missing referer value\n")
 	}
 
-	ahct := r.Header.Get("Content-Type")
+	// Distinguish the code logic base on the request method
+	if r.Method == "POST" {
 
-	switch {
-	case ahct == "application/x-www-form-urlencoded":
-		cID, cSec, err = getClientIDSecWFUE(r)
+		ahct := r.Header.Get("Content-Type")
+
+		switch {
+		case ahct == "application/x-www-form-urlencoded":
+			cID, cSec, err = getClientIDSecWFUE(r)
+			if err != nil {
+				fmt.Printf("Badrequest: error getting clientID and client secret from application/x-www-form-urlencoded request. Error: %v", err.Error())
+				return nil, ivmanto.ErrBadRequest
+			}
+		case strings.HasPrefix(ahct, "application/json"):
+			xic := r.Header.Get("x-ivm-client")
+			hab := r.Header.Get("Authorization")
+
+			if xic == "" && strings.HasPrefix(hab, "Basic ") {
+				cID, cSec, _ = r.BasicAuth()
+				if cID == "" || cSec == "" {
+					fmt.Printf("BadRequest: [Authorization] header empty value for clientID: %v, or client secret xxx\n", cID)
+					return nil, ivmanto.ErrBadRequest
+				}
+			} else {
+				cID, cSec = getXClient(xic)
+				if cID == "" || cSec == "" {
+					fmt.Printf("BadRequest: [x-ivm-client] header empty value for clientID: %v, or client secret xxx\n", cID)
+					return nil, ivmanto.ErrBadRequest
+				}
+			}
+
+		default:
+			if r.Method == "POST" {
+				fmt.Printf("BadRequest: unsupported content-type: %v", ahct)
+				return nil, ivmanto.ErrBadRequest
+			}
+		}
+
+		// OAuth flow authorization code grant type - GET /auth
+	} else if r.Method == "GET" {
+
+		r.URL.RawQuery, err = url.QueryUnescape(r.URL.RawQuery)
 		if err != nil {
-			fmt.Printf("Badrequest: error getting clientID and client secret from application/x-www-form-urlencoded request. Error: %v", err.Error())
+			fmt.Printf("error unescaping URL query %v\n", err)
+		}
+		q := r.URL.Query()
+		cID = q.Get("client_id")
+		if cID == "" {
+			fmt.Printf("BadRequest: GET /auth query param client_id is empty value: %v\n", cID)
 			return nil, ivmanto.ErrBadRequest
 		}
-	case strings.HasPrefix(ahct, "application/json"):
-		xic := r.Header.Get("x-ivm-client")
-		hab := r.Header.Get("Authorization")
-
-		if xic == "" && strings.HasPrefix(hab, "Basic ") {
-			cID, cSec, _ = r.BasicAuth()
-			if cID == "" || cSec == "" {
-				fmt.Printf("BadRequest: [Authorization] header empty value for clientID: %v, or client secret xxx\n", cID)
-				return nil, ivmanto.ErrBadRequest
-			}
-		} else {
-			cID, cSec = getXClient(xic)
-			if cID == "" || cSec == "" {
-				fmt.Printf("BadRequest: [x-ivm-client] header empty value for clientID: %v, or client secret xxx\n", cID)
-				return nil, ivmanto.ErrBadRequest
-			}
-		}
-
-	default:
-		fmt.Printf("BadRequest: unsupported content-type: %v", ahct)
-		return nil, ivmanto.ErrBadRequest
 	}
+
+	// TODO: remove after debug
+	fmt.Printf("provided clientID: %v\n", cID)
 
 	rc, err := s.clients.Find(ivmanto.ClientID(cID))
 	if err != nil {
 		fmt.Printf("while finding clientID: %v in the database error raised: %v\n", cID, err.Error())
 		return nil, err
 	}
-	if rc.ClientSecret != cSec {
-		fmt.Printf("client secret provided within the request %v, does not match the one in the DB\n", err.Error())
+	if rc.ClientSecret != cSec && r.Method != "GET" {
+		fmt.Printf("client secret provided within the request %v, does not match the one in the DB\n", rc.ClientSecret)
 		return nil, ivmanto.ErrClientAuth
 	}
 
@@ -341,7 +369,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 // getXClient - retrievs the ClientID and Client Secret from the custom header X-IVM-CLIENT for the cases when the Authorization header is having Bearer token
 func getXClient(xic string) (cid string, csc string) {
 
-	fmt.Printf("xic: %v", xic)
+	fmt.Printf("xic: %v\n", xic)
 
 	cis := strings.Split(xic, " ")
 	if len(cis) != 2 || cis[0] != "Basic" {

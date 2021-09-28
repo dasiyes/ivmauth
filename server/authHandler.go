@@ -4,13 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/dasiyes/ivmsesman"
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/xid"
+	"github.com/segmentio/ksuid"
 
 	"ivmanto.dev/ivmauth/authenticating"
 	"ivmanto.dev/ivmauth/ivmanto"
@@ -25,10 +29,14 @@ type authHandler struct {
 }
 
 func (h *authHandler) router() chi.Router {
+
 	r := chi.NewRouter()
+	r.Method("GET", "/metrics", promhttp.Handler())
 
 	r.Route("/", func(r chi.Router) {
 		r.Post("/", h.authenticateRequest)
+		r.Get("/", h.initAuthCode)
+		r.Get("/version", h.version)
 		r.Route("/users", func(r chi.Router) {
 			r.Post("/", h.userRegistration)
 		})
@@ -79,7 +87,11 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	}
 
 	// Get a new session for the authenticated request
-	ns := h.sm.SessionStart(w, r)
+	// TODO: instead of creatimg a new Session, get the cookie "ivmid" from the current request and for this session id change the status of the session in the shared database (Firestore - collection sessions).
+	ns, err := h.sm.SessionStart(w, r)
+	if err != nil {
+		_ = level.Error(h.logger).Log("SessionManagerError", err.Error())
+	}
 	_ = level.Debug(h.logger).Log("sessionID", ns.SessionID())
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -137,4 +149,46 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 		ivmanto.EncodeError(context.TODO(), http.StatusInternalServerError, err, w)
 		return
 	}
+}
+
+func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
+
+	// The query is already unescaped in the middleware authenticatedClient
+	q := r.URL.Query()
+	_ = level.Debug(h.logger).Log("GET-/auth", r.URL.RawQuery, "state", q.Get("state"))
+
+	// TODO: save the pair auth-code & state in the database
+	//h.aus.RegisterNewRequest()
+
+	code := ksuid.New().String()
+	rurl := "/auth"
+
+	ru := fmt.Sprintf("%s?code=%s&state=%s", rurl, code, q.Get("state"))
+
+	// connect to sessions db and change the sessionState from 'New' to 'AuthCodeInit'
+	// This should be done by the SessionManager with saving in the DB
+	r.Header.Set("X-Session-State", "AuthCodeInit")
+
+	ok, err := h.sm.ChangeState(w, r)
+	if !ok && err != nil {
+		_ = level.Error(h.logger).Log("ErrorChangeSessionState", err.Error())
+	}
+
+	w.Header().Set("Location", ru)
+	w.WriteHeader(http.StatusSeeOther)
+	w.Write(nil)
+}
+
+// Response to "GET /" with the current version of the Ivmanto's auth service
+func (h *authHandler) version(w http.ResponseWriter, r *http.Request) {
+	var ver []byte
+	var err error
+
+	ver, err = ioutil.ReadFile("version")
+	if err != nil {
+		_, _ = w.Write([]byte(err.Error()))
+		return
+	}
+	w.Header().Set("Content-Type", "text/plain")
+	_, _ = w.Write(ver)
 }

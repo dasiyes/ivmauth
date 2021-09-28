@@ -1,0 +1,57 @@
+[0m2021.05.29 19:26:00 INFO  Started: Metals version 0.10.3 in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth' for client Visual Studio Code 1.56.2.[0m
+[0m2021.05.29 19:26:02 INFO  time: initialize in 1.89s[0m
+[0m2021.05.29 19:26:02 WARN  Build server is not auto-connectable.[0m
+[0m2021.05.29 19:26:02 WARN  no build tool detected in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. [0m
+[0m2021.06.03 09:56:41 INFO  shutting down Metals[0m
+[0m2021.07.10 16:36:10 INFO  Started: Metals version 0.10.4 in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth' for client Visual Studio Code 1.58.0.[0m
+[0m2021.07.10 16:36:12 INFO  time: initialize in 2.32s[0m
+[0m2021.07.10 16:36:12 WARN  Build server is not auto-connectable.[0m
+[0m2021.07.10 16:36:12 WARN  no build tool detected in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. [0m
+Jul 10, 2021 4:43:39 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Jul 10, 2021 4:43:39 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Jul 10, 2021 4:43:39 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Jul 10, 2021 4:43:39 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+[0m2021.08.11 10:58:56 INFO  Started: Metals version 0.10.5 in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth' for client Visual Studio Code 1.59.0.[0m
+[0m2021.08.11 10:59:03 INFO  time: initialize in 6.42s[0m
+[0m2021.08.11 10:59:09 WARN  Build server is not auto-connectable.[0m
+[0m2021.08.11 10:59:09 WARN  no build tool detected in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. [0m
+Aug 18, 2021 9:15:33 AM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Aug 18, 2021 9:15:33 AM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Aug 18, 2021 9:15:33 AM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Aug 18, 2021 9:15:33 AM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+[0m2021.08.27 09:46:00 INFO  Started: Metals version 0.10.5 in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth' for client Visual Studio Code 1.59.1.[0m
+[0m2021.08.27 09:46:02 INFO  time: initialize in 1.33s[0m
+[0m2021.08.27 09:46:03 WARN  Build server is not auto-connectable.[0m
+[0m2021.08.27 09:46:03 WARN  no build tool detected in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. [0m
+Aug 27, 2021 4:05:25 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Aug 27, 2021 4:05:25 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Aug 27, 2021 8:30:29 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+[0m2021.09.09 17:52:22 INFO  Started: Metals version 0.10.6 in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth' for client Visual Studio Code 1.60.0.[0m
+[0m2021.09.09 17:52:23 INFO  time: initialize in 0.61s[0m
+[0m2021.09.09 17:52:23 WARN  Build server is not auto-connectable.[0m
+[0m2021.09.09 17:52:23 WARN  no build tool detected in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. [0m
+Sep 10, 2021 1:15:47 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Sep 10, 2021 1:15:47 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Sep 10, 2021 1:15:47 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Sep 10, 2021 1:15:48 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Sep 13, 2021 1:28:50 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+[0m2021.09.15 23:36:40 INFO  Started: Metals version 0.10.6 in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth' for client Visual Studio Code 1.60.1.[0m
+[0m2021.09.15 23:36:46 INFO  time: initialize in 6.41s[0m
+[0m2021.09.15 23:37:41 WARN  Build server is not auto-connectable.[0m
+[0m2021.09.15 23:37:41 WARN  no build tool detected in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. [0m

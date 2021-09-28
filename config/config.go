@@ -83,6 +83,7 @@ type SessionManagerConfig struct {
 	CookieName      string `yaml:"cookie_name"`
 	Maxlifetime     int64  `yaml:"max_lifetime"`
 	VisitCookieName string `yaml:"visit_cookie_name"`
+	ProjectID       string `yaml:"project_id"`
 }
 
 // Init creates a new empty instance of ivmCfg object
