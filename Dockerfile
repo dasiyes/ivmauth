@@ -37,7 +37,7 @@ WORKDIR /root/
 
 # Copy the binary to the production image from the builder stage.
 COPY --from=build /ivmauth/cmd/ivmauth/ivmauth .
-COPY --from=build /ivmauth/config-staging.yaml .
+COPY --from=build /ivmauth/config-staging.yaml ./config.yaml
 COPY --from=build /ivmauth/version .
 
 # Run the web service on container startup.
