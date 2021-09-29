@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/dasiyes/ivmauth/core"
 	"github.com/dvsekhvalnov/jose2go/base64url"
 )
 
@@ -20,7 +21,7 @@ func TestAuthenticateClientAH(t *testing.T) {
 	bc := "Basic " + base64url.Encode([]byte("xxx.apps.ivmanto.dev:ivmanto-2021"))
 
 	// Store the same client in the clients repository
-	client2 := ivmanto.NewClient("xxx.apps.ivmanto.dev", ivmanto.Active)
+	client2 := core.NewClient("xxx.apps.ivmanto.dev", core.Active)
 	client2.ClientSecret = "ivmanto-2021"
 	if err := clients.Store(client2); err != nil {
 		t.Logf("error saving test client2: %#v;\n", err)
@@ -50,7 +51,7 @@ func TestAuthenticateClientWFUE(t *testing.T) {
 	formdata := "grant_type=refresh_token&refresh_token=tGzv3JOkF0XG5Qx2TlKWIA&client_id=xxx.apps.ivmanto.dev&client_secret=ivmanto-2021"
 
 	// Store the same client in the clients repository
-	client2 := ivmanto.NewClient("xxx.apps.ivmanto.dev", ivmanto.Active)
+	client2 := core.NewClient("xxx.apps.ivmanto.dev", core.Active)
 	client2.ClientSecret = "ivmanto-2021"
 	if err := clients.Store(client2); err != nil {
 		t.Logf("error saving test client2: %#v;\n", err)
@@ -69,23 +70,23 @@ func TestAuthenticateClientWFUE(t *testing.T) {
 }
 
 type mockClientRepository struct {
-	client *ivmanto.Client
+	client *core.Client
 }
 
-func (r *mockClientRepository) Store(c *ivmanto.Client) error {
+func (r *mockClientRepository) Store(c *core.Client) error {
 	r.client = c
 	return nil
 }
 
-func (r *mockClientRepository) Find(id ivmanto.ClientID) (*ivmanto.Client, error) {
+func (r *mockClientRepository) Find(id core.ClientID) (*core.Client, error) {
 	if r.client != nil {
 		return r.client, nil
 	}
 	return nil, errors.New("unknown client")
 }
 
-func (r *mockClientRepository) FindAll() []*ivmanto.Client {
-	return []*ivmanto.Client{r.client}
+func (r *mockClientRepository) FindAll() []*core.Client {
+	return []*core.Client{r.client}
 }
 
 // TODO: RegisterNewRequest
@@ -102,7 +103,7 @@ func TestCheckUserRegistration(t *testing.T) {
 	var users mockUserRepository
 	s := NewService(nil, nil, &users, nil)
 
-	oid := ivmanto.IDToken{
+	oid := core.IDToken{
 		Email: "nikolay.tonev55@gmail.com",
 	}
 	// TODO: find the way to test if the function works well...
@@ -110,21 +111,21 @@ func TestCheckUserRegistration(t *testing.T) {
 }
 
 type mockUserRepository struct {
-	user *ivmanto.User
+	user *core.User
 }
 
-func (r *mockUserRepository) Store(u *ivmanto.User) error {
+func (r *mockUserRepository) Store(u *core.User) error {
 	r.user = u
 	return nil
 }
 
-func (r *mockUserRepository) Find(id ivmanto.UserID) (*ivmanto.User, error) {
+func (r *mockUserRepository) Find(id core.UserID) (*core.User, error) {
 	if r.user != nil {
 		return r.user, nil
 	}
 	return nil, errors.New("unknown client")
 }
 
-func (r *mockUserRepository) FindAll() []*ivmanto.User {
-	return []*ivmanto.User{}
+func (r *mockUserRepository) FindAll() []*core.User {
+	return []*core.User{}
 }

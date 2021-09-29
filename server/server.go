@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
 
+	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/svc/authenticating"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 )
@@ -22,10 +23,10 @@ import (
 // - Meets your scalability and latency requirements.
 
 // Cid to hold on the ClientID in the request to be transfered over the request context
-var Cid ivmanto.ClientID
+var Cid core.ClientID
 
 // UID to hold the on the user ID...
-var UID ivmanto.UserID
+var UID core.UserID
 
 // Server holds the dependencies for a HTTP server
 type Server struct {

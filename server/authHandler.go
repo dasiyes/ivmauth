@@ -16,6 +16,7 @@ import (
 	"github.com/rs/xid"
 	"github.com/segmentio/ksuid"
 
+	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/svc/authenticating"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 )
@@ -49,13 +50,13 @@ func (h *authHandler) router() chi.Router {
 func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
-	var client ivmanto.Client
+	var client core.Client
 	var ok bool
 
 	if v := ctx.Value(Cid); v != nil {
-		client, ok = v.(ivmanto.Client)
+		client, ok = v.(core.Client)
 		if !ok {
-			ivmanto.EncodeError(context.TODO(), http.StatusForbidden, errors.New("invalid client type"), w)
+			core.EncodeError(context.TODO(), http.StatusForbidden, errors.New("invalid client type"), w)
 			return
 		}
 	}
@@ -63,7 +64,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	reqbody, err := h.aus.GetRequestBody(r)
 	if err != nil {
 		_ = level.Error(h.logger).Log("error ", err)
-		ivmanto.EncodeError(context.TODO(), http.StatusBadRequest, err, w)
+		core.EncodeError(context.TODO(), http.StatusBadRequest, err, w)
 		return
 	}
 
@@ -81,7 +82,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	// Validate auth request. Authenticated client's scope to consider
 	at, err := h.aus.Validate(&r.Header, reqbody, h.pks, &client)
 	if err != nil {
-		ivmanto.EncodeError(context.TODO(), http.StatusForbidden, err, w)
+		core.EncodeError(context.TODO(), http.StatusForbidden, err, w)
 		return
 	}
 
@@ -96,7 +97,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err := json.NewEncoder(w).Encode(at); err != nil {
 		_ = h.logger.Log("error", err)
-		ivmanto.EncodeError(context.TODO(), http.StatusInternalServerError, err, w)
+		core.EncodeError(context.TODO(), http.StatusInternalServerError, err, w)
 		return
 	}
 }
@@ -104,13 +105,13 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
-	var client ivmanto.Client
+	var client core.Client
 	var ok bool
 
 	if v := ctx.Value(Cid); v != nil {
-		client, ok = v.(ivmanto.Client)
+		client, ok = v.(core.Client)
 		if !ok {
-			ivmanto.EncodeError(context.TODO(), http.StatusForbidden, errors.New("invalid client type"), w)
+			core.EncodeError(context.TODO(), http.StatusForbidden, errors.New("invalid client type"), w)
 			return
 		}
 	}
@@ -118,7 +119,7 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 	reqbody, err := h.aus.GetRequestBody(r)
 	if err != nil {
 		_ = level.Error(h.logger).Log("error ", err)
-		ivmanto.EncodeError(context.TODO(), http.StatusBadRequest, err, w)
+		core.EncodeError(context.TODO(), http.StatusBadRequest, err, w)
 		return
 	}
 
@@ -127,11 +128,11 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 	usr, err := h.aus.RegisterUser(reqbody.Name, reqbody.Email, reqbody.Password)
 	if err != nil {
 		_ = level.Error(h.logger).Log("error ", err)
-		ivmanto.EncodeError(context.TODO(), http.StatusInternalServerError, err, w)
+		core.EncodeError(context.TODO(), http.StatusInternalServerError, err, w)
 		return
 	}
 
-	at, _ := h.aus.IssueAccessToken(&ivmanto.IDToken{
+	at, _ := h.aus.IssueAccessToken(&core.IDToken{
 		Sub: string(usr.SubCode),
 		Jti: xid.New().String(),
 	}, &client)
@@ -145,7 +146,7 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err := json.NewEncoder(w).Encode(at); err != nil {
 		_ = h.logger.Log("error", err)
-		ivmanto.EncodeError(context.TODO(), http.StatusInternalServerError, err, w)
+		core.EncodeError(context.TODO(), http.StatusInternalServerError, err, w)
 		return
 	}
 }

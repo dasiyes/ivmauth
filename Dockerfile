@@ -26,7 +26,7 @@ RUN env GIT_TERMINAL_PROMPT=1 go mod download
 COPY . ./
 
 # Build the binary.
-RUN go build -o ivmauth -v -mod=readonly ivmauth.go 
+RUN go build -o cmd/ivmauth/ivmauth -v -mod=readonly ivmauth.go 
 
 # Use the alpine image for a lean production container.
 FROM alpine:3.13 AS base

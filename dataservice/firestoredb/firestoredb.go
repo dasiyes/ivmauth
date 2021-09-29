@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"cloud.google.com/go/firestore"
+	"github.com/dasiyes/ivmauth/core"
 	"google.golang.org/api/iterator"
 )
 
@@ -16,7 +17,7 @@ type requestRepository struct {
 }
 
 // Store - stores the authentication request
-func (rr *requestRepository) Store(ar *ivmanto.AuthRequest) error {
+func (rr *requestRepository) Store(ar *core.AuthRequest) error {
 	_, _, err := rr.client.Collection(rr.collection).Add(*rr.ctx, ar)
 	if err != nil {
 		return fmt.Errorf("unable to save in request repository. Error: %#v", err)
@@ -25,19 +26,19 @@ func (rr *requestRepository) Store(ar *ivmanto.AuthRequest) error {
 }
 
 // Store - stores the authentication request
-func (rr *requestRepository) Find(id ivmanto.AuthRequestID) (*ivmanto.AuthRequest, error) {
+func (rr *requestRepository) Find(id core.AuthRequestID) (*core.AuthRequest, error) {
 	// TODO: implement the logic
 	return nil, nil
 }
 
 // Store - stores the authentication request
-func (rr *requestRepository) FindAll() []*ivmanto.AuthRequest {
+func (rr *requestRepository) FindAll() []*core.AuthRequest {
 	// TODO: implement the logic
-	return []*ivmanto.AuthRequest{}
+	return []*core.AuthRequest{}
 }
 
 // NewRequestRepository returns a new instance of a firestore request repository.
-func NewRequestRepository(ctx *context.Context, collName string, client *firestore.Client) (ivmanto.RequestRepository, error) {
+func NewRequestRepository(ctx *context.Context, collName string, client *firestore.Client) (core.RequestRepository, error) {
 	return &requestRepository{
 		ctx:        ctx,
 		collection: collName,
@@ -53,7 +54,7 @@ type clientRepository struct {
 }
 
 // Store - stores the clients registrations
-func (cr *clientRepository) Store(c *ivmanto.Client) error {
+func (cr *clientRepository) Store(c *core.Client) error {
 	_, err := cr.client.Collection(cr.collection).Doc(string(c.ClientID)).Set(*cr.ctx, c)
 	if err != nil {
 		return fmt.Errorf("unable to save in clients repository. error: %#v", err)
@@ -62,11 +63,11 @@ func (cr *clientRepository) Store(c *ivmanto.Client) error {
 }
 
 // Find - finds a client in the repository
-func (cr *clientRepository) Find(id ivmanto.ClientID) (*ivmanto.Client, error) {
+func (cr *clientRepository) Find(id core.ClientID) (*core.Client, error) {
 
 	iter := cr.client.Collection(cr.collection).Documents(*cr.ctx)
 
-	var c ivmanto.Client
+	var c core.Client
 
 	fmt.Printf("... search for clientID %v\n", id)
 
@@ -96,13 +97,13 @@ func (cr *clientRepository) Find(id ivmanto.ClientID) (*ivmanto.Client, error) {
 }
 
 // FindAll - find and returns all clients
-func (cr *clientRepository) FindAll() []*ivmanto.Client {
+func (cr *clientRepository) FindAll() []*core.Client {
 	// TODO: implement FindAll
-	return []*ivmanto.Client{}
+	return []*core.Client{}
 }
 
 // NewClientRepository - creates a new client repository
-func NewClientRepository(ctx *context.Context, collName string, client *firestore.Client) (ivmanto.ClientRepository, error) {
+func NewClientRepository(ctx *context.Context, collName string, client *firestore.Client) (core.ClientRepository, error) {
 	return &clientRepository{
 		ctx:        ctx,
 		collection: collName,
@@ -118,7 +119,7 @@ type userRepository struct {
 }
 
 // Store - stores the clients registrations
-func (ur *userRepository) Store(u *ivmanto.User) error {
+func (ur *userRepository) Store(u *core.User) error {
 	_, err := ur.client.Collection(ur.collection).Doc(string(u.UserID)).Set(*ur.ctx, u)
 	if err != nil {
 		return fmt.Errorf("unable to save in clients repository. error: %#v", err)
@@ -127,11 +128,11 @@ func (ur *userRepository) Store(u *ivmanto.User) error {
 }
 
 // Find - finds a user in the repository
-func (ur *userRepository) Find(id ivmanto.UserID) (*ivmanto.User, error) {
+func (ur *userRepository) Find(id core.UserID) (*core.User, error) {
 
 	iter := ur.client.Collection(ur.collection).Documents(*ur.ctx)
 
-	var u ivmanto.User
+	var u core.User
 
 	for {
 		doc, err := iter.Next()
@@ -153,22 +154,22 @@ func (ur *userRepository) Find(id ivmanto.UserID) (*ivmanto.User, error) {
 			// TODO: review the error for missing permissions
 			//continue
 		}
-		if ivmanto.UserID(doc.Ref.ID) == id {
+		if core.UserID(doc.Ref.ID) == id {
 			break
 		}
-		u = ivmanto.User{}
+		u = core.User{}
 	}
 	return &u, nil
 }
 
 // FindAll - find and returns all users
-func (ur *userRepository) FindAll() []*ivmanto.User {
+func (ur *userRepository) FindAll() []*core.User {
 	// TODO: implement FindAll
-	return []*ivmanto.User{}
+	return []*core.User{}
 }
 
 // NewUserRepository - creates a new users repository
-func NewUserRepository(ctx *context.Context, collName string, client *firestore.Client) (ivmanto.UserRepository, error) {
+func NewUserRepository(ctx *context.Context, collName string, client *firestore.Client) (core.UserRepository, error) {
 	return &userRepository{
 		ctx:        ctx,
 		collection: collName,

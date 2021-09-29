@@ -53,7 +53,7 @@
 // * [2] Identify the grant_type [step (C) presents authorization grant] The client receives an authorization grant, which is a credential representing the resource owner’s authorization, expressed using one of four grant types defined in this specification or using an extension grant type.  The authorization grant type depends on the method used by the client to request authorization and the types supported by the authorization server.
 // * [2.1] Switch the logic based on the identified grant_type at [2].
 // * [2.2] validate the authorization grant
-// * [3] issue a new Access Token for the realm IVMANTO. Consider the scopes.
+// * [3] issue a new Access Token for the realm core. Consider the scopes.
 
 package authenticating
 
@@ -69,6 +69,7 @@ import (
 
 	// "github.com/dasiyes/ivmauth/config"
 	"github.com/dasiyes/ivmapi/pkg/config"
+	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/dataservice/firestoredb"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 	"github.com/dgrijalva/jwt-go"
@@ -101,46 +102,46 @@ import (
 // Service is the interface that provides auth methods.
 type Service interface {
 	// RegisterNewRequest registring a new http request for authentication
-	RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.AuthRequestID, error)
+	RegisterNewRequest(rh *http.Header, body *core.AuthRequestBody, client *core.Client) (core.AuthRequestID, error)
 
 	// Validate the auth request according to OAuth2 sepcification (see the notes at the top of of this file)
-	Validate(rh *http.Header, body *ivmanto.AuthRequestBody, pks pksrefreshing.Service, client *ivmanto.Client) (*ivmanto.AccessToken, error)
+	Validate(rh *http.Header, body *core.AuthRequestBody, pks pksrefreshing.Service, client *core.Client) (*core.AccessToken, error)
 
 	// AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
 	// request Header Authorization: Basic XXX
-	AuthenticateClient(r *http.Request) (*ivmanto.Client, error)
+	AuthenticateClient(r *http.Request) (*core.Client, error)
 
-	// GetRequestBody considers the contet type header and reads the request body within ivmanto.AuthRequestBody
-	GetRequestBody(r *http.Request) (b *ivmanto.AuthRequestBody, err error)
+	// GetRequestBody considers the contet type header and reads the request body within core.AuthRequestBody
+	GetRequestBody(r *http.Request) (b *core.AuthRequestBody, err error)
 
 	// IssueAccessToken for the successfully authenticated and authorized requests [realm IVMANTO]
-	IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client) (*ivmanto.AccessToken, error)
+	IssueAccessToken(oidt *core.IDToken, client *core.Client) (*core.AccessToken, error)
 
 	// CheckUserRegistration search for the user from oidtoken in the db. Id not found a new one will be registered.
-	CheckUserRegistration(oidtoken *ivmanto.IDToken)
+	CheckUserRegistration(oidtoken *core.IDToken)
 
 	// RegisterUser will create a new user in the ivmauth db
-	RegisterUser(names, email, password string) (*ivmanto.User, error)
+	RegisterUser(names, email, password string) (*core.User, error)
 
 	// UpdateUser will update the user object from the parameter in the db
-	UpdateUser(u *ivmanto.User) error
+	UpdateUser(u *core.User) error
 }
 
 type service struct {
-	requests ivmanto.RequestRepository
-	clients  ivmanto.ClientRepository
-	users    ivmanto.UserRepository
+	requests core.RequestRepository
+	clients  core.ClientRepository
+	users    core.UserRepository
 	config   config.IvmCfg
 }
 
-func (s *service) RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (ivmanto.AuthRequestID, error) {
+func (s *service) RegisterNewRequest(rh *http.Header, body *core.AuthRequestBody, client *core.Client) (core.AuthRequestID, error) {
 
-	if len(*rh) == 0 || utils.GetSize(body) == 0 {
-		return "", ivmanto.ErrInvalidArgument
+	if len(*rh) == 0 || core.GetSize(body) == 0 {
+		return "", core.ErrInvalidArgument
 	}
 
-	id := ivmanto.NextAuthRequestID()
-	ar := ivmanto.NewAuthRequest(id, *rh, body, client)
+	id := core.NextAuthRequestID()
+	ar := core.NewAuthRequest(id, *rh, body, client)
 
 	if err := s.requests.Store(ar); err != nil {
 		return "", err
@@ -150,24 +151,24 @@ func (s *service) RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestB
 
 func (s *service) Validate(
 	rh *http.Header,
-	body *ivmanto.AuthRequestBody,
+	body *core.AuthRequestBody,
 	pks pksrefreshing.Service,
-	client *ivmanto.Client) (*ivmanto.AccessToken, error) {
+	client *core.Client) (*core.AccessToken, error) {
 
 	var err error
 
 	var authGrantType, xgt, idP string
-	var oidtoken *ivmanto.IDToken
-	var usr *ivmanto.User
+	var oidtoken *core.IDToken
+	var usr *core.User
 
 	idP = rh.Get("x-token-type")
 	xgt = rh.Get("x-grant-type")
 
 	// [2]
 	if xgt == "" {
-		return nil, ivmanto.ErrUnknownGrantType
+		return nil, core.ErrUnknownGrantType
 	} else if xgt == "id_token" && idP == "" {
-		return nil, ivmanto.ErrBadRequest
+		return nil, core.ErrBadRequest
 	}
 
 	// [2.1]
@@ -179,12 +180,12 @@ func (s *service) Validate(
 		tkn, oidtoken, err = validateIDToken(body.IDToken, idP, pks)
 
 		if err != nil || !tkn.Valid {
-			return nil, ivmanto.ErrAuthenticating
+			return nil, core.ErrAuthenticating
 		}
 
 		err = validateOpenIDClaims(oidtoken, body, idP, pks)
 		if err != nil {
-			return nil, ivmanto.ErrAuthenticating
+			return nil, core.ErrAuthenticating
 		}
 
 		authGrantType = "implicit"
@@ -194,14 +195,14 @@ func (s *service) Validate(
 		authGrantType = "password_credentials"
 
 		// TODO: [IVM-6] implement password fllow
-		usr, err = s.users.Find(ivmanto.UserID(body.Email))
+		usr, err = s.users.Find(core.UserID(body.Email))
 		if err != nil {
 			return nil, err
 		}
 
 		err = bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(body.Password))
 		if err != nil {
-			return nil, ivmanto.ErrAuthenticating
+			return nil, core.ErrAuthenticating
 		}
 		usr.Password = ""
 
@@ -212,7 +213,7 @@ func (s *service) Validate(
 	}
 
 	// [2.2]
-	var at *ivmanto.AccessToken
+	var at *core.AccessToken
 
 	switch authGrantType {
 
@@ -224,15 +225,15 @@ func (s *service) Validate(
 
 		at, err = s.IssueAccessToken(oidtoken, client)
 		if err != nil {
-			return nil, ivmanto.ErrIssuingAT
+			return nil, core.ErrIssuingAT
 		}
 
 	case "password_credentials":
 
-		oidt := ivmanto.IDToken{Email: string(usr.UserID), Sub: string(usr.SubCode)}
+		oidt := core.IDToken{Email: string(usr.UserID), Sub: string(usr.SubCode)}
 		at, err = s.IssueAccessToken(&oidt, client)
 		if err != nil {
-			return nil, ivmanto.ErrIssuingAT
+			return nil, core.ErrIssuingAT
 		}
 
 	case "client_credentials":
@@ -255,7 +256,7 @@ func (s *service) Validate(
 // Ivmanto authentication library (ivmauth) will authenticate clientIDs provided in 3 ways as followig:
 //  * content-ype: "application/x-www-form-urlencoded":
 //    - clientID and clientSecret as query parameters from the request body
-//      Example: qs.stringify({'client_id': 'xxx.apps.ivmanto.dev', 'client_secret': 'ivmanto-2021'});
+//      Example: qs.stringify({'client_id': 'xxx.apps.core.dev', 'client_secret': 'ivmanto-2021'});
 //
 //  * content-type: "application/json":
 //    - Header "Authorization" as Base64 encoded string of "clientID:clientSecret";
@@ -264,7 +265,7 @@ func (s *service) Validate(
 // ** All 3 places are check for each request.
 //
 // TODO: OpenID Connect guidences to follow (https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication)
-func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
+func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 
 	var cID, cSec string
 	var err error
@@ -283,13 +284,13 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 
 	if host != expected_host[0] || host == "" || expected_host[0] == "" {
 		fmt.Printf("BadRequest: host: %v,does not match the expected value of: %v, or one of them is empty value\n", host, expected_host)
-		return nil, ivmanto.ErrBadRequest
+		return nil, core.ErrBadRequest
 	}
 
 	if origin == "" && env == "prod" {
 		//TODO: implement db support for taking the array of allowed origins
 		fmt.Printf("BadRequest: missing origin value\n")
-		return nil, ivmanto.ErrBadRequest
+		return nil, core.ErrBadRequest
 	}
 
 	if referer == "" {
@@ -307,7 +308,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 			cID, cSec, err = getClientIDSecWFUE(r)
 			if err != nil {
 				fmt.Printf("Badrequest: error getting clientID and client secret from application/x-www-form-urlencoded request. Error: %v", err.Error())
-				return nil, ivmanto.ErrBadRequest
+				return nil, core.ErrBadRequest
 			}
 		case strings.HasPrefix(ahct, "application/json"):
 			xic := r.Header.Get("x-ivm-client")
@@ -317,20 +318,20 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 				cID, cSec, _ = r.BasicAuth()
 				if cID == "" || cSec == "" {
 					fmt.Printf("BadRequest: [Authorization] header empty value for clientID: %v, or client secret xxx\n", cID)
-					return nil, ivmanto.ErrBadRequest
+					return nil, core.ErrBadRequest
 				}
 			} else {
 				cID, cSec = getXClient(xic)
 				if cID == "" || cSec == "" {
 					fmt.Printf("BadRequest: [x-ivm-client] header empty value for clientID: %v, or client secret xxx\n", cID)
-					return nil, ivmanto.ErrBadRequest
+					return nil, core.ErrBadRequest
 				}
 			}
 
 		default:
 			if r.Method == "POST" {
 				fmt.Printf("BadRequest: unsupported content-type: %v", ahct)
-				return nil, ivmanto.ErrBadRequest
+				return nil, core.ErrBadRequest
 			}
 		}
 
@@ -345,21 +346,21 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 		cID = q.Get("client_id")
 		if cID == "" {
 			fmt.Printf("BadRequest: GET /auth query param client_id is empty value: %v\n", cID)
-			return nil, ivmanto.ErrBadRequest
+			return nil, core.ErrBadRequest
 		}
 	}
 
 	// TODO: remove after debug
 	fmt.Printf("provided clientID: %v\n", cID)
 
-	rc, err := s.clients.Find(ivmanto.ClientID(cID))
+	rc, err := s.clients.Find(core.ClientID(cID))
 	if err != nil {
 		fmt.Printf("while finding clientID: %v in the database error raised: %v\n", cID, err.Error())
 		return nil, err
 	}
 	if rc.ClientSecret != cSec && r.Method != "GET" {
 		fmt.Printf("client secret provided within the request %v, does not match the one in the DB\n", rc.ClientSecret)
-		return nil, ivmanto.ErrClientAuth
+		return nil, core.ErrClientAuth
 	}
 
 	return rc, nil
@@ -388,16 +389,16 @@ func getXClient(xic string) (cid string, csc string) {
 	return cp[0], cp[1]
 }
 
-// GetRequestBody considers the contet type header and reads the request body within ivmanto.AuthRequestBody
-func (s *service) GetRequestBody(r *http.Request) (*ivmanto.AuthRequestBody, error) {
+// GetRequestBody considers the contet type header and reads the request body within core.AuthRequestBody
+func (s *service) GetRequestBody(r *http.Request) (*core.AuthRequestBody, error) {
 
 	var err error
-	var rb ivmanto.AuthRequestBody
+	var rb core.AuthRequestBody
 
 	if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
 
 		if err = json.NewDecoder(r.Body).Decode(&rb); err != nil {
-			return nil, ivmanto.ErrGetRequestBody
+			return nil, core.ErrGetRequestBody
 		}
 
 	} else if r.Header.Get("Content-Type") == "application/x-www-form-urlencoded" {
@@ -414,7 +415,7 @@ func (s *service) GetRequestBody(r *http.Request) (*ivmanto.AuthRequestBody, err
 		defer r.Body.Close()
 		body, err = ioutil.ReadAll(r.Body)
 		if err != nil {
-			return nil, ivmanto.ErrGetRequestBody
+			return nil, core.ErrGetRequestBody
 		}
 
 		fp = strings.Split(string(body), "&")
@@ -438,27 +439,27 @@ func (s *service) GetRequestBody(r *http.Request) (*ivmanto.AuthRequestBody, err
 }
 
 // IssueAccessToken for the successfully authenticated and authorized requests [realm IVMANTO]
-func (s *service) IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client) (*ivmanto.AccessToken, error) {
+func (s *service) IssueAccessToken(oidt *core.IDToken, client *core.Client) (*core.AccessToken, error) {
 
 	atcfg := s.config.GetATC()
 	scopes := client.Scopes
 
-	iat := ivmanto.NewIvmantoAccessToken(&scopes, atcfg)
+	iat := core.NewIvmantoAccessToken(&scopes, atcfg)
 	return iat, nil
 }
 
 // Registration of new user on Ivmanto realm
-func (s *service) RegisterUser(names, email, password string) (*ivmanto.User, error) {
+func (s *service) RegisterUser(names, email, password string) (*core.User, error) {
 
-	usr, err := s.users.Find(ivmanto.UserID(email))
+	usr, err := s.users.Find(core.UserID(email))
 	if err != nil {
 		if err == firestoredb.ErrUserNotFound {
-			nUsr, err := ivmanto.NewUser(ivmanto.UserID(email))
+			nUsr, err := core.NewUser(core.UserID(email))
 			if err != nil {
 				return nil, err
 			}
 			nUsr.Name = names
-			nUsr.Status = ivmanto.EntryStatus(ivmanto.Draft)
+			nUsr.Status = core.EntryStatus(core.Draft)
 			hp, err := hashPass([]byte(password))
 			if err != nil {
 				return nil, err
@@ -479,7 +480,7 @@ func (s *service) RegisterUser(names, email, password string) (*ivmanto.User, er
 }
 
 // UpdateUser will update the user changes in the DB
-func (s *service) UpdateUser(u *ivmanto.User) error {
+func (s *service) UpdateUser(u *core.User) error {
 	if err := s.users.Store(u); err != nil {
 		return err
 	}
@@ -487,18 +488,18 @@ func (s *service) UpdateUser(u *ivmanto.User) error {
 }
 
 // Checking the users if the user from openID token is registred or is new
-func (s *service) CheckUserRegistration(oidtoken *ivmanto.IDToken) {
+func (s *service) CheckUserRegistration(oidtoken *core.IDToken) {
 
-	usr, err := s.users.Find(ivmanto.UserID(oidtoken.Email))
+	usr, err := s.users.Find(core.UserID(oidtoken.Email))
 	if err != nil {
 		if err == firestoredb.ErrUserNotFound {
-			nUsr, err := ivmanto.NewUser(ivmanto.UserID(oidtoken.Email))
+			nUsr, err := core.NewUser(core.UserID(oidtoken.Email))
 			if err != nil {
 				fmt.Printf("error while creating a new user: %#v;\n", err)
 			}
 			nUsr.Name = oidtoken.Name
 			nUsr.Avatar = oidtoken.Picture
-			nUsr.Status = ivmanto.EntryStatus(ivmanto.Draft)
+			nUsr.Status = core.EntryStatus(core.Draft)
 			nUsr.OIDCProvider = oidtoken.Iss
 
 			if err = s.users.Store(nUsr); err != nil {
@@ -554,11 +555,11 @@ func getClientIDSecWFUE(r *http.Request) (cID string, cSec string, err error) {
 }
 
 // validateIDToken will provide validation of OpenIDConnect ID Tokens
-func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (*jwt.Token, *ivmanto.IDToken, error) {
+func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (*jwt.Token, *core.IDToken, error) {
 
 	var err error
 	var tkn *jwt.Token
-	var oidt = ivmanto.IDToken{}
+	var oidt = core.IDToken{}
 
 	_, err = pks.GetPKSCache(idP)
 	if err != nil {
@@ -571,7 +572,7 @@ func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (
 		tKid := token.Header["kid"].(string)
 		alg := token.Method.Alg()
 		if strings.ToUpper(token.Header["typ"].(string)) != "JWT" {
-			return "", ivmanto.ErrAuthenticating
+			return "", core.ErrAuthenticating
 		}
 		switch alg {
 		case "RS256":
@@ -604,19 +605,19 @@ func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (
 // 3. validate the issuer to match the expected Identity Provider
 // 4. verify the authorized party (Azp) to match clienID
 func validateOpenIDClaims(
-	oidt *ivmanto.IDToken, body *ivmanto.AuthRequestBody, idP string, pks pksrefreshing.Service) error {
+	oidt *core.IDToken, body *core.AuthRequestBody, idP string, pks pksrefreshing.Service) error {
 
 	var err error
 
 	if oidt.Nonce != body.Nonce {
-		return ivmanto.ErrSessionToken
+		return core.ErrSessionToken
 	}
 
 	// ISSUE: jwt-go package does not support loading the toke claims into IDToken when the AUD type is set to array of[]string. With flat string type works well.
 	// ? TODO: report the issue to package repo...
 
 	if oidt.Aud != body.AsrCID {
-		return ivmanto.ErrCompromisedAud
+		return core.ErrCompromisedAud
 	}
 
 	if err = oidt.Valid(); err != nil {
@@ -627,34 +628,34 @@ func validateOpenIDClaims(
 
 	issval, err = pks.GetIssuerVal(idP)
 	if err != nil {
-		return fmt.Errorf("%v inner %v", ivmanto.ErrInvalidIDToken, err)
+		return fmt.Errorf("%v inner %v", core.ErrInvalidIDToken, err)
 	}
 	if oidt.Iss != issval {
-		return ivmanto.ErrInvalidIDToken
+		return core.ErrInvalidIDToken
 	}
 
 	if oidt.Azp != "" && body.ClientID != "" {
 		if oidt.Azp != body.ClientID {
-			return fmt.Errorf("%v inner %v", ivmanto.ErrInvalidIDToken, "authorized party not verified")
+			return fmt.Errorf("%v inner %v", core.ErrInvalidIDToken, "authorized party not verified")
 		}
 	}
 
 	if oidt.Aud != body.ClientID {
-		return ivmanto.ErrInvalidIDToken
+		return core.ErrInvalidIDToken
 	}
 
 	// TODO: Check if this key is available in the OpenID spec for other Identity Providers
 	if !oidt.EmailVerified {
-		return ivmanto.ErrInvalidIDToken
+		return core.ErrInvalidIDToken
 	}
 
 	return nil
 }
 
 // NewService creates a authenticating service with necessary dependencies.
-func NewService(requests ivmanto.RequestRepository,
-	clients ivmanto.ClientRepository,
-	users ivmanto.UserRepository,
+func NewService(requests core.RequestRepository,
+	clients core.ClientRepository,
+	users core.UserRepository,
 	config config.IvmCfg) Service {
 
 	return &service{

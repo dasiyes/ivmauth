@@ -3,15 +3,17 @@ package inmem
 import (
 	"errors"
 	"sync"
+
+	"github.com/dasiyes/ivmauth/core"
 )
 
 type requestRepository struct {
 	mtx      sync.RWMutex
-	requests map[ivmanto.AuthRequestID]*ivmanto.AuthRequest
+	requests map[core.AuthRequestID]*core.AuthRequest
 }
 
 // Store - stores the authentication request
-func (rr *requestRepository) Store(ar *ivmanto.AuthRequest) error {
+func (rr *requestRepository) Store(ar *core.AuthRequest) error {
 	rr.mtx.Lock()
 	defer rr.mtx.Unlock()
 	rr.requests[ar.AuthRequestID] = ar
@@ -19,31 +21,31 @@ func (rr *requestRepository) Store(ar *ivmanto.AuthRequest) error {
 }
 
 // Find - finds a authentication request in the repository
-func (rr *requestRepository) Find(id ivmanto.AuthRequestID) (*ivmanto.AuthRequest, error) {
+func (rr *requestRepository) Find(id core.AuthRequestID) (*core.AuthRequest, error) {
 	// TODO: implement find a response
 	return nil, nil
 }
 
 // FindAll - find and returns all authentication request
-func (rr *requestRepository) FindAll() []*ivmanto.AuthRequest {
+func (rr *requestRepository) FindAll() []*core.AuthRequest {
 	// TODO: implement FindAll
-	return []*ivmanto.AuthRequest{}
+	return []*core.AuthRequest{}
 }
 
 // NewRequestRepository - creates a new authentication requests repository
-func NewRequestRepository() ivmanto.RequestRepository {
+func NewRequestRepository() core.RequestRepository {
 	return &requestRepository{
-		requests: make(map[ivmanto.AuthRequestID]*ivmanto.AuthRequest),
+		requests: make(map[core.AuthRequestID]*core.AuthRequest),
 	}
 }
 
 type publicKeySetRepository struct {
 	mtx sync.RWMutex
-	pks map[string]*ivmanto.PublicKeySet
+	pks map[string]*core.PublicKeySet
 }
 
 // Store - stores the public key set for the cache-time allowed in Cache-Control Header
-func (pksr *publicKeySetRepository) Store(pk *ivmanto.PublicKeySet) error {
+func (pksr *publicKeySetRepository) Store(pk *core.PublicKeySet) error {
 	pksr.mtx.Lock()
 	defer pksr.mtx.Unlock()
 	pksr.pks[pk.IdentityProvider] = pk
@@ -51,7 +53,7 @@ func (pksr *publicKeySetRepository) Store(pk *ivmanto.PublicKeySet) error {
 }
 
 // Find - finds a Public Key Set in the repository
-func (pksr *publicKeySetRepository) Find(ip string) (*ivmanto.PublicKeySet, error) {
+func (pksr *publicKeySetRepository) Find(ip string) (*core.PublicKeySet, error) {
 	for key, pks := range pksr.pks {
 		if key == ip {
 			return pks, nil
@@ -61,26 +63,26 @@ func (pksr *publicKeySetRepository) Find(ip string) (*ivmanto.PublicKeySet, erro
 }
 
 // FindAll - find and returns all stored Public Key Sets
-func (pksr *publicKeySetRepository) FindAll() []*ivmanto.PublicKeySet {
+func (pksr *publicKeySetRepository) FindAll() []*core.PublicKeySet {
 	// TODO: implement FindAll
-	return []*ivmanto.PublicKeySet{}
+	return []*core.PublicKeySet{}
 }
 
 // NewPKSRepository - creates a new public key sets repository
-func NewPKSRepository() ivmanto.PublicKeySetRepository {
+func NewPKSRepository() core.PublicKeySetRepository {
 	return &publicKeySetRepository{
-		pks: make(map[string]*ivmanto.PublicKeySet),
+		pks: make(map[string]*core.PublicKeySet),
 	}
 }
 
 // Holds the registered cleints
 type clientRepository struct {
 	mtx     sync.RWMutex
-	clients map[ivmanto.ClientID]*ivmanto.Client
+	clients map[core.ClientID]*core.Client
 }
 
 // Store - stores the clients registrations
-func (cr *clientRepository) Store(c *ivmanto.Client) error {
+func (cr *clientRepository) Store(c *core.Client) error {
 	cr.mtx.Lock()
 	defer cr.mtx.Unlock()
 	cr.clients[c.ClientID] = c
@@ -88,7 +90,7 @@ func (cr *clientRepository) Store(c *ivmanto.Client) error {
 }
 
 // Find - finds a authentication request in the repository
-func (cr *clientRepository) Find(id ivmanto.ClientID) (*ivmanto.Client, error) {
+func (cr *clientRepository) Find(id core.ClientID) (*core.Client, error) {
 	for clientID, client := range cr.clients {
 		if clientID == id {
 			return client, nil
@@ -98,26 +100,26 @@ func (cr *clientRepository) Find(id ivmanto.ClientID) (*ivmanto.Client, error) {
 }
 
 // FindAll - find and returns all authentication request
-func (cr *clientRepository) FindAll() []*ivmanto.Client {
+func (cr *clientRepository) FindAll() []*core.Client {
 	// TODO: implement FindAll
-	return []*ivmanto.Client{}
+	return []*core.Client{}
 }
 
 // NewClientRepository - creates a new authentication requests repository
-func NewClientRepository() ivmanto.ClientRepository {
+func NewClientRepository() core.ClientRepository {
 	return &clientRepository{
-		clients: make(map[ivmanto.ClientID]*ivmanto.Client),
+		clients: make(map[core.ClientID]*core.Client),
 	}
 }
 
 // Holds the registered OpenID Providers
 type oidProviderRepository struct {
 	mtx       sync.RWMutex
-	providers map[ivmanto.ProviderName]*ivmanto.OIDProvider
+	providers map[core.ProviderName]*core.OIDProvider
 }
 
 // Store - stores the provider registrations
-func (ip *oidProviderRepository) Store(pr *ivmanto.OIDProvider) error {
+func (ip *oidProviderRepository) Store(pr *core.OIDProvider) error {
 	ip.mtx.Lock()
 	defer ip.mtx.Unlock()
 	ip.providers[pr.ProviderName] = pr
@@ -125,7 +127,7 @@ func (ip *oidProviderRepository) Store(pr *ivmanto.OIDProvider) error {
 }
 
 // Find - finds a authentication request in the repository
-func (ip *oidProviderRepository) Find(pr ivmanto.ProviderName) (*ivmanto.OIDProvider, error) {
+func (ip *oidProviderRepository) Find(pr core.ProviderName) (*core.OIDProvider, error) {
 	for prvname, oidp := range ip.providers {
 		if prvname == pr {
 			return oidp, nil
@@ -135,26 +137,26 @@ func (ip *oidProviderRepository) Find(pr ivmanto.ProviderName) (*ivmanto.OIDProv
 }
 
 // FindAll - find and returns all authentication request
-func (ip *oidProviderRepository) FindAll() []*ivmanto.OIDProvider {
+func (ip *oidProviderRepository) FindAll() []*core.OIDProvider {
 	// TODO: implement FindAll
-	return []*ivmanto.OIDProvider{}
+	return []*core.OIDProvider{}
 }
 
 // NewOIDProviderRepository - creates a new OpenID Providers repository
-func NewOIDProviderRepository() ivmanto.OIDProviderRepository {
+func NewOIDProviderRepository() core.OIDProviderRepository {
 	return &oidProviderRepository{
-		providers: make(map[ivmanto.ProviderName]*ivmanto.OIDProvider),
+		providers: make(map[core.ProviderName]*core.OIDProvider),
 	}
 }
 
 // Holds the registered users
 type userRepository struct {
 	mtx   sync.RWMutex
-	users map[ivmanto.UserID]*ivmanto.User
+	users map[core.UserID]*core.User
 }
 
 // Store - stores the clients registrations
-func (ur *userRepository) Store(u *ivmanto.User) error {
+func (ur *userRepository) Store(u *core.User) error {
 	ur.mtx.Lock()
 	defer ur.mtx.Unlock()
 	ur.users[u.UserID] = u
@@ -162,7 +164,7 @@ func (ur *userRepository) Store(u *ivmanto.User) error {
 }
 
 // Find - finds a authentication request in the repository
-func (ur *userRepository) Find(id ivmanto.UserID) (*ivmanto.User, error) {
+func (ur *userRepository) Find(id core.UserID) (*core.User, error) {
 	for userID, user := range ur.users {
 		if userID == id {
 			return user, nil
@@ -172,14 +174,14 @@ func (ur *userRepository) Find(id ivmanto.UserID) (*ivmanto.User, error) {
 }
 
 // FindAll - find and returns all authentication request
-func (ur *userRepository) FindAll() []*ivmanto.User {
+func (ur *userRepository) FindAll() []*core.User {
 	// TODO: implement FindAll
-	return []*ivmanto.User{}
+	return []*core.User{}
 }
 
 // NewUserRepository - creates a new users repository
-func NewUserRepository() ivmanto.UserRepository {
+func NewUserRepository() core.UserRepository {
 	return &userRepository{
-		users: make(map[ivmanto.UserID]*ivmanto.User),
+		users: make(map[core.UserID]*core.User),
 	}
 }

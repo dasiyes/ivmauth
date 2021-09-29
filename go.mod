@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	cloud.google.com/go/firestore v1.5.0
-	github.com/dasiyes/ivmapi v0.0.13
+	github.com/dasiyes/ivmapi v0.0.14
 	github.com/dasiyes/ivmsesman v0.4.4
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/dvsekhvalnov/jose2go v1.5.0
@@ -23,6 +23,7 @@ require (
 	cloud.google.com/go v0.82.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
+	github.com/go-chi/cors v1.2.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.0 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
@@ -40,6 +41,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20210514164344-f6687ab2804c // indirect
 	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
 	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
 	golang.org/x/tools v0.1.1 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

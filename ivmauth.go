@@ -19,6 +19,7 @@ import (
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 
 	ivmcfg "github.com/dasiyes/ivmapi/pkg/config"
+	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/svc/authenticating"
 
 	// ivmcfg "github.com/dasiyes/ivmauth/config"
@@ -62,17 +63,17 @@ func main() {
 	}
 
 	var (
-		httpAddr  string = fmt.Sprintf("%s:%s", "", cfg.GetAuthSvc().Port)
+		httpAddr  string = fmt.Sprintf("%s:%d", "", cfg.GetAuthSvcCfg().Port)
 		projectID        = cfg.GCPPID()
 	)
 
 	// SETUP repositories
 	var (
-		authrequests ivmanto.RequestRepository
-		pubkeys      ivmanto.PublicKeySetRepository
-		oidprv       ivmanto.OIDProviderRepository
-		clients      ivmanto.ClientRepository
-		users        ivmanto.UserRepository
+		authrequests core.RequestRepository
+		pubkeys      core.PublicKeySetRepository
+		oidprv       core.OIDProviderRepository
+		clients      core.ClientRepository
+		users        core.UserRepository
 	)
 
 	// The Public Key Set is always in mem cache
@@ -183,8 +184,8 @@ func main() {
 	_ = logger.Log("terminated", <-errs)
 }
 
-func storeTestData(c ivmanto.ClientRepository, cid, csc string) {
-	client1 := ivmanto.NewClient(ivmanto.ClientID(cid), ivmanto.Active)
+func storeTestData(c core.ClientRepository, cid, csc string) {
+	client1 := core.NewClient(core.ClientID(cid), core.Active)
 	client1.ClientSecret = csc
 	if err := c.Store(client1); err != nil {
 		fmt.Printf("error saving test dataset 1: %#v;\n", err)

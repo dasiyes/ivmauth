@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/svc/authenticating"
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -59,10 +60,10 @@ func authClients(lg kitlog.Logger, au authenticating.Service) func(next http.Han
 			rsClient, err := au.AuthenticateClient(r)
 			if err != nil {
 				switch err {
-				case ivmanto.ErrBadRequest:
-					ivmanto.EncodeError(context.TODO(), http.StatusBadRequest, ivmanto.ErrClientAuth, w)
+				case core.ErrBadRequest:
+					core.EncodeError(context.TODO(), http.StatusBadRequest, core.ErrClientAuth, w)
 				default:
-					ivmanto.EncodeError(context.TODO(), http.StatusUnauthorized, ivmanto.ErrClientAuth, w)
+					core.EncodeError(context.TODO(), http.StatusUnauthorized, core.ErrClientAuth, w)
 				}
 				return
 			}

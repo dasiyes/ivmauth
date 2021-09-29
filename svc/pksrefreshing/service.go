@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/dasiyes/ivmauth/core"
 )
 
 // Service is the interface that provides the service's methods.
@@ -21,7 +23,7 @@ type Service interface {
 	GetRSAPublicKey(identityProvider string, kid string) (*big.Int, int, error)
 
 	// GetPKSCache - finds and returns PKS from the cache, if available
-	GetPKSCache(identityProvider string) (*ivmanto.PublicKeySet, error)
+	GetPKSCache(identityProvider string) (*core.PublicKeySet, error)
 
 	// DownloadPKSinCache - will check the cache for not expired PKS if not found will download it. Otherwise do nothing.
 	// This feature to be used as preliminary download feature
@@ -32,8 +34,8 @@ type Service interface {
 }
 
 type service struct {
-	keyset    ivmanto.PublicKeySetRepository
-	providers ivmanto.OIDProviderRepository
+	keyset    core.PublicKeySetRepository
+	providers core.OIDProviderRepository
 }
 
 // Initiating OpenID Providers
@@ -51,14 +53,14 @@ func (s *service) InitOIDProviders() {
 // NewPKS creates new Public Key Set for the ip (Identity Provider)
 func (s *service) newPKS(ip string) error {
 
-	var oidc ivmanto.OpenIDConfiguration
-	var prvn ivmanto.ProviderName
-	var oidp ivmanto.OIDProvider
-	var pks *ivmanto.PublicKeySet
+	var oidc core.OpenIDConfiguration
+	var prvn core.ProviderName
+	var oidp core.OIDProvider
+	var pks *core.PublicKeySet
 	var err error
 
-	prvn = ivmanto.ProviderName(ip)
-	pks = ivmanto.NewPublicKeySet(ip)
+	prvn = core.ProviderName(ip)
+	pks = core.NewPublicKeySet(ip)
 
 	switch ip {
 	case "google":
@@ -67,7 +69,7 @@ func (s *service) newPKS(ip string) error {
 		if err != nil {
 			return err
 		}
-		oidp = ivmanto.OIDProvider{
+		oidp = core.OIDProvider{
 			ProviderName: prvn,
 			Oidc:         oidc,
 		}
@@ -137,7 +139,7 @@ func (s *service) DownloadPKSinCache(identityProvider string) {
 
 // GetPKSCache finds the PKS and returns it from the cache. If not found, calls NewPKS
 //  to download the keys from the URL
-func (s *service) GetPKSCache(identityProvider string) (*ivmanto.PublicKeySet, error) {
+func (s *service) GetPKSCache(identityProvider string) (*core.PublicKeySet, error) {
 
 	// Get the pks from the cache
 	pks, err := s.keyset.Find(identityProvider)
@@ -147,13 +149,13 @@ func (s *service) GetPKSCache(identityProvider string) (*ivmanto.PublicKeySet, e
 		err = s.newPKS(identityProvider)
 		if err != nil {
 			// error when downloading it - return empty pks and error
-			return &ivmanto.PublicKeySet{}, errors.New("Error while creating a new PKS: " + err.Error())
+			return &core.PublicKeySet{}, errors.New("Error while creating a new PKS: " + err.Error())
 		}
 		// Try again to find it in cache - once the download has been called
 		pks, err = s.keyset.Find(identityProvider)
 		if err != nil {
 			// Not found again - return empty pks and error
-			return &ivmanto.PublicKeySet{}, err
+			return &core.PublicKeySet{}, err
 		}
 	}
 	// Found in cache in the searches above - check if not expired
@@ -162,13 +164,13 @@ func (s *service) GetPKSCache(identityProvider string) (*ivmanto.PublicKeySet, e
 		err = s.newPKS("google")
 		if err != nil {
 			// error when downloading it - return empty pks and error
-			return &ivmanto.PublicKeySet{}, errors.New("Error while creating a new PKS: " + err.Error())
+			return &core.PublicKeySet{}, errors.New("Error while creating a new PKS: " + err.Error())
 		}
 		// Try to find it again after the new download
 		pks, err = s.keyset.Find(identityProvider)
 		if err != nil {
 			// Not found again - return empty pks and error
-			return &ivmanto.PublicKeySet{}, err
+			return &core.PublicKeySet{}, err
 		}
 	}
 
@@ -178,10 +180,10 @@ func (s *service) GetPKSCache(identityProvider string) (*ivmanto.PublicKeySet, e
 // Get the issuer value from the OpenIDProvider stored
 func (s *service) GetIssuerVal(provider string) (string, error) {
 
-	var prv *ivmanto.OIDProvider
+	var prv *core.OIDProvider
 	var err error
 
-	prv, err = s.providers.Find(ivmanto.ProviderName(provider))
+	prv, err = s.providers.Find(core.ProviderName(provider))
 	if err != nil {
 		return "", err
 	}
@@ -189,7 +191,7 @@ func (s *service) GetIssuerVal(provider string) (string, error) {
 }
 
 // NewService creates a authenticating service with necessary dependencies.
-func NewService(pksr ivmanto.PublicKeySetRepository, oidpr ivmanto.OIDProviderRepository) Service {
+func NewService(pksr core.PublicKeySetRepository, oidpr core.OIDProviderRepository) Service {
 	return &service{
 		keyset:    pksr,
 		providers: oidpr,
@@ -197,7 +199,7 @@ func NewService(pksr ivmanto.PublicKeySetRepository, oidpr ivmanto.OIDProviderRe
 }
 
 // downloadJWKS - download jwks from the URL for the respective Identity provider
-func downloadJWKS(pks *ivmanto.PublicKeySet) ([]byte, int64, error) {
+func downloadJWKS(pks *core.PublicKeySet) ([]byte, int64, error) {
 	resp, err := pks.HTTPClient.Get(pks.URL.String())
 	if err != nil {
 		return nil, 0, err
@@ -205,7 +207,7 @@ func downloadJWKS(pks *ivmanto.PublicKeySet) ([]byte, int64, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return nil, 0, errors.New("Error while getting JWKS from identity provider url")
+		return nil, 0, errors.New("error while getting JWKS from identity provider url")
 	}
 
 	jwksb, err := ioutil.ReadAll(resp.Body)
@@ -236,9 +238,9 @@ func downloadJWKS(pks *ivmanto.PublicKeySet) ([]byte, int64, error) {
 
 // getGooglesOIC - calls the URL https://accounts.google.com/.well-known/openid-configuration
 // and extracts the jwks_uri attribute to be further used here
-func getGooglesOIC(pks *ivmanto.PublicKeySet) (config ivmanto.OpenIDConfiguration, err error) {
+func getGooglesOIC(pks *core.PublicKeySet) (config core.OpenIDConfiguration, err error) {
 
-	var oidconfig ivmanto.OpenIDConfiguration
+	var oidconfig core.OpenIDConfiguration
 
 	resp, err := pks.HTTPClient.Get("https://accounts.google.com/.well-known/openid-configuration")
 	if err != nil {
