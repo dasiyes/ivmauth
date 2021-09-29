@@ -55,6 +55,12 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 	r.Use(requestsLogging(s.Logger))
 	r.Use(authClients(s.Logger, s.Auth))
 
+	// authorize end-point
+	r.Route("/authorize", func(r chi.Router) {
+		h := authorizeHandler{s.Auth, s.Pks, s.Logger, s.Sm}
+		r.Mount("/", h.router())
+	})
+
 	// Route all authentication calls
 	r.Route("/auth", func(r chi.Router) {
 		h := authHandler{s.Auth, s.Pks, s.Logger, s.Sm}

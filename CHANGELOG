@@ -1,16 +1,29 @@
-v0.0.8  Session Manager and Session Repository implemented.
-        Create a new session on successful authnetication.
+v0.0.10
+        - Implements /authorize end-point with PKCE extension
+        
+v0.0.9
+        - Some alignments for Oauth process authorized code
+
+v0.0.8  
+        - Session Manager and Session Repository implemented.
+        - Create a new session on successful authnetication.
          
-v0.0.7  Implements client password authorization grant type.
-        Refresh token issued along with Access Token and stored within the user record.
+v0.0.7  
+        - Implements client password authorization grant type.
+        - Refresh token issued along with Access Token and stored within the user record.
 
-v0.0.6  Implements Config file for bringing configuration option to the service.
-        Supports environment types: dev | staging | prod 
+v0.0.6  
+        - Implements Config file for bringing configuration option to the service.
+        - Supports environment types: dev | staging | prod 
 
-v0.0.5  Register the user from the Google's OneTap IDToken, if not yet registred.
+v0.0.5  
+        - Register the user from the Google's OneTap IDToken, if not yet registred.
 
-v0.0.4  Authorization Grant type implicit for Ivmanto's web app client. Authenticating OpenID IDToken. Google as Indentity Provider implemented as of this version.
-        Validating IDToken as OpenID Connect ID Token.
-        Generating Access Token on successfull IDToken (OIC) validation.
+v0.0.4  
+        - Authorization Grant type implicit for Ivmanto's web app client. Authenticating OpenID IDToken. 
+        - Google as Indentity Provider implemented as of this version.
+        - Validating IDToken as OpenID Connect ID Token.
+        - Generating Access Token on successfull IDToken (OIC) validation.
 
-v0.0.3  Validating IDToken as JWT
+v0.0.3  
+        - Validating IDToken as JWT
