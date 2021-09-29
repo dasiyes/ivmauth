@@ -13,67 +13,74 @@ import (
 	"github.com/dasiyes/ivmsesman"
 	_ "github.com/dasiyes/ivmsesman/providers/firestore"
 
-	// _ "github.com/dasiyes/ivmsesman/providers/inmem"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 
-	"ivmanto.dev/ivmauth/authenticating"
-	ivmcfg "ivmanto.dev/ivmauth/config"
-	"ivmanto.dev/ivmauth/firestoredb"
-	"ivmanto.dev/ivmauth/inmem"
-	"ivmanto.dev/ivmauth/ivmanto"
-	"ivmanto.dev/ivmauth/pksrefreshing"
-	"ivmanto.dev/ivmauth/server"
+	ivmcfg "github.com/dasiyes/ivmapi/pkg/config"
+	"github.com/dasiyes/ivmauth/core"
+	"github.com/dasiyes/ivmauth/svc/authenticating"
+
+	// ivmcfg "github.com/dasiyes/ivmauth/config"
+
+	"github.com/dasiyes/ivmauth/dataservice/firestoredb"
+	"github.com/dasiyes/ivmauth/dataservice/inmem"
+	"github.com/dasiyes/ivmauth/server"
+	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 )
 
 func main() {
 
-	var (
-		mc  = context.Background()
-		cfg = ivmcfg.Init()
-	)
-
-	type Cfgk string
-
+	// Set the run-time arguments as flags
 	var (
 		inmemory = flag.Bool("inmem", false, "use in-memory repositories")
 		// TODO:
 		env = flag.String("env", "dev", "The environment where the service will run. It will define the config file name to load by adding suffix '-$env' to 'config'. Accepted values: dev|staging|prod ")
+		cf  = flag.String("c", "config.yaml", "The configuration file name to use for api-gateway config values")
 	)
 
 	flag.Parse()
 
+	// Initiating the services logger
 	var logger log.Logger
 	{
 		logger = log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
+		logger = level.NewFilter(logger, level.AllowDebug())
 		logger = log.With(logger, "ts", log.DefaultTimestamp)
 	}
 
-	// Load service configuration
-	if err := cfg.LoadCfg(env, log.With(logger, "component", "config")); err != nil {
-		logger.Log("Exit", "Unable to proceed starting the server...")
+	// Initiate top level context and config vars
+	var (
+		ctx = context.Background()
+		cfg = ivmcfg.Init(env, log.With(logger, "component", "config"))
+	)
+
+	// Load the service configuration from a file
+	if err := cfg.LoadConfig(cf, log.With(logger, "component", "config")); err != nil {
+		_ = level.Error(logger).Log("LoadConfig", "Unable to load service configuration", "Error", err.Error())
 		os.Exit(1)
 	}
 
 	var (
-		httpAddr  = cfg.GetHTTPAddr()
-		projectID = cfg.GCPPID()
+		httpAddr  string = fmt.Sprintf("%s:%d", "", cfg.GetAuthSvcCfg().Port)
+		projectID        = cfg.GCPPID()
 	)
 
 	// SETUP repositories
 	var (
-		authrequests ivmanto.RequestRepository
-		pubkeys      ivmanto.PublicKeySetRepository
-		oidprv       ivmanto.OIDProviderRepository
-		clients      ivmanto.ClientRepository
-		users        ivmanto.UserRepository
+		authrequests core.RequestRepository
+		pubkeys      core.PublicKeySetRepository
+		oidprv       core.OIDProviderRepository
+		clients      core.ClientRepository
+		users        core.UserRepository
 	)
 
 	// The Public Key Set is always in mem cache
 	pubkeys = inmem.NewPKSRepository()
 	oidprv = inmem.NewOIDProviderRepository()
+
+	type Cfgk string
 
 	if *inmemory {
 
@@ -83,7 +90,7 @@ func main() {
 
 	} else {
 
-		ctx := context.WithValue(mc, Cfgk("ivm"), cfg)
+		ctx := context.WithValue(ctx, Cfgk("ivm"), cfg)
 		client, err := firestore.NewClient(ctx, projectID)
 		if err != nil {
 			logger.Log("firestore client init error", err.Error(), "Exit", "Unable to proceed starting the server...")
@@ -177,8 +184,8 @@ func main() {
 	_ = logger.Log("terminated", <-errs)
 }
 
-func storeTestData(c ivmanto.ClientRepository, cid, csc string) {
-	client1 := ivmanto.NewClient(ivmanto.ClientID(cid), ivmanto.Active)
+func storeTestData(c core.ClientRepository, cid, csc string) {
+	client1 := core.NewClient(core.ClientID(cid), core.Active)
 	client1.ClientSecret = csc
 	if err := c.Store(client1); err != nil {
 		fmt.Printf("error saving test dataset 1: %#v;\n", err)

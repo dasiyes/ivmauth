@@ -1,7 +1,7 @@
 steps:
 # Build the container image
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'eu.gcr.io/ivmauth/ivmauth-staging', '.']
+  args: ['build', '-t', 'eu.gcr.io/ivmauth/ivmauth-staging', '.','--build-arg','GITHUB_TOKEN=${_GITHUB_TOKEN}','--build-arg','USERNAME=${_USERNAME}']
   timeout: 500s
 # Push the container image to Container Registry
 - name: 'gcr.io/cloud-builders/docker'
