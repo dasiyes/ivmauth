@@ -41,4 +41,4 @@ COPY --from=build /ivmauth/config-staging.yaml .
 COPY --from=build /ivmauth/version .
 
 # Run the web service on container startup.
-CMD ["./cmd/ivmauth/ivmauth", "--env=staging"]
+CMD ["./ivmauth", "--env=staging"]
