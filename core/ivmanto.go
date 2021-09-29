@@ -1,5 +1,5 @@
-// Package ivmanto is the centre of the domain model
-package ivmanto
+// package core is the centre of the domain model
+package core
 
 import (
 	"encoding/hex"

@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/dvsekhvalnov/jose2go/base64url"
-	"ivmanto.dev/ivmauth/ivmanto"
 )
 
 // TODO:	AuthenticateClient

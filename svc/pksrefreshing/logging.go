@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/dasiyes/ivmauth/core"
 	"github.com/go-kit/kit/log"
-	"ivmanto.dev/ivmauth/ivmanto"
 )
 
 type loggingService struct {
@@ -40,7 +40,7 @@ func (s *loggingService) GetRSAPublicKey(identityProvider string, kid string) (n
 	return s.next.GetRSAPublicKey(identityProvider, kid)
 }
 
-func (s *loggingService) GetPKSCache(identityProvider string) (pks *ivmanto.PublicKeySet, err error) {
+func (s *loggingService) GetPKSCache(identityProvider string) (pks *core.PublicKeySet, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "GetPKSCache",

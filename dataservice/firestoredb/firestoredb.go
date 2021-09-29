@@ -7,7 +7,6 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
-	"ivmanto.dev/ivmauth/ivmanto"
 )
 
 type requestRepository struct {

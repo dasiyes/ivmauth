@@ -5,13 +5,13 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/dasiyes/ivmauth/svc/authenticating"
+	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 	"github.com/dasiyes/ivmsesman"
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"ivmanto.dev/ivmauth/authenticating"
-	"ivmanto.dev/ivmauth/pksrefreshing"
 )
 
 type authorizeHandler struct {

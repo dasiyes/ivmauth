@@ -4,7 +4,10 @@
 # FROM golang:1.15-buster as builder
 
 # My attempt to get eu.gcr.io image
-FROM golang:1.16-buster AS build
+FROM golang:1.17-buster AS build
+
+ARG GITHUB_TOKEN
+ARG USERNAME
 
 # Create and change to the app directory.
 WORKDIR /ivmauth
@@ -13,7 +16,11 @@ WORKDIR /ivmauth
 # This allows the container build to reuse cached dependencies.
 # Expecting to copy go.mod and if present go.sum.
 COPY go.* ./
-RUN go mod download
+
+# source: https://medium.com/swlh/go-modules-with-private-git-repository-3940b6835727
+RUN git config --global url."https://$USERNAME:$GITHUB_TOKEN@github.com/dasiyes/".insteadOf "https://github.com/dasiyes/"
+
+RUN env GIT_TERMINAL_PROMPT=1 go mod download
 
 # Copy local code to the container image.
 COPY . ./
@@ -34,4 +41,4 @@ COPY --from=build /ivmauth/config-staging.yaml .
 COPY --from=build /ivmauth/version .
 
 # Run the web service on container startup.
-CMD ["./ivmauth", "--env=staging"]
+CMD ["./cmd/ivmauth/ivmauth", "--env=staging"]

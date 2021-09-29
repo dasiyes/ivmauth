@@ -1,4 +1,4 @@
-package ivmanto
+package core
 
 import (
 	"encoding/json"
@@ -152,7 +152,7 @@ func (pks *PublicKeySet) Init(newKey []byte, exp int64) error {
 // GetKid - returns a JWK found by its kid
 func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 	if len(pks.Jwks.Keys) == 0 {
-		return JWK{}, InvalidPubliKeySet(errors.New("Empty set of JWKs"))
+		return JWK{}, InvalidPubliKeySet(errors.New("empty set of JWKs"))
 	}
 	var n, e string
 	var jwk JWK
@@ -172,7 +172,7 @@ func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 // GetKidNE - returns modulus N and pblic exponent E as big.Int and int respectively
 func (pks *PublicKeySet) GetKidNE(kid string) (*big.Int, int, error) {
 	if len(pks.Jwks.Keys) == 0 {
-		return nil, 0, InvalidPubliKeySet(errors.New("Empty set of JWKs"))
+		return nil, 0, InvalidPubliKeySet(errors.New("empty set of JWKs"))
 	}
 	var n, e string
 	for _, jwk := range pks.Jwks.Keys {

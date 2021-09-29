@@ -1,4 +1,4 @@
-package ivmanto
+package core
 
 import (
 	"crypto"
@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"time"
 
+	"github.com/dasiyes/ivmapi/pkg/config"
 	"github.com/dgrijalva/jwt-go"
 )
 
@@ -34,22 +35,23 @@ type ivmantoATClaims struct {
 }
 
 // ATCfg is the configuration object for the Access Token
-type ATCfg struct {
-	Validity  int
-	Realm     string
-	Alg       string
-	IssuerVal string `yaml:"issuer"`
-}
+// !!! moved to config package !!!
+// type ATCfg struct {
+// 	Validity  int
+// 	Realm     string
+// 	Alg       string
+// 	IssuerVal string `yaml:"issuer"`
+// }
 
 // NewIvmantoAccessToken creates a new response to a successful authentication request.
 // @realm could be comma-separated list of application that accept this AT.\
 // default signing method alg is RS256; default realm if missing is ivm;
-func NewIvmantoAccessToken(scp *[]string, atConfig *ATCfg) *AccessToken {
+func NewIvmantoAccessToken(scp *[]string, atConfig *config.ATCfg) *AccessToken {
 
 	var realm = atConfig.Realm
 	var validity = atConfig.Validity
 	var alg = atConfig.Alg
-	var issval = atConfig.IssuerVal
+	var issval = atConfig.Issuer
 	var sm jwt.SigningMethodRSA
 
 	if len(realm) < 3 {

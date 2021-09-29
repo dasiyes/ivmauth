@@ -3,8 +3,6 @@ package inmem
 import (
 	"errors"
 	"sync"
-
-	"ivmanto.dev/ivmauth/ivmanto"
 )
 
 type requestRepository struct {

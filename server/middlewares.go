@@ -6,10 +6,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/dasiyes/ivmauth/svc/authenticating"
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"ivmanto.dev/ivmauth/authenticating"
-	"ivmanto.dev/ivmauth/ivmanto"
 )
 
 // Handles the CORS part

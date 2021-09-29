@@ -1,4 +1,4 @@
-package ivmanto
+package core
 
 import (
 	"strings"

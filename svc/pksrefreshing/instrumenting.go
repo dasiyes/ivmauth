@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/dasiyes/ivmauth/core"
 	"github.com/go-kit/kit/metrics"
-	"ivmanto.dev/ivmauth/ivmanto"
 )
 
 type instrumentingService struct {
@@ -39,7 +39,7 @@ func (s *instrumentingService) GetRSAPublicKey(identityProvider string, kid stri
 	return s.next.GetRSAPublicKey(identityProvider, kid)
 }
 
-func (s *instrumentingService) GetPKSCache(identityProvider string) (*ivmanto.PublicKeySet, error) {
+func (s *instrumentingService) GetPKSCache(identityProvider string) (*core.PublicKeySet, error) {
 	defer func(begin time.Time) {
 		s.requestCount.With("method", "GetPKSCache").Add(1)
 		s.requestLatency.With("method", "GetPKSCache").Observe(time.Since(begin).Seconds())

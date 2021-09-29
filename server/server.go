@@ -7,9 +7,8 @@ import (
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
 
-	"ivmanto.dev/ivmauth/authenticating"
-	"ivmanto.dev/ivmauth/ivmanto"
-	"ivmanto.dev/ivmauth/pksrefreshing"
+	"github.com/dasiyes/ivmauth/svc/authenticating"
+	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 )
 
 // TODO: Authorization process review against the checklist below:

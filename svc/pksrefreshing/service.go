@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"ivmanto.dev/ivmauth/ivmanto"
 )
 
 // Service is the interface that provides the service's methods.

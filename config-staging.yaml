@@ -1,15 +1,11 @@
 # ivmauth service configuration file
 
 # environment
-env:
-  # accepting: dev|staging|prod
-  env_type: staging
-  # host name to be used for requests validation and the library (e.g. ivmauth) considers itself authoritative.
-  host: accounts.ivmanto.dev
+env: STAGING
 
-# server configuration
-server:
-  host: ''
+# current service configuration
+auth_svc:
+  host: ["ivmauth-staging-xmywgxnrfq-ez.a.run.app"]
   port: ${PORT}
 
 # cloud environment config
@@ -24,7 +20,7 @@ sesman_config:
   project_id: $FIRESTORE_PROJECT_ID
   
 # access token config
-atc:
+at_config:
   validity: 3600
   realm:    "ivmanto.com"
   alg:      "RS256"

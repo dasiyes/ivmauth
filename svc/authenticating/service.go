@@ -67,15 +67,18 @@ import (
 	"net/url"
 	"strings"
 
+	// "github.com/dasiyes/ivmauth/config"
+	"github.com/dasiyes/ivmapi/pkg/config"
+	"github.com/dasiyes/ivmauth/dataservice/firestoredb"
+	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dvsekhvalnov/jose2go/base64url"
 	"golang.org/x/crypto/bcrypt"
-	"ivmanto.dev/ivmauth/config"
-	"ivmanto.dev/ivmauth/firestoredb"
-	"ivmanto.dev/ivmauth/ivmanto"
-	"ivmanto.dev/ivmauth/pksrefreshing"
-	"ivmanto.dev/ivmauth/utils"
 )
+
+// TODO [dev]: replace the following two packages:
+// "github.com/dgrijalva/jwt-go"
+// "github.com/dvsekhvalnov/jose2go/base64url"
 
 // TODO: Review the service concept against the checklist below:
 // **Authentication Framework Evaluation Checklist**
@@ -275,14 +278,10 @@ func (s *service) AuthenticateClient(r *http.Request) (*ivmanto.Client, error) {
 	// The refrerrer value, as a difference from the origin, will include the full path from where the request was sent from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer]
 	var referer = r.Referer()
 
-	var env = s.config.Environment()
-	var expected_host = s.config.GetHost()
-	if env == "staging" {
-		// expected_host = "ivmauth-staging-xmywgxnrfq-ez.a.run.app"
-		expected_host = "ivmauth-staging-xmywgxnrfq-ez.a.run.app"
-	}
+	var env string = s.config.GetEnv()
+	var expected_host = s.config.GetAuthSvcCfg().Host
 
-	if host != expected_host || host == "" || expected_host == "" {
+	if host != expected_host[0] || host == "" || expected_host[0] == "" {
 		fmt.Printf("BadRequest: host: %v,does not match the expected value of: %v, or one of them is empty value\n", host, expected_host)
 		return nil, ivmanto.ErrBadRequest
 	}

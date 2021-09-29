@@ -4,10 +4,10 @@ info:
   title: Ivmanto Auth
   description: |
     Authentication and authorization service for Ivmanto domains.
-  termsOfService: https://www.ivmanto.dev/tos
+  termsOfService: https://www.github.com/dasiyes/tos
   contact:
     name: Ivmanto
-    url: https://www.ivmanto.dev/support
+    url: https://www.github.com/dasiyes/support
     email: support@ivmanto.dev
   license:
     name: MIT
@@ -17,7 +17,7 @@ servers:
     variables:
       base_path:
         default: app
-  - url: https://ivmanto.dev
+  - url: https://core.dev
     description: development server address
 paths:
   /auth:
@@ -300,34 +300,34 @@ components:
       type: oauth2
       flows:
         implicit:
-          authorizationUrl: https://ivmanto.dev/auth
+          authorizationUrl: https://github.com/dasiyes/auth
           scopes:
             write:ivmanto: editor permissions at ivmanto
             read:ivmanto: read only permissions
         
         password:
-          tokenUrl: https://ivmanto.dev/auth/token
-          refreshUrl: https://ivmanto.dev/auth/token/refresh
+          tokenUrl: https://github.com/dasiyes/auth/token
+          refreshUrl: https://github.com/dasiyes/auth/token/refresh
           scopes:
             write:ivmanto: editor permissions at ivmanto
             read:ivmanto: read only permissions
         
         clientCredentials:
-          tokenUrl: https://ivmanto.dev/auth/token
-          refreshUrl: https://ivmanto.dev/auth/token/refresh
+          tokenUrl: https://github.com/dasiyes/auth/token
+          refreshUrl: https://github.com/dasiyes/auth/token/refresh
           scopes:
             type: string
 
         authorizationCode:
-          authorizationUrl: https://ivmanto.dev/auth
-          tokenUrl: https://ivmanto.dev/auth/token
+          authorizationUrl: https://github.com/dasiyes/auth
+          tokenUrl: https://github.com/dasiyes/auth/token
           scopes:
             type: string
     
     # OpenIDConnect discovery endpoint
     ivmanto_oidc:
       type: openIdConnect
-      openIdConnectUrl: https://ivmanto.dev/auth/oidc
+      openIdConnectUrl: https://github.com/dasiyes/auth/oidc
 
 security:
   - basic: []

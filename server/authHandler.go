@@ -16,9 +16,8 @@ import (
 	"github.com/rs/xid"
 	"github.com/segmentio/ksuid"
 
-	"ivmanto.dev/ivmauth/authenticating"
-	"ivmanto.dev/ivmauth/ivmanto"
-	"ivmanto.dev/ivmauth/pksrefreshing"
+	"github.com/dasiyes/ivmauth/svc/authenticating"
+	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 )
 
 type authHandler struct {

@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-kit/kit/log"
 
-	"ivmanto.dev/ivmauth/ivmanto"
-	"ivmanto.dev/ivmauth/pksrefreshing"
+	"github.com/dasiyes/ivmauth/core"
+	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 )
 
 type loggingService struct {
@@ -22,9 +22,9 @@ func NewLoggingService(logger log.Logger, s Service) Service {
 
 func (s *loggingService) Validate(
 	rh *http.Header,
-	body *ivmanto.AuthRequestBody,
+	body *core.AuthRequestBody,
 	pks pksrefreshing.Service,
-	client *ivmanto.Client) (at *ivmanto.AccessToken, err error) {
+	client *core.Client) (at *core.AccessToken, err error) {
 
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
@@ -36,7 +36,7 @@ func (s *loggingService) Validate(
 	return s.next.Validate(rh, body, pks, client)
 }
 
-func (s *loggingService) RegisterNewRequest(rh *http.Header, body *ivmanto.AuthRequestBody, client *ivmanto.Client) (id ivmanto.AuthRequestID, err error) {
+func (s *loggingService) RegisterNewRequest(rh *http.Header, body *core.AuthRequestBody, client *core.Client) (id core.AuthRequestID, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "RegisterNewRequest",
@@ -49,7 +49,7 @@ func (s *loggingService) RegisterNewRequest(rh *http.Header, body *ivmanto.AuthR
 	return s.next.RegisterNewRequest(rh, body, client)
 }
 
-func (s *loggingService) AuthenticateClient(r *http.Request) (rc *ivmanto.Client, err error) {
+func (s *loggingService) AuthenticateClient(r *http.Request) (rc *core.Client, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "AuthenticateClient",
@@ -61,7 +61,7 @@ func (s *loggingService) AuthenticateClient(r *http.Request) (rc *ivmanto.Client
 	return s.next.AuthenticateClient(r)
 }
 
-func (s *loggingService) GetRequestBody(r *http.Request) (b *ivmanto.AuthRequestBody, err error) {
+func (s *loggingService) GetRequestBody(r *http.Request) (b *core.AuthRequestBody, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "GetRequestBody",
@@ -73,7 +73,7 @@ func (s *loggingService) GetRequestBody(r *http.Request) (b *ivmanto.AuthRequest
 	return s.next.GetRequestBody(r)
 }
 
-func (s *loggingService) IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto.Client) (at *ivmanto.AccessToken, err error) {
+func (s *loggingService) IssueAccessToken(oidt *core.IDToken, client *core.Client) (at *core.AccessToken, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "IssueAccessToken",
@@ -84,7 +84,7 @@ func (s *loggingService) IssueAccessToken(oidt *ivmanto.IDToken, client *ivmanto
 	return s.next.IssueAccessToken(oidt, client)
 }
 
-func (s *loggingService) CheckUserRegistration(oidtoken *ivmanto.IDToken) {
+func (s *loggingService) CheckUserRegistration(oidtoken *core.IDToken) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "CheckUserRegistration",
@@ -94,7 +94,7 @@ func (s *loggingService) CheckUserRegistration(oidtoken *ivmanto.IDToken) {
 	}(time.Now())
 }
 
-func (s *loggingService) RegisterUser(names, email, password string) (u *ivmanto.User, err error) {
+func (s *loggingService) RegisterUser(names, email, password string) (u *core.User, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "RegisterUser",
@@ -105,7 +105,7 @@ func (s *loggingService) RegisterUser(names, email, password string) (u *ivmanto
 	return s.next.RegisterUser(names, email, password)
 }
 
-func (s *loggingService) UpdateUser(u *ivmanto.User) (err error) {
+func (s *loggingService) UpdateUser(u *core.User) (err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "UpdateUser",
