@@ -99,8 +99,11 @@ func (cr *clientRepository) Find(id core.ClientID) (*core.Client, error) {
 		}
 		// TODO: remove after debug
 		fmt.Printf("doc.Ref.ID: %v, c.ClientID: %v, find id: %v", doc.Ref.ID, c.ClientID, id)
+		fmt.Printf("core.ClientID(c.ClientID): %v", core.ClientID(c.ClientID))
+		fmt.Printf("core.ClientID(id): %v", core.ClientID(id))
 
-		if c.ClientID == id {
+		if core.ClientID(c.ClientID) == core.ClientID(id) {
+			fmt.Printf("equal? - TRUE")
 			break
 		}
 	}
