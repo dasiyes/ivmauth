@@ -107,10 +107,11 @@ func (cr *clientRepository) Find(id core.ClientID) (*core.Client, error) {
 		fmt.Printf("c.ClientID: %s\n", docVal)
 		fmt.Printf("id: %s\n", findVal)
 
-		if strings.Trim(docVal, " \n") == strings.Trim(findVal, " \n") {
+		if strings.Compare(docVal, findVal) == 0 {
 			fmt.Printf("equal? - TRUE")
 			break
 		} else {
+			fmt.Printf("the difference is: %d", strings.Compare(docVal, findVal))
 			fmt.Printf("c: %v, docVal: %s, findVal: %s", c, docVal, findVal)
 		}
 	}
