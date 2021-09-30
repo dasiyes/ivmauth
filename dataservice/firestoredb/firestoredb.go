@@ -69,19 +69,10 @@ func (cr *clientRepository) Find(id core.ClientID) (*core.Client, error) {
 
 	var c core.Client
 
-	// TODO: remove after debug
-	fmt.Printf("... search for clientID %v\n", id)
-	var cnt = 0
-
 	for {
 
-		// TODO: remove after debug
-		fmt.Printf("counter: %d\n\n", cnt)
-
 		doc, err := iter.Next()
-		cnt++
 		if err == iterator.Done {
-			fmt.Printf("error [Done]: %s\n", err.Error())
 			return nil, ErrClientNotFound
 		}
 		if err != nil {
@@ -102,19 +93,8 @@ func (cr *clientRepository) Find(id core.ClientID) (*core.Client, error) {
 		var findVal = strings.TrimSpace(string(c.ClientID))
 		var docVal = strings.TrimSpace(string(id))
 
-		// TODO: remove after debug
-		fmt.Printf("doc.Ref.ID: %v, c.ClientID: %v, find id: %v\n", doc.Ref.ID, c.ClientID, id)
-		fmt.Printf("c.ClientID: %s\n", docVal)
-		fmt.Printf("id: %s\n", findVal)
-
-		if strings.Compare(docVal, findVal) == 0 {
-			fmt.Printf("equal? - TRUE")
+		if docVal == findVal {
 			break
-		} else {
-			fmt.Printf("the difference is: %d", strings.Compare(docVal, findVal))
-			fmt.Printf("docVal[byte] : %v\n", []byte(docVal))
-			fmt.Printf("findVal[byte]: %v\n", []byte(findVal))
-			fmt.Printf("c: %v, docVal: %s, findVal: %s", c, docVal, findVal)
 		}
 	}
 	return &c, nil
