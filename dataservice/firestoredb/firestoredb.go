@@ -112,6 +112,8 @@ func (cr *clientRepository) Find(id core.ClientID) (*core.Client, error) {
 			break
 		} else {
 			fmt.Printf("the difference is: %d", strings.Compare(docVal, findVal))
+			fmt.Printf("docVal[byte] : %v\n", []byte(docVal))
+			fmt.Printf("findVal[byte]: %v\n", []byte(findVal))
 			fmt.Printf("c: %v, docVal: %s, findVal: %s", c, docVal, findVal)
 		}
 	}
