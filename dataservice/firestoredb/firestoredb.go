@@ -97,6 +97,9 @@ func (cr *clientRepository) Find(id core.ClientID) (*core.Client, error) {
 			fmt.Printf("error [doc.DataTo(&c)]: %s\n", err.Error())
 			continue
 		}
+		// TODO: remove after debug
+		fmt.Printf("doc.Ref.ID: %v, c.ClientID: %v, find id: %v", doc.Ref.ID, c.ClientID, id)
+
 		if c.ClientID == id {
 			break
 		}
