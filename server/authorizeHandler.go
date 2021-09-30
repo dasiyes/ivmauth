@@ -33,6 +33,7 @@ func (h *authorizeHandler) router() chi.Router {
 	return r
 }
 
+// processAuthCode will handle the requests sent for authorize as initation of the AuthCode fllow with PKCE extension
 func (h *authorizeHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
 
 	// Sample:
@@ -46,13 +47,15 @@ func (h *authorizeHandler) processAuthCode(w http.ResponseWriter, r *http.Reques
 	//&code_challenge=U4wChzuCcE215Yha-Qc7ZoBc4u1rkeFHJCoQUUPcD0E
 	//&code_challenge_method=S256
 
-	u, err := url.Parse(r.RequestURI)
-	if err != nil {
-		_ = level.Error(h.logger).Log("ParseRequestUri-Error", err.Error())
-		// TODO [dev]: code to return unauthorized resonse
+	var err error
+	_ = level.Debug(h.logger).Log("requestURI", r.RequestURI)
 
+	r.URL.RawQuery, err = url.QueryUnescape(r.URL.RawQuery)
+	if err != nil {
+		fmt.Printf("error unescaping URL query: %q\n", err.Error())
 	}
-	q := u.Query()
+
+	q := r.URL.Query()
 	fmt.Println(q["response_type"])
 	fmt.Println(q.Get("client_id"))
 	fmt.Println(q["redirect_uri"])
@@ -60,5 +63,6 @@ func (h *authorizeHandler) processAuthCode(w http.ResponseWriter, r *http.Reques
 	fmt.Println(q["state"])
 	fmt.Println(q["code_challenge"])
 	fmt.Println(q["code_challenge_method"])
+
 	w.Write([]byte(`authorize--->`))
 }
