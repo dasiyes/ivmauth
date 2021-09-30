@@ -1,3 +1,5 @@
+v0.0.12
+        - bugfix: Compare ClientID - clean whitespaces
 v0.0.11
         - Implements project re-organization
 v0.0.10
