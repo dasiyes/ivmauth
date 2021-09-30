@@ -97,12 +97,16 @@ func (cr *clientRepository) Find(id core.ClientID) (*core.Client, error) {
 			fmt.Printf("error [doc.DataTo(&c)]: %s\n", err.Error())
 			continue
 		}
+
+		var docVal = string(c.ClientID)
+		var findVal = string(id)
+
 		// TODO: remove after debug
 		fmt.Printf("doc.Ref.ID: %v, c.ClientID: %v, find id: %v", doc.Ref.ID, c.ClientID, id)
-		fmt.Printf("core.ClientID(c.ClientID): %v", core.ClientID(c.ClientID))
-		fmt.Printf("core.ClientID(id): %v", core.ClientID(id))
+		fmt.Printf("c.ClientID: %s", docVal)
+		fmt.Printf("id: %s", findVal)
 
-		if core.ClientID(c.ClientID) == core.ClientID(id) {
+		if docVal == findVal {
 			fmt.Printf("equal? - TRUE")
 			break
 		}
