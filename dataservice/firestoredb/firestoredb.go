@@ -99,8 +99,8 @@ func (cr *clientRepository) Find(id core.ClientID) (*core.Client, error) {
 			continue
 		}
 
-		var docVal = string(c.ClientID)
-		var findVal = string(id)
+		var findVal = strings.Trim(string(c.ClientID), string([]byte{10, 9, 9}))
+		var docVal = string(id)
 
 		// TODO: remove after debug
 		fmt.Printf("doc.Ref.ID: %v, c.ClientID: %v, find id: %v\n", doc.Ref.ID, c.ClientID, id)
