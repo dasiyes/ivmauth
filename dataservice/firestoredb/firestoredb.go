@@ -69,11 +69,9 @@ func (cr *clientRepository) Find(id core.ClientID) (*core.Client, error) {
 
 	var c core.Client
 
-	fmt.Printf("... search for clientID %v\n", id)
-
 	for {
-		doc, err := iter.Next()
 
+		doc, err := iter.Next()
 		if err == iterator.Done {
 			return nil, ErrClientNotFound
 		}
@@ -85,11 +83,17 @@ func (cr *clientRepository) Find(id core.ClientID) (*core.Client, error) {
 			}
 			continue
 		}
+
 		err = doc.DataTo(&c)
 		if err != nil {
+			fmt.Printf("error [doc.DataTo(&c)]: %s\n", err.Error())
 			continue
 		}
-		if c.ClientID == id {
+
+		var findVal = strings.TrimSpace(string(c.ClientID))
+		var docVal = strings.TrimSpace(string(id))
+
+		if docVal == findVal {
 			break
 		}
 	}
