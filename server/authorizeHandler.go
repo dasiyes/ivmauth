@@ -72,16 +72,20 @@ func (h *authorizeHandler) processAuthCode(w http.ResponseWriter, r *http.Reques
 	var coch = strings.TrimSpace(q.Get("code_challenge"))
 	var mth = strings.TrimSpace(q.Get("code_challenge_method"))
 
+	if coch == "" || mth == "" {
+		h.responseBadRequest(w, "processAuthCode", errors.New("missing mandatory code challenge or method"))
+	}
+
 	var code = tools.GenerateAuthCode(sid, coch, mth)
 	if code == "" {
-		h.responseUnauth(w, errors.New("error while generating the auth code"))
+		h.responseUnauth(w, "processAuthCode", errors.New("error while generating the auth code"))
 		return
 	}
 
 	// save the code_challenge along with the code_challenge_method and the code itself in the Session-Store (firestore)
 	err = h.sm.SaveCodeChallengeAndMethod(sid, coch, mth, code)
 	if err != nil {
-		h.responseUnauth(w, err)
+		h.responseUnauth(w, "processAuthCode", err)
 		return
 	}
 
@@ -93,8 +97,14 @@ func (h *authorizeHandler) processAuthCode(w http.ResponseWriter, r *http.Reques
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
-func (h *authorizeHandler) responseUnauth(w http.ResponseWriter, err error) {
+func (h *authorizeHandler) responseUnauth(w http.ResponseWriter, method string, err error) {
 	w.Header().Set("Connection", "close")
-	_ = level.Error(h.logger).Log("processAuthCode", err.Error())
+	_ = level.Error(h.logger).Log("handler", "authorizeHandler", fmt.Sprintf("method-%s", method), err.Error())
 	http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+}
+
+func (h *authorizeHandler) responseBadRequest(w http.ResponseWriter, method string, err error) {
+	w.Header().Set("Connection", "close")
+	_ = level.Error(h.logger).Log("handler", "authorizeHandler", fmt.Sprintf("method-%s", method), err.Error())
+	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 }
