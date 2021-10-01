@@ -1,10 +1,12 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 
+	"github.com/dasiyes/ivmapi/pkg/tools"
 	"github.com/dasiyes/ivmauth/svc/authenticating"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 	"github.com/dasiyes/ivmsesman"
@@ -69,17 +71,29 @@ func (h *authorizeHandler) processAuthCode(w http.ResponseWriter, r *http.Reques
 	var coch = q.Get("code_challenge")
 	var mth = q.Get("code_challenge_method")
 
-	// save the code_challenge along with the code_challenge_method in the Session-Store (firestore)
-	err = h.sm.SaveCodeChallengeAndMethod(sid, coch, mth)
-	if err != nil {
-		w.Header().Set("Connection", "close")
-		_ = level.Error(h.logger).Log("processAuthCode", err.Error())
-		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+	var code = tools.GenerateAuthCode(sid, coch, mth)
+	if code == "" {
+		h.responseUnauth(w, errors.New("error while generating the auth code"))
 		return
 	}
 
-	// TODO [dev]: Response in the format:
+	// save the code_challenge along with the code_challenge_method and the code itself in the Session-Store (firestore)
+	err = h.sm.SaveCodeChallengeAndMethod(sid, coch, mth, code)
+	if err != nil {
+		h.responseUnauth(w, err)
+		return
+	}
+
+	// Response in the format:
 	// https://example-app.com/cb?code=AUTH_CODE_HERE&state=1234zyx
 
-	http.Redirect(w, r, "https://example-app.com/cb?code=AUTH_CODE_HERE&state=1234zyx", http.StatusSeeOther)
+	// TODO [dev]: replace "ivmanto.dev" with dynamic variable
+	var redirectURL = fmt.Sprintf("https://ivmanto.dev/cb?code=%s&state=%s", code, sid)
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+}
+
+func (h *authorizeHandler) responseUnauth(w http.ResponseWriter, err error) {
+	w.Header().Set("Connection", "close")
+	_ = level.Error(h.logger).Log("processAuthCode", err.Error())
+	http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 }
