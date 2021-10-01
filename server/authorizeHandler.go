@@ -56,13 +56,30 @@ func (h *authorizeHandler) processAuthCode(w http.ResponseWriter, r *http.Reques
 	}
 
 	q := r.URL.Query()
-	fmt.Println(q["response_type"])
-	fmt.Println(q.Get("client_id"))
-	fmt.Println(q["redirect_uri"])
-	fmt.Println(q["scope"])
-	fmt.Println(q["state"])
-	fmt.Println(q["code_challenge"])
-	fmt.Println(q["code_challenge_method"])
 
-	w.Write([]byte(`authorize--->`))
+	_ = level.Debug(h.logger).Log("response_type", q.Get("response_type"))
+	_ = level.Debug(h.logger).Log("client_id", q.Get("client_id"))
+	_ = level.Debug(h.logger).Log("redirect_uri", q.Get("redirect_uri"))
+	_ = level.Debug(h.logger).Log("scope", q.Get("scope"))
+	_ = level.Debug(h.logger).Log("state", q.Get("state"))
+	_ = level.Debug(h.logger).Log("code_challenge", q.Get("code_challenge"))
+	_ = level.Debug(h.logger).Log("code_challenge_method", q.Get("code_challenge_method"))
+
+	var sid = q.Get("state")
+	var coch = q.Get("code_challenge")
+	var mth = q.Get("code_challenge_method")
+
+	// save the code_challenge along with the code_challenge_method in the Session-Store (firestore)
+	err = h.sm.SaveCodeChallengeAndMethod(sid, coch, mth)
+	if err != nil {
+		w.Header().Set("Connection", "close")
+		_ = level.Error(h.logger).Log("processAuthCode", err.Error())
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
+	// TODO [dev]: Response in the format:
+	// https://example-app.com/cb?code=AUTH_CODE_HERE&state=1234zyx
+
+	http.Redirect(w, r, "https://example-app.com/cb?code=AUTH_CODE_HERE&state=1234zyx", http.StatusSeeOther)
 }

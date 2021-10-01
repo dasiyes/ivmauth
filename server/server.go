@@ -75,3 +75,19 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
+
+// OAuth Server error serving
+// func (s *Server) serverError(w http.ResponseWriter, err error) {
+// 	trace := fmt.Sprintf("[OauthServer] %s\n%s", err.Error(), debug.Stack())
+// 	_ = level.Error(s.Logger).Log("AuthServer-debug-trace", trace)
+
+// 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+// }
+
+// OAuth Server - unauthorized response error
+// func (s *Server) unauthError(w http.ResponseWriter, err error) {
+// 	w.Header().Set("Connection", "close")
+// 	_ = level.Error(s.Logger).Log("AuthServer-Error", err.Error())
+// 	http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+// 	return
+// }
