@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/dasiyes/ivmapi/pkg/tools"
 	"github.com/dasiyes/ivmauth/svc/authenticating"
@@ -67,9 +68,9 @@ func (h *authorizeHandler) processAuthCode(w http.ResponseWriter, r *http.Reques
 	_ = level.Debug(h.logger).Log("code_challenge", q.Get("code_challenge"))
 	_ = level.Debug(h.logger).Log("code_challenge_method", q.Get("code_challenge_method"))
 
-	var sid = q.Get("state")
-	var coch = q.Get("code_challenge")
-	var mth = q.Get("code_challenge_method")
+	var sid = strings.TrimSpace(q.Get("state"))
+	var coch = strings.TrimSpace(q.Get("code_challenge"))
+	var mth = strings.TrimSpace(q.Get("code_challenge_method"))
 
 	var code = tools.GenerateAuthCode(sid, coch, mth)
 	if code == "" {
