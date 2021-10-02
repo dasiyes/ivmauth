@@ -166,7 +166,7 @@ func main() {
 	}
 
 	// creating a new http server to handle the requests
-	srv := server.New(au, pkr, log.With(logger, "component", "http"), sm)
+	srv := server.New(au, pkr, log.With(logger, "component", "http"), sm, cfg)
 
 	errs := make(chan error, 2)
 	go func() {

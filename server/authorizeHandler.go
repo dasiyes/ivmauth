@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/dasiyes/ivmapi/pkg/config"
 	"github.com/dasiyes/ivmapi/pkg/tools"
 	"github.com/dasiyes/ivmauth/svc/authenticating"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
@@ -22,6 +23,7 @@ type authorizeHandler struct {
 	pks    pksrefreshing.Service
 	logger kitlog.Logger
 	sm     *ivmsesman.Sesman
+	cfg    config.IvmCfg
 }
 
 func (h *authorizeHandler) router() chi.Router {
@@ -92,8 +94,8 @@ func (h *authorizeHandler) processAuthCode(w http.ResponseWriter, r *http.Reques
 	// Response in the format:
 	// https://example-app.com/cb?code=AUTH_CODE_HERE&state=1234zyx
 
-	// TODO [dev]: replace "ivmanto.dev" with dynamic variable
-	var redirectURL = fmt.Sprintf("https://ivmanto.dev/cb?code=%s&state=%s", code, sid)
+	var wa_host = h.cfg.GetWebAppURL()
+	var redirectURL = fmt.Sprintf("https://%s/cb?code=%s&state=%s", wa_host, code, sid)
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 

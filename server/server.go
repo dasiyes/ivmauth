@@ -3,6 +3,7 @@ package server
 import (
 	"net/http"
 
+	"github.com/dasiyes/ivmapi/pkg/config"
 	"github.com/dasiyes/ivmsesman"
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
@@ -34,17 +35,18 @@ type Server struct {
 	Pks    pksrefreshing.Service
 	Sm     *ivmsesman.Sesman
 	Logger kitlog.Logger
-
 	router chi.Router
+	Config config.IvmCfg
 }
 
 // New returns a new HTTP server.
-func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Logger, sm *ivmsesman.Sesman) *Server {
+func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Logger, sm *ivmsesman.Sesman, cfg config.IvmCfg) *Server {
 	s := &Server{
 		Auth:   au,
 		Pks:    pks,
 		Sm:     sm,
 		Logger: logger,
+		Config: cfg,
 	}
 
 	r := chi.NewRouter()
@@ -57,7 +59,7 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 
 	// authorize end-point
 	r.Route("/authorize", func(r chi.Router) {
-		h := authorizeHandler{s.Auth, s.Pks, s.Logger, s.Sm}
+		h := authorizeHandler{s.Auth, s.Pks, s.Logger, s.Sm, s.Config}
 		r.Mount("/", h.router())
 	})
 
