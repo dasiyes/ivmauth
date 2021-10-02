@@ -18,7 +18,16 @@ sesman_config:
   max_lifetime: 3600
   visit_cookie_name: "iv"
   project_id: $FIRESTORE_PROJECT_ID
-  
+
+# web application config
+web_app_svc:
+  # Configuring the wep app service
+  name: webAppSvc
+  endpoints: []
+  timeout: 60
+  host: ["ivmanto-com-xmywgxnrfq-ez.a.run.app"]
+  version: 0.0.3
+
 # access token config
 at_config:
   validity: 3600
