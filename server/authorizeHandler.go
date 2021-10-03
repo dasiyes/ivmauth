@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"runtime/debug"
 	"strings"
+	"text/template"
 
 	"github.com/dasiyes/ivmapi/pkg/config"
 	"github.com/dasiyes/ivmapi/pkg/tools"
@@ -97,6 +99,11 @@ func (h *authorizeHandler) processAuthCode(w http.ResponseWriter, r *http.Reques
 	// var wa_host = h.cfg.GetWebAppURL()
 	var wa_host = h.cfg.GetSvsCfg().Host[0]
 	var redirectURL = fmt.Sprintf("https://%s/cb?code=%s&state=%s", wa_host, code, sid)
+
+	// TODO [dev]: refactor to proper call to a LoginSvc
+	h.callLoginSvc(w)
+
+	// TODO [dev]: after the LoginSvc return TRUE for successful complete operation of user authentication - redirect to the client below...
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
@@ -110,4 +117,35 @@ func (h *authorizeHandler) responseBadRequest(w http.ResponseWriter, method stri
 	w.Header().Set("Connection", "close")
 	_ = level.Error(h.logger).Log("handler", "authorizeHandler", fmt.Sprintf("method-%s", method), err.Error())
 	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+}
+
+func (h *authorizeHandler) callLoginSvc(w http.ResponseWriter) {
+
+	files := []string{
+		"./ui/html/login.page.tmpl",
+		"./ui/html/base.layout.tmpl",
+	}
+
+	ts, err := template.ParseFiles(files...)
+	if err != nil {
+		h.serverError(w, err)
+		return
+	}
+
+	// And then execute them. Notice how we are passing in the snippet
+	// data (a models.Snippet struct) as the final parameter.
+	err = ts.Execute(w, nil)
+	if err != nil {
+		h.serverError(w, err)
+	}
+}
+
+// serverError - raise server error
+func (h *authorizeHandler) serverError(w http.ResponseWriter, err error) {
+	trace := fmt.Sprintf("%s\n%s", err.Error(), debug.Stack())
+
+	// log the error
+	_ = level.Error(h.logger).Log("debugTrace", trace)
+
+	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }

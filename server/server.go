@@ -57,6 +57,10 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 	r.Use(requestsLogging(s.Logger))
 	r.Use(authClients(s.Logger, s.Auth))
 
+	// Handle the resources files for the Login Screen
+	fileServer := http.FileServer(http.Dir("./ui/resources"))
+	r.Method("GET", "/resources/*", http.StripPrefix("/resources/", fileServer))
+
 	// authorize end-point
 	r.Route("/authorize", func(r chi.Router) {
 		h := authorizeHandler{s.Auth, s.Pks, s.Logger, s.Sm, s.Config}
