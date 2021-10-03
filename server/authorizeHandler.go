@@ -95,7 +95,7 @@ func (h *authorizeHandler) processAuthCode(w http.ResponseWriter, r *http.Reques
 	// https://example-app.com/cb?code=AUTH_CODE_HERE&state=1234zyx
 
 	// var wa_host = h.cfg.GetWebAppURL()
-	var wa_host = "ivmanto.dev"
+	var wa_host = h.cfg.GetSvsCfg().Host
 	var redirectURL = fmt.Sprintf("https://%s/cb?code=%s&state=%s", wa_host, code, sid)
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }

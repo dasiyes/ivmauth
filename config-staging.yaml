@@ -19,6 +19,10 @@ sesman_config:
   visit_cookie_name: "iv"
   project_id: $FIRESTORE_PROJECT_ID
 
+# api-gateway config
+api_gateway_svc:
+  host: ["ivmanto.dev"]
+
 # web application config
 web_app_svc:
   # Configuring the wep app service
