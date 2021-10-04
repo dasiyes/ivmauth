@@ -20,7 +20,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-type authorizeHandler struct {
+type oauthHandler struct {
 	aus    authenticating.Service
 	pks    pksrefreshing.Service
 	logger kitlog.Logger
@@ -28,20 +28,21 @@ type authorizeHandler struct {
 	cfg    config.IvmCfg
 }
 
-func (h *authorizeHandler) router() chi.Router {
+func (h *oauthHandler) router() chi.Router {
 
 	r := chi.NewRouter()
 	r.Method("GET", "/metrics", promhttp.Handler())
 
 	r.Route("/", func(r chi.Router) {
-		r.Get("/", h.processAuthCode)
+		r.Get("/authorize", h.processAuthCode)
+		r.Get("/login", h.serveLoginPage)
 	})
 
 	return r
 }
 
 // processAuthCode will handle the requests sent for authorize as initation of the AuthCode fllow with PKCE extension
-func (h *authorizeHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
+func (h *oauthHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
 
 	// Sample:
 	//
@@ -103,25 +104,25 @@ func (h *authorizeHandler) processAuthCode(w http.ResponseWriter, r *http.Reques
 	_ = redirectURL
 
 	// TODO [dev]: refactor to proper call to a LoginSvc
-	h.callLoginSvc(w)
+	h.serveLoginPage(w, r)
 
 	// TODO [dev]: after the LoginSvc return TRUE for successful complete operation of user authentication - redirect to the client below...
 	// http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
-func (h *authorizeHandler) responseUnauth(w http.ResponseWriter, method string, err error) {
+func (h *oauthHandler) responseUnauth(w http.ResponseWriter, method string, err error) {
 	w.Header().Set("Connection", "close")
-	_ = level.Error(h.logger).Log("handler", "authorizeHandler", fmt.Sprintf("method-%s", method), err.Error())
+	_ = level.Error(h.logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
 	http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 }
 
-func (h *authorizeHandler) responseBadRequest(w http.ResponseWriter, method string, err error) {
+func (h *oauthHandler) responseBadRequest(w http.ResponseWriter, method string, err error) {
 	w.Header().Set("Connection", "close")
-	_ = level.Error(h.logger).Log("handler", "authorizeHandler", fmt.Sprintf("method-%s", method), err.Error())
+	_ = level.Error(h.logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
 	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 }
 
-func (h *authorizeHandler) callLoginSvc(w http.ResponseWriter) {
+func (h *oauthHandler) serveLoginPage(w http.ResponseWriter, r *http.Request) {
 
 	files := []string{
 		"./ui/html/login.page.tmpl",
@@ -143,7 +144,7 @@ func (h *authorizeHandler) callLoginSvc(w http.ResponseWriter) {
 }
 
 // serverError - raise server error
-func (h *authorizeHandler) serverError(w http.ResponseWriter, err error) {
+func (h *oauthHandler) serverError(w http.ResponseWriter, err error) {
 	trace := fmt.Sprintf("%s\n%s", err.Error(), debug.Stack())
 
 	// log the error

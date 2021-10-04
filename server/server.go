@@ -62,8 +62,8 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 	r.Method("GET", "/resources/*", http.StripPrefix("/resources/", fileServer))
 
 	// authorize end-point
-	r.Route("/authorize", func(r chi.Router) {
-		h := authorizeHandler{s.Auth, s.Pks, s.Logger, s.Sm, s.Config}
+	r.Route("/oauth", func(r chi.Router) {
+		h := oauthHandler{s.Auth, s.Pks, s.Logger, s.Sm, s.Config}
 		r.Mount("/", h.router())
 	})
 
