@@ -101,13 +101,30 @@ func (h *oauthHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
 	var wa_host = h.cfg.GetSvsCfg().Host[0]
 	var redirectURL = fmt.Sprintf("https://%s/cb?code=%s&state=%s", wa_host, code, sid)
 
-	_ = redirectURL
+	// _ = redirectURL
 
-	// TODO [dev]: refactor to proper call to a LoginSvc
-	h.serveLoginPage(w, r)
+	_ = level.Debug(h.logger).Log("serveLoginPage", "-->login page")
+
+	files := []string{
+		"./ui/html/login.page.tmpl",
+		"./ui/html/base.layout.tmpl",
+	}
+
+	ts, err := template.ParseFiles(files...)
+	if err != nil {
+		h.serverError(w, err)
+		return
+	}
+
+	// And then execute them. Notice how we are passing in the snippet
+	// data (a models.Snippet struct) as the final parameter.
+	err = ts.Execute(w, nil)
+	if err != nil {
+		h.serverError(w, err)
+	}
 
 	// TODO [dev]: after the LoginSvc return TRUE for successful complete operation of user authentication - redirect to the client below...
-	// http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
 func (h *oauthHandler) responseUnauth(w http.ResponseWriter, method string, err error) {
