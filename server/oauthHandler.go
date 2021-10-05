@@ -124,6 +124,8 @@ func (h *oauthHandler) responseBadRequest(w http.ResponseWriter, method string, 
 
 func (h *oauthHandler) serveLoginPage(w http.ResponseWriter, r *http.Request) {
 
+	_ = level.Debug(h.logger).Log("serveLoginPage", "-->login page")
+
 	files := []string{
 		"./ui/html/login.page.tmpl",
 		"./ui/html/base.layout.tmpl",
