@@ -90,6 +90,8 @@ func isReqWhitelisted(r *http.Request) bool {
 		return true
 	case strings.HasPrefix(mr, "GET /resources/"):
 		return true
+	case strings.HasPrefix(mr, "GET /oauth/ui/login"):
+		return true
 	default:
 		return false
 	}
