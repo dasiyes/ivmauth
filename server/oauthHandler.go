@@ -35,6 +35,10 @@ func (h *oauthHandler) router() chi.Router {
 
 	r.Route("/", func(r chi.Router) {
 		r.Get("/authorize", h.processAuthCode)
+		r.Post("/login", h.authLogin)
+	})
+
+	r.Route("/ui", func(r chi.Router) {
 		r.Get("/login", h.serveLoginPage)
 	})
 
@@ -99,11 +103,28 @@ func (h *oauthHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
 
 	// var wa_host = h.cfg.GetWebAppURL()
 	var wa_host = h.cfg.GetSvsCfg().Host[0]
-	var redirectURL = fmt.Sprintf("https://%s/cb?code=%s&state=%s", wa_host, code, sid)
+	//var redirectURL = fmt.Sprintf("https://%s/cb?code=%s&state=%s", wa_host, code, sid)
+	var redirectURL = fmt.Sprintf("https://%s/oauth/ui/login?t=%s", wa_host, sid)
 
-	// _ = redirectURL
+	// TODO [dev]: after the LoginSvc return TRUE for successful complete operation of user authentication - redirect to the client below...
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+}
 
-	_ = level.Debug(h.logger).Log("serveLoginPage", "-->login page")
+func (h *oauthHandler) serveLoginPage(w http.ResponseWriter, r *http.Request) {
+
+	var qp = r.URL.Query()
+	var qpt = qp.Get("t")
+	if qpt == "" {
+		h.responseBadRequest(w, http.StatusText(http.StatusBadRequest), errors.New("missing mandatory request attribute"))
+		return
+	}
+	_ = level.Debug(h.logger).Log("session-t", qpt)
+
+	// check sessionManager for active session qpt
+	if _, errses := h.sm.Exists(w, r); errses != nil {
+		h.responseBadRequest(w, http.StatusText(http.StatusBadRequest), errses)
+		return
+	}
 
 	files := []string{
 		"./ui/html/login.page.tmpl",
@@ -121,10 +142,12 @@ func (h *oauthHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
 	err = ts.Execute(w, nil)
 	if err != nil {
 		h.serverError(w, err)
+		return
 	}
+}
 
-	// TODO [dev]: after the LoginSvc return TRUE for successful complete operation of user authentication - redirect to the client below...
-	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
+
 }
 
 func (h *oauthHandler) responseUnauth(w http.ResponseWriter, method string, err error) {
@@ -137,29 +160,6 @@ func (h *oauthHandler) responseBadRequest(w http.ResponseWriter, method string, 
 	w.Header().Set("Connection", "close")
 	_ = level.Error(h.logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
 	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-}
-
-func (h *oauthHandler) serveLoginPage(w http.ResponseWriter, r *http.Request) {
-
-	_ = level.Debug(h.logger).Log("serveLoginPage", "-->login page")
-
-	files := []string{
-		"./ui/html/login.page.tmpl",
-		"./ui/html/base.layout.tmpl",
-	}
-
-	ts, err := template.ParseFiles(files...)
-	if err != nil {
-		h.serverError(w, err)
-		return
-	}
-
-	// And then execute them. Notice how we are passing in the snippet
-	// data (a models.Snippet struct) as the final parameter.
-	err = ts.Execute(w, nil)
-	if err != nil {
-		h.serverError(w, err)
-	}
 }
 
 // serverError - raise server error
