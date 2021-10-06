@@ -3,11 +3,11 @@ package server
 import (
 	"errors"
 	"fmt"
+	"html/template"
 	"net/http"
 	"net/url"
 	"runtime/debug"
 	"strings"
-	"text/template"
 
 	"github.com/dasiyes/ivmapi/pkg/config"
 	"github.com/dasiyes/ivmapi/pkg/tools"
