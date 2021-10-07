@@ -138,10 +138,11 @@ func (h *oauthHandler) serveLoginPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type cred struct {
+		Form
 		email    string
 		password string
 	}
-	var uc = cred{email: "tonev", password: ""}
+	var uc = cred{Form: forms.New(nil), email: "tonev", password: ""}
 
 	// And then execute them. Notice how we are passing in the snippet
 	// data (a models.Snippet struct) as the final parameter.
