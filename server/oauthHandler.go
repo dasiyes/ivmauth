@@ -11,6 +11,7 @@ import (
 
 	"github.com/dasiyes/ivmapi/pkg/config"
 	"github.com/dasiyes/ivmapi/pkg/tools"
+	"github.com/dasiyes/ivmauth/pkg/forms"
 	"github.com/dasiyes/ivmauth/svc/authenticating"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 	"github.com/dasiyes/ivmsesman"
@@ -138,7 +139,7 @@ func (h *oauthHandler) serveLoginPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type cred struct {
-		Form
+		Form     *forms.Form
 		email    string
 		password string
 	}
