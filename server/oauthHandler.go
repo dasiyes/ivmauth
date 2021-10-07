@@ -137,9 +137,15 @@ func (h *oauthHandler) serveLoginPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	type cred struct {
+		email    string
+		password string
+	}
+	var uc = cred{email: "tonev", password: ""}
+
 	// And then execute them. Notice how we are passing in the snippet
 	// data (a models.Snippet struct) as the final parameter.
-	err = ts.Execute(w, nil)
+	err = ts.Execute(w, uc)
 	if err != nil {
 		h.serverError(w, err)
 		return
