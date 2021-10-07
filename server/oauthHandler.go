@@ -127,8 +127,8 @@ func (h *oauthHandler) serveLoginPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	files := []string{
-		"./ui/html/login.page.tmpl",
 		"./ui/html/base.layout.tmpl",
+		"./ui/html/login.page.tmpl",
 	}
 
 	ts, err := template.ParseFiles(files...)
