@@ -39,9 +39,6 @@ WORKDIR /root/
 COPY --from=build /ivmauth/cmd/ivmauth/ivmauth .
 COPY --from=build /ivmauth/config-staging.yaml ./config.yaml
 COPY --from=build /ivmauth/version .
-COPY --from=build /ivmauth/ui ./ui
-
-RUN ls ./ui/html
 
 # Run the web service on container startup.
 CMD ["./ivmauth", "--env=staging"]
