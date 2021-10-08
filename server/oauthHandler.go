@@ -131,10 +131,9 @@ func (h *oauthHandler) serveLoginPage(w http.ResponseWriter, r *http.Request) {
 		"./ui/html/base.layout.tmpl",
 		"./ui/html/login.page.tmpl",
 	}
-	_ = files
 
 	// ts, err := template.ParseFiles(files...)
-	ts, err := template.ParseFiles("./ui/html/login.page.tmpl")
+	ts, err := template.ParseFiles(files...)
 	if err != nil {
 		h.serverError(w, err)
 		return
