@@ -105,7 +105,7 @@ func (h *oauthHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
-
+	fmt.Fprintln(w, "post body")
 }
 
 func (h *oauthHandler) responseUnauth(w http.ResponseWriter, method string, err error) {
