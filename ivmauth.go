@@ -55,7 +55,7 @@ func main() {
 	)
 
 	// Load the service configuration from a file
-	if err := cfg.LoadConfig(cf, log.With(logger, "component", "config")); err != nil {
+	if err := cfg.LoadConfig(*cf, log.With(logger, "component", "config")); err != nil {
 		_ = level.Error(logger).Log("LoadConfig", "Unable to load service configuration", "Error", err.Error())
 		os.Exit(1)
 	}
