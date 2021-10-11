@@ -31,9 +31,11 @@ func (h *oauthHandler) router() chi.Router {
 	r := chi.NewRouter()
 	r.Method("GET", "/metrics", promhttp.Handler())
 
-	r.Route("/", func(r chi.Router) {
-		r.Get("/authorize", h.processAuthCode)
-		r.Post("/login", h.authLogin)
+	r.Route("/authorize", func(r chi.Router) {
+		r.Get("/", h.processAuthCode)
+	})
+	r.Route("/login", func(r chi.Router) {
+		r.Post("/", h.authLogin)
 	})
 
 	return r
