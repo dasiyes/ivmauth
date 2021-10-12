@@ -69,16 +69,12 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 	r.Method("GET", "/resources/*", http.StripPrefix("/resources/", fileServer))
 
 	// Attach instrumenting
-	r.Method("GET", "/metrics", promhttp.Handler())
+	r.Method("GET", "/oauth/metrics", promhttp.Handler())
 
 	// authorize end-point
 	r.Route("/oauth", func(r chi.Router) {
-		r.Route("/authorize", func(r chi.Router) {
-			r.Get("/", s.processAuthCode)
-		})
-		r.Route("/login", func(r chi.Router) {
-			r.Post("/", s.authLogin)
-		})
+		r.Get("/authorize", s.processAuthCode)
+		r.Post("/login", s.authLogin)
 	})
 
 	// Route all authentication calls
