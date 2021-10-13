@@ -280,6 +280,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 
 	var env string = s.config.GetEnv()
 	var expected_host = s.config.GetAuthSvcCfg().Host
+	var publicClient = false
 
 	if host != expected_host[0] || host == "" || expected_host[0] == "" {
 		fmt.Printf("BadRequest: host: %v,does not match the expected value of: %v, or one of them is empty value\n", host, expected_host)
@@ -304,6 +305,8 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 
 		switch {
 		case ahct == "application/x-www-form-urlencoded":
+			// Usually this is public client and client secret would not be available. Do check for user agent to be browser?!
+			publicClient = true
 			cID, cSec, err = getClientIDSecWFUE(r)
 			if err != nil {
 				fmt.Printf("Badrequest: error getting clientID and client secret from application/x-www-form-urlencoded request. Error: %v", err.Error())
@@ -328,10 +331,9 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 			}
 
 		default:
-			if r.Method == "POST" {
-				fmt.Printf("BadRequest: unsupported content-type: %v", ahct)
-				return nil, core.ErrBadRequest
-			}
+			fmt.Printf("BadRequest: unsupported content-type: %v", ahct)
+			return nil, core.ErrBadRequest
+
 		}
 
 		// OAuth flow authorization code grant type - GET /auth
@@ -357,9 +359,11 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 		fmt.Printf("while finding clientID: %v in the database error raised: %v\n", cID, err.Error())
 		return nil, err
 	}
-	if rc.ClientSecret != cSec && r.Method != "GET" {
-		fmt.Printf("client secret provided within the request %v, does not match the one in the DB\n", rc.ClientSecret)
-		return nil, core.ErrClientAuth
+	if !publicClient {
+		if rc.ClientSecret != cSec && r.Method != "GET" {
+			fmt.Printf("client secret provided within the request %v, does not match the one in the DB\n", rc.ClientSecret)
+			return nil, core.ErrClientAuth
+		}
 	}
 
 	return rc, nil
@@ -519,7 +523,7 @@ func (s *service) CheckUserRegistration(oidtoken *core.IDToken) {
 }
 
 // Get the client ID and the Client secret from web form url encoded
-func getClientIDSecWFUE(r *http.Request) (cID string, cSec string, err error) {
+func getClientIDSecWFUE(r *http.Request) (cID, cSec string, err error) {
 
 	// standard: https://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.1
 	// Forms submitted with this content type must be encoded as follows:

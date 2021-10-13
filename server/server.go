@@ -175,7 +175,9 @@ func (s *Server) authLogin(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Printf("credentials e-mail:%s, psw:%s", email, password)
 
+	// TODO [dev]: WHEN credentials are verified and user is authenticated - redirect to the client with all paramrs from method "processAuthCode"
 	w.WriteHeader(200)
+
 }
 
 func (s *Server) responseUnauth(w http.ResponseWriter, method string, err error) {
