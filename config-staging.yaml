@@ -5,7 +5,7 @@ env: STAGING
 
 # current service configuration
 auth_svc:
-  host: ["ivmauth-staging-xmywgxnrfq-ez.a.run.app"]
+  host: ["ivmauth-staging-3fu5utwshq-ez.a.run.app"]
   port: ${PORT}
 
 # cloud environment config
