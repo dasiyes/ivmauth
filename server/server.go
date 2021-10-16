@@ -157,7 +157,7 @@ func (s *Server) processAuthCode(w http.ResponseWriter, r *http.Request) {
 	// https://example-app.com/cb?code=AUTH_CODE_HERE&state=1234zyx
 
 	// var wa_host = s.Config.GetSvsCfg().Host[0]
-	var api_gw_host = "ivmanto.dev"
+	var api_gw_host = s.Config.GetAPIGWSvcURL()
 	var redirectURL = fmt.Sprintf("https://%s/oauth/ui/login?t=%s", api_gw_host, sid)
 
 	// TODO [dev]: after the LoginSvc return TRUE for successful complete operation of user authentication - redirect to the client below...
