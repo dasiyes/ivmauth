@@ -16,6 +16,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/dasiyes/ivmauth/core"
+	"github.com/dasiyes/ivmauth/pkg/forms"
+	"github.com/dasiyes/ivmauth/pkg/ssoapp"
 	"github.com/dasiyes/ivmauth/svc/authenticating"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 )
@@ -44,16 +46,18 @@ type Server struct {
 	Logger kitlog.Logger
 	router chi.Router
 	Config config.IvmCfg
+	IvmSSO *ssoapp.IvmSSO
 }
 
 // New returns a new HTTP server.
-func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Logger, sm *ivmsesman.Sesman, cfg config.IvmCfg) *Server {
+func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Logger, sm *ivmsesman.Sesman, cfg config.IvmCfg, sso *ssoapp.IvmSSO) *Server {
 	s := &Server{
 		Auth:   au,
 		Pks:    pks,
 		Sm:     sm,
 		Logger: logger,
 		Config: cfg,
+		IvmSSO: sso,
 	}
 
 	r := chi.NewRouter()
@@ -187,7 +191,15 @@ func (s *Server) authLogin(w http.ResponseWriter, r *http.Request) {
 
 //[WIP] userLoginForm will handle the UI for users Login Form
 func (s *Server) userLoginForm(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "display the Login Form")
+	// fmt.Fprintln(w, "display the Login Form")
+
+	var state = r.URL.Query().Get("t")
+	var td = ssoapp.TemplateData{
+		CSRFToken: state,
+		Form:      forms.New(nil),
+	}
+	s.IvmSSO.Render(w, r, "login.page.tmpl", &td)
+
 }
 
 // responseUnauth returns response status code 401 Unauthorized

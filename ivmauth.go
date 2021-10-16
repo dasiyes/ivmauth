@@ -20,6 +20,7 @@ import (
 
 	ivmcfg "github.com/dasiyes/ivmapi/pkg/config"
 	"github.com/dasiyes/ivmauth/core"
+	"github.com/dasiyes/ivmauth/pkg/ssoapp"
 	"github.com/dasiyes/ivmauth/svc/authenticating"
 
 	"github.com/dasiyes/ivmauth/dataservice/firestoredb"
@@ -116,11 +117,19 @@ func main() {
 
 	// Create a Session Manager
 	sm, err := ivmsesman.NewSesman(ivmsesman.Firestore, (*ivmsesman.SesCfg)(cfg.GetSessManCfg()))
-
 	if err != nil {
 		_ = level.Error(logger).Log("error-sesman", err.Error())
 		os.Exit(1)
 	}
+
+	// Instantiate the tempalatesCache for the SSO ui pages
+	tc, err := ssoapp.NewTemplateCache("./ui/html/")
+	if err != nil {
+		_ = level.Error(logger).Log("error-template-cache", err.Error())
+		os.Exit(1)
+	}
+	ssolgr := log.With(logger, "component", "ivmSSO")
+	ivmSSO := ssoapp.NewIvmSSO(tc, &ssolgr, users)
 
 	// initiating services
 	var au authenticating.Service
@@ -166,7 +175,7 @@ func main() {
 	}
 
 	// creating a new http server to handle the requests
-	srv := server.New(au, pkr, log.With(logger, "component", "http"), sm, cfg)
+	srv := server.New(au, pkr, log.With(logger, "component", "http"), sm, cfg, ivmSSO)
 
 	errs := make(chan error, 2)
 	go func() {
