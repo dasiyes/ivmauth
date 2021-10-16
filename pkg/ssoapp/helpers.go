@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"os"
 	"runtime/debug"
 	"time"
 
@@ -45,10 +44,9 @@ func (a *IvmSSO) addDefaultData(td *TemplateData, r *http.Request) *TemplateData
 	//TODO [dev]: take the session ID as CSRFToken ...
 	// td.CSRFToken = nosurf.Token(r)
 
-	td.ClientID = os.Getenv("CLIENT_ID")
 	td.CurrentYear = time.Now().Year()
 	// td.Flash = a.session.PopString(r, "flash")
 	// td.IsAuthenticated = a.isAuthenticated(r)
-	td.Version = "0.0.1-dev"
+
 	return td
 }

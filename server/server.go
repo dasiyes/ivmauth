@@ -193,9 +193,20 @@ func (s *Server) userLoginForm(w http.ResponseWriter, r *http.Request) {
 	// fmt.Fprintln(w, "display the Login Form")
 
 	var state = r.URL.Query().Get("t")
+	var cid string
+
+	cc, err := r.Cookie("c")
+	if err != nil {
+		_ = level.Error(s.Logger).Log("error-get-client-id", err.Error())
+		cid = ""
+	} else {
+		cid = cc.Value
+	}
+
 	var td = ssoapp.TemplateData{
 		CSRFToken: state,
 		Form:      forms.New(nil),
+		ClientID:  cid,
 	}
 	s.IvmSSO.Render(w, r, "login.page.tmpl", &td)
 
