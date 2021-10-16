@@ -49,6 +49,6 @@ func (a *IvmSSO) addDefaultData(td *TemplateData, r *http.Request) *TemplateData
 	td.CurrentYear = time.Now().Year()
 	// td.Flash = a.session.PopString(r, "flash")
 	// td.IsAuthenticated = a.isAuthenticated(r)
-	// td.Version =
+	td.Version = "0.0.1-dev"
 	return td
 }
