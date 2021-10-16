@@ -65,8 +65,8 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 	r.Use(authClients(s.Logger, s.Auth))
 
 	// Handle the resources files for the Login Screen
-	fileServer := http.FileServer(http.Dir("./ui/resources"))
-	r.Method("GET", "/resources/*", http.StripPrefix("/resources/", fileServer))
+	fileServer := http.FileServer(http.Dir("./ui/static"))
+	r.Method("GET", "/static/*", http.StripPrefix("/static/", fileServer))
 
 	// Attach instrumenting
 	r.Method("GET", "/oauth/metrics", promhttp.Handler())
@@ -75,6 +75,9 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 	r.Route("/oauth", func(r chi.Router) {
 		r.Get("/authorize", s.processAuthCode)
 		r.Post("/login", s.authLogin)
+		r.Route("/ui", func(r chi.Router) {
+			r.Get("/login", s.userLoginForm)
+		})
 	})
 
 	// Route all authentication calls
@@ -88,11 +91,12 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 	return s
 }
 
+// ServeHTTP request entry point
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
 }
 
-// processAuthCode will handle the requests sent for authorize as initation of the AuthCode fllow with PKCE extension
+// [WIP] processAuthCode will handle the requests sent for authorize as initation of the AuthCode fllow with PKCE extension
 func (s *Server) processAuthCode(w http.ResponseWriter, r *http.Request) {
 
 	// Sample:
@@ -157,6 +161,7 @@ func (s *Server) processAuthCode(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
+// [WIP] ... validate user's input credentials
 func (s *Server) authLogin(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: remove after debug
@@ -180,12 +185,19 @@ func (s *Server) authLogin(w http.ResponseWriter, r *http.Request) {
 
 }
 
+//[WIP] userLoginForm will handle the UI for users Login Form
+func (s *Server) userLoginForm(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "display the Login Form")
+}
+
+// responseUnauth returns response status code 401 Unauthorized
 func (s *Server) responseUnauth(w http.ResponseWriter, method string, err error) {
 	w.Header().Set("Connection", "close")
 	_ = level.Error(s.Logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
 	http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 }
 
+// responseBadRequest returns response status code 400 Bad Request
 func (s *Server) responseBadRequest(w http.ResponseWriter, method string, err error) {
 	w.Header().Set("Connection", "close")
 	_ = level.Error(s.Logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
