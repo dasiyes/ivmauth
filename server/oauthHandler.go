@@ -121,7 +121,7 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		//h.server.responseUnauth(w, "authLogin", err)
 		//return
-		fmt.Printf("err: %s", err.Error())
+		fmt.Printf("err: %s\n", err.Error())
 	}
 	_ = valid
 
@@ -135,7 +135,9 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 		call_back_url, err := h.server.Auth.GetClientsRedirectURI(cid)
 		if err != nil {
 			_ = level.Error(h.logger).Log("error-get-redirect-uri", err.Error())
+		}
 
+		if call_back_url == "" {
 			// GetAPIGWSvcURL will return the host for the api gateway service
 			api_gw_host := h.server.Config.GetAPIGWSvcURL()
 			call_back_url = fmt.Sprintf("https://%s/pg/cb", api_gw_host)
@@ -145,7 +147,7 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 		var ac = h.server.Sm.GetAuthCode(state)
 		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s", call_back_url, ac, state)
 
-		fmt.Printf("redirect URL: %s", redirectURL)
+		fmt.Printf("redirect URL: %s\n", redirectURL)
 
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return
