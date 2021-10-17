@@ -1,12 +1,14 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/dasiyes/ivmapi/pkg/config"
 	"github.com/dasiyes/ivmsesman"
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/dasiyes/ivmauth/core"
@@ -71,7 +73,7 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 	// Route all authentication calls
 	r.Route("/oauth", func(r chi.Router) {
 		lgr := kitlog.With(s.Logger, "handler", "oauthHandler")
-		h := oauthHandler{s.Auth, s.Pks, s.Sm, lgr, s.Config, s.IvmSSO}
+		h := oauthHandler{server: s, logger: lgr}
 		r.Mount("/", h.router())
 	})
 
@@ -90,4 +92,18 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 // ServeHTTP request entry point
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
+}
+
+// responseUnauth returns response status code 401 Unauthorized
+func (s *Server) responseUnauth(w http.ResponseWriter, method string, err error) {
+	w.Header().Set("Connection", "close")
+	_ = level.Error(s.Logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
+	http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+}
+
+// responseBadRequest returns response status code 400 Bad Request
+func (s *Server) responseBadRequest(w http.ResponseWriter, method string, err error) {
+	w.Header().Set("Connection", "close")
+	_ = level.Error(s.Logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
+	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 }

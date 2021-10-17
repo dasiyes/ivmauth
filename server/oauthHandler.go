@@ -7,9 +7,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/dasiyes/ivmapi/pkg/config"
 	"github.com/dasiyes/ivmapi/pkg/tools"
-	"github.com/dasiyes/ivmsesman"
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -17,17 +15,11 @@ import (
 
 	"github.com/dasiyes/ivmauth/pkg/forms"
 	"github.com/dasiyes/ivmauth/pkg/ssoapp"
-	"github.com/dasiyes/ivmauth/svc/authenticating"
-	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 )
 
 type oauthHandler struct {
-	aus    authenticating.Service
-	pks    pksrefreshing.Service
-	sm     *ivmsesman.Sesman
+	server *Server
 	logger kitlog.Logger
-	config config.IvmCfg
-	ivmsso *ssoapp.IvmSSO
 }
 
 func (h *oauthHandler) router() chi.Router {
@@ -85,24 +77,24 @@ func (h *oauthHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
 	var mth = strings.TrimSpace(q.Get("code_challenge_method"))
 
 	if coch == "" || mth == "" {
-		h.responseBadRequest(w, "processAuthCode", errors.New("missing mandatory code challenge or method"))
+		h.server.responseBadRequest(w, "processAuthCode", errors.New("missing mandatory code challenge or method"))
 	}
 
 	var code = tools.GenerateAuthCode(sid, coch, mth)
 	if code == "" {
-		h.responseUnauth(w, "processAuthCode", errors.New("error while generating the auth code"))
+		h.server.responseUnauth(w, "processAuthCode", errors.New("error while generating the auth code"))
 		return
 	}
 
 	// save the code_challenge along with the code_challenge_method and the code itself in the Session-Store (firestore)
-	err = h.sm.SaveCodeChallengeAndMethod(sid, coch, mth, code)
+	err = h.server.Sm.SaveCodeChallengeAndMethod(sid, coch, mth, code)
 	if err != nil {
-		h.responseUnauth(w, "processAuthCode", err)
+		h.server.responseUnauth(w, "processAuthCode", err)
 		return
 	}
 
 	// GetAPIGWSvcURL will return the host for the api gateway service
-	var api_gw_host = h.config.GetAPIGWSvcURL()
+	var api_gw_host = h.server.Config.GetAPIGWSvcURL()
 	var redirectURL = fmt.Sprintf("https://%s/oauth/ui/login?t=%s", api_gw_host, sid)
 
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
@@ -114,7 +106,7 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 	headerContentTtype := r.Header.Get("Content-Type")
 	if headerContentTtype != "application/x-www-form-urlencoded" {
 		w.WriteHeader(http.StatusUnsupportedMediaType)
-		h.responseBadRequest(w, "authLogin", fmt.Errorf("unsupported media type %s", headerContentTtype))
+		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("unsupported media type %s", headerContentTtype))
 		return
 	}
 
@@ -123,8 +115,8 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 	var email = r.FormValue("email")
 	var password = r.FormValue("password")
 
-	if _, err := h.aus.ValidateUsersCredentials(email, password); err != nil {
-		h.responseUnauth(w, "authLogin", err)
+	if _, err := h.server.Auth.ValidateUsersCredentials(email, password); err != nil {
+		h.server.responseUnauth(w, "authLogin", err)
 		return
 	}
 
@@ -133,7 +125,7 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 
 }
 
-//[WIP] userLoginForm will handle the UI for users Login Form
+// userLoginForm will handle the UI for users Login Form
 func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 	// fmt.Fprintln(w, "display the Login Form")
 
@@ -153,20 +145,6 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 		Form:      forms.New(nil),
 		ClientID:  cid,
 	}
-	h.ivmsso.Render(w, r, "login.page.tmpl", &td)
+	h.server.IvmSSO.Render(w, r, "login.page.tmpl", &td)
 
-}
-
-// responseUnauth returns response status code 401 Unauthorized
-func (h *oauthHandler) responseUnauth(w http.ResponseWriter, method string, err error) {
-	w.Header().Set("Connection", "close")
-	_ = level.Error(h.logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
-	http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-}
-
-// responseBadRequest returns response status code 400 Bad Request
-func (h *oauthHandler) responseBadRequest(w http.ResponseWriter, method string, err error) {
-	w.Header().Set("Connection", "close")
-	_ = level.Error(h.logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
-	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 }
