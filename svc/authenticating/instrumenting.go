@@ -107,3 +107,12 @@ func (s *instrumentingService) ValidateUsersCredentials(email, pass string) (boo
 
 	return s.next.ValidateUsersCredentials(email, pass)
 }
+
+func (s *instrumentingService) GetClientsRedirectURI(cid string) (uri string, err error) {
+	defer func(begin time.Time) {
+		s.requestCount.With("method", "GetClientsRedirectURI").Add(1)
+		s.requestLatency.With("method", "GetClientsRedirectURI").Observe(time.Since(begin).Seconds())
+	}(time.Now())
+
+	return s.next.GetClientsRedirectURI(cid)
+}

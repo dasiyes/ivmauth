@@ -127,6 +127,9 @@ type Service interface {
 
 	// ValidateUsersCredentials will use the UsersRepository to find and validate user's credentials
 	ValidateUsersCredentials(email, pass string) (bool, error)
+
+	// GetClientsRedirectURI will return the registred redirection URI for a specific clientID
+	GetClientsRedirectURI(cid string) (string, error)
 }
 
 type service struct {
@@ -545,6 +548,18 @@ func (s *service) CheckUserRegistration(oidtoken *core.IDToken) {
 	fmt.Printf("user %#v already registered in the db.", usr.UserID)
 }
 
+// GetClientsRedirectURI will return the registred redirection URI for a specific clientID
+func (s *service) GetClientsRedirectURI(cid string) (string, error) {
+
+	rc, err := s.clients.Find(core.ClientID(cid))
+	if err != nil {
+		fmt.Printf("while finding clientID: %v in the database error raised: %v\n", cid, err.Error())
+		return "", err
+	}
+
+	return rc.RedirectURI, nil
+}
+
 // Get the client ID and the Client secret from web form url encoded
 func getClientIDSecWFUE(r *http.Request) (cID, cSec string, err error) {
 
@@ -692,6 +707,7 @@ func NewService(requests core.RequestRepository,
 	}
 }
 
+// hashPass is supporting function for hashing the password
 func hashPass(p []byte) ([]byte, error) {
 	return bcrypt.GenerateFromPassword(p, 12)
 }

@@ -114,15 +114,39 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 
 	var email = r.FormValue("email")
 	var password = r.FormValue("password")
+	var state = r.FormValue("csrf_token")
+	var cid = r.FormValue("client_id")
 
-	if _, err := h.server.Auth.ValidateUsersCredentials(email, password); err != nil {
+	valid, err := h.server.Auth.ValidateUsersCredentials(email, password)
+	if err != nil {
 		h.server.responseUnauth(w, "authLogin", err)
 		return
 	}
 
-	// TODO [dev]: WHEN credentials are verified and user is authenticated - redirect to the client with all paramrs from method "processAuthCode"
-	w.WriteHeader(200)
+	if valid {
+		// the redirect url should be in the format:
+		// https://ivmanto.dev/pg/cb?code=AUTH_CODE_HERE&state=THE_STATE_FROM_THE_FORM
+		// TODO [dev]: WHEN credentials are verified and user is authenticated - redirect to the client with all paramrs from method "processAuthCode"
 
+		call_back_url, err := h.server.Auth.GetClientsRedirectURI(cid)
+		if err != nil {
+			_ = level.Error(h.logger).Log("error-get-redirect-uri", err.Error())
+
+			// GetAPIGWSvcURL will return the host for the api gateway service
+			api_gw_host := h.server.Config.GetAPIGWSvcURL()
+			call_back_url = fmt.Sprintf("https://%s/pg/cb", api_gw_host)
+		}
+
+		// TODO [dev]: GET it from the session state
+		var ac = h.server.Sm.GetAuthCode(state)
+
+		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s", call_back_url, ac, state)
+
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+		return
+	}
+
+	h.server.responseUnauth(w, "authLogin", fmt.Errorf("unauthorized user %s", email))
 }
 
 // userLoginForm will handle the UI for users Login Form

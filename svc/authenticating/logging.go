@@ -127,3 +127,15 @@ func (s *loggingService) ValidateUsersCredentials(email, pass string) (ok bool, 
 	}(time.Now())
 	return s.next.ValidateUsersCredentials(email, pass)
 }
+
+func (s *loggingService) GetClientsRedirectURI(cid string) (uri string, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "GetClientsRedirectURI",
+			"took", time.Since(begin),
+			"clientID", cid,
+			"err", err,
+		)
+	}(time.Now())
+	return s.next.GetClientsRedirectURI(cid)
+}
