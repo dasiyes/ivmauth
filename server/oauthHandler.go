@@ -30,6 +30,7 @@ func (h *oauthHandler) router() chi.Router {
 	r.Route("/", func(r chi.Router) {
 		r.Get("/authorize", h.processAuthCode)
 		r.Post("/login", h.authLogin)
+		r.Post("/token", h.issueToken)
 		r.Route("/ui", func(r chi.Router) {
 			r.Get("/login", h.userLoginForm)
 		})
@@ -177,5 +178,9 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 		ClientID:  cid,
 	}
 	h.server.IvmSSO.Render(w, r, "login.page.tmpl", &td)
+}
 
+// issueToken will return an access token to the post request
+func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "here issue the access token as set cookie")
 }
