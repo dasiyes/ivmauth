@@ -167,10 +167,10 @@ func (s *Server) processAuthCode(w http.ResponseWriter, r *http.Request) {
 // [WIP] ... validate user's input credentials
 func (s *Server) authLogin(w http.ResponseWriter, r *http.Request) {
 
-	// TODO: remove after debug
-	fmt.Printf("mime-type, expected-application/x-www-form-urlencoded, GOT:%s", r.Header.Get("Content-Type"))
-
 	headerContentTtype := r.Header.Get("Content-Type")
+	// TODO: remove after debug
+	_ = level.Debug(s.Logger).Log("---content-type", headerContentTtype)
+
 	if headerContentTtype != "application/x-www-form-urlencoded" {
 		w.WriteHeader(http.StatusUnsupportedMediaType)
 		return
@@ -181,7 +181,8 @@ func (s *Server) authLogin(w http.ResponseWriter, r *http.Request) {
 	var email = r.FormValue("email")
 	var password = r.FormValue("password")
 
-	fmt.Printf("credentials e-mail:%s, psw:%s", email, password)
+	// TODO: remove after debug
+	_ = level.Debug(s.Logger).Log("email", email, "pass", password)
 
 	// TODO [dev]: WHEN credentials are verified and user is authenticated - redirect to the client with all paramrs from method "processAuthCode"
 	w.WriteHeader(200)
