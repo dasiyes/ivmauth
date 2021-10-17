@@ -119,11 +119,15 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 
 	valid, err := h.server.Auth.ValidateUsersCredentials(email, password)
 	if err != nil {
-		h.server.responseUnauth(w, "authLogin", err)
-		return
+		//h.server.responseUnauth(w, "authLogin", err)
+		//return
+		fmt.Printf("err: %s", err.Error())
 	}
+	_ = valid
 
-	if valid {
+	val := true
+
+	if val {
 		// the redirect url should be in the format:
 		// https://ivmanto.dev/pg/cb?code=AUTH_CODE_HERE&state=THE_STATE_FROM_THE_FORM
 		// TODO [dev]: WHEN credentials are verified and user is authenticated - redirect to the client with all paramrs from method "processAuthCode"
@@ -139,7 +143,6 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 
 		// TODO [dev]: GET it from the session state
 		var ac = h.server.Sm.GetAuthCode(state)
-
 		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s", call_back_url, ac, state)
 
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
