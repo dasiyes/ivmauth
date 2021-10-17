@@ -115,3 +115,15 @@ func (s *loggingService) UpdateUser(u *core.User) (err error) {
 	}(time.Now())
 	return s.next.UpdateUser(u)
 }
+
+func (s *loggingService) ValidateUsersCredentials(email, pass string) (ok bool, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "ValidateUsersCredentials",
+			"took", time.Since(begin),
+			"valid", ok,
+			"err", err,
+		)
+	}(time.Now())
+	return s.next.ValidateUsersCredentials(email, pass)
+}

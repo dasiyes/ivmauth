@@ -98,3 +98,12 @@ func (s *instrumentingService) UpdateUser(u *core.User) error {
 
 	return s.next.UpdateUser(u)
 }
+
+func (s *instrumentingService) ValidateUsersCredentials(email, pass string) (bool, error) {
+	defer func(begin time.Time) {
+		s.requestCount.With("method", "ValidateUsersCredentials").Add(1)
+		s.requestLatency.With("method", "ValidateUsersCredentials").Observe(time.Since(begin).Seconds())
+	}(time.Now())
+
+	return s.next.ValidateUsersCredentials(email, pass)
+}

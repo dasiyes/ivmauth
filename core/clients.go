@@ -16,6 +16,7 @@ type Client struct {
 	ClientProfile ClientProfile
 	Status        EntryStatus
 	Scopes        []string
+	RedirectURI   string
 }
 
 // ClientProfile is a client Descriptor

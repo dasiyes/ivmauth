@@ -124,6 +124,9 @@ type Service interface {
 
 	// UpdateUser will update the user object from the parameter in the db
 	UpdateUser(u *core.User) error
+
+	// ValidateUsersCredentials will use the UsersRepository to find and validate user's credentials
+	ValidateUsersCredentials(email, pass string) (bool, error)
 }
 
 type service struct {
@@ -242,6 +245,26 @@ func (s *service) Validate(
 	}
 
 	return at, nil
+}
+
+// ValidateUsersCredentials will use the UsersRepository to find and validate user's credentials
+func (s *service) ValidateUsersCredentials(email, pass string) (bool, error) {
+	var valid = false
+
+	usr, err := s.users.Find(core.UserID(email))
+	if err != nil {
+		return valid, err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(pass))
+	if err != nil {
+		return valid, err
+	}
+	if err == nil {
+		valid = true
+	}
+
+	return valid, nil
 }
 
 // [3.2.1] AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
