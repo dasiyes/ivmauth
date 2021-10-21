@@ -55,3 +55,31 @@ INFO: Unsupported notification method: $/setTrace
 [0m2021.09.15 23:36:46 INFO  time: initialize in 6.41s[0m
 [0m2021.09.15 23:37:41 WARN  Build server is not auto-connectable.[0m
 [0m2021.09.15 23:37:41 WARN  no build tool detected in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. [0m
+[0m2021.10.20 20:01:42 INFO  Started: Metals version 0.10.7 in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth' for client Visual Studio Code 1.61.2.[0m
+[0m2021.10.20 20:01:42 INFO  time: initialize in 0.65s[0m
+[0m2021.10.20 20:01:49 WARN  Build server is not auto-connectable.[0m
+[0m2021.10.20 20:01:49 WARN  no build tool detected in workspace '/Users/tonevSr/Documents/Programming/_proProjects/ivmauth'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. [0m
+Oct 20, 2021 8:02:09 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Oct 20, 2021 8:03:02 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Oct 20, 2021 8:03:24 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Oct 20, 2021 8:03:49 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Oct 20, 2021 8:23:36 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Oct 20, 2021 8:24:57 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Oct 20, 2021 8:27:07 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Oct 20, 2021 8:31:06 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Oct 20, 2021 8:33:59 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Oct 20, 2021 8:34:29 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Oct 20, 2021 8:34:56 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace
+Oct 20, 2021 8:35:53 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTrace

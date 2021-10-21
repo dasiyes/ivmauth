@@ -339,7 +339,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 				return nil, core.ErrBadRequest
 			}
 		case strings.HasPrefix(ahct, "application/json"):
-			xic := r.Header.Get("x-ivm-client")
+			xic := r.Header.Get("X-Ivm-Client")
 			hab := r.Header.Get("Authorization")
 
 			if xic == "" && strings.HasPrefix(hab, "Basic ") {
@@ -395,9 +395,11 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 	return rc, nil
 }
 
-// getXClient - retrievs the ClientID and Client Secret from the custom header X-IVM-CLIENT for the cases when the Authorization header is having Bearer token
+// getXClient - retrievs the ClientID and Client Secret from the custom header X-IVM-CLIENT.
+// This function expects the ClientID and ClientSecret as Bsic auth string.
 func getXClient(xic string) (cid string, csc string) {
 
+	// TODO: remove after debug
 	fmt.Printf("xic: %v\n", xic)
 
 	cis := strings.Split(xic, " ")

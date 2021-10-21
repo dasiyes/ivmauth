@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -124,6 +125,8 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 		//return
 		fmt.Printf("err: %s\n", err.Error())
 	}
+
+	// [ ] Replace val in the if below and Use the variable **valid** to ACTIVATE the login form credentials
 	_ = valid
 
 	val := true
@@ -131,7 +134,7 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 	if val {
 		// the redirect url should be in the format:
 		// https://ivmanto.dev/pg/cb?code=AUTH_CODE_HERE&state=THE_STATE_FROM_THE_FORM
-		// TODO [dev]: WHEN credentials are verified and user is authenticated - redirect to the client with all paramrs from method "processAuthCode"
+		// [ ] [dev]:  WHEN credentials are verified and user is authenticated - redirect to the client with all paramrs from method "processAuthCode"
 
 		call_back_url, err := h.server.Auth.GetClientsRedirectURI(cid)
 		if err != nil {
@@ -144,7 +147,6 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 			call_back_url = fmt.Sprintf("https://%s/pg/cb", api_gw_host)
 		}
 
-		// TODO [dev]: GET it from the session state
 		var ac = h.server.Sm.GetAuthCode(state)
 		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s", call_back_url, ac, state)
 
@@ -182,5 +184,18 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 
 // issueToken will return an access token to the post request
 func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "here issue the access token as set cookie")
+
+	defer r.Body.Close()
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		fmt.Fprintf(w, "error reading body %v", err)
+	}
+
+	// [ ] 1. Call issue Access Token Method
+
+	// [ ] 2. Take the value of AT and RT and store them in Session Store using session Manager
+
+	// [ ] 3. SM to generate a new sessionID with state "Auth" and set it in the session cookie.
+
+	fmt.Fprintf(w, "post body is %v", string(b))
 }
