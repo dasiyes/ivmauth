@@ -24,16 +24,29 @@ type AuthRequest struct {
 	Registered    int64
 }
 
+// Sample content of the POST request body
+// **grant_type=authorization_code** - The grant type for this flow is authorization_code
+// **code=AUTH_CODE_HERE** - This is the code you received in the query string
+// **redirect_uri=REDIRECT_URI** - Must be identical to the redirect URI provided in the original link
+// **client_id=CLIENT_ID** - The client ID you received when you first created the application
+// **client_secret=CLIENT_SECRET** - Since this request is made from server-side code, the secret is included
+// **code_verifier=CODE_VERIFIER** - to support PKCE the code vrifier plain text should be included
+
 // AuthRequestBody is the json object expected to receive
-// in a POST request to /auth path
+// in a POST request to /auth or /oauth/token paths
 type AuthRequestBody struct {
-	GrantType string `json:"grant_type,omitempty"`
-	ClientID  string `json:"client_id,omitempty"`
-	IDToken   string
-	Name      string
-	Email     string
-	Password  string
-	Scopes    []string
+	GrantType    string `json:"grant_type"`
+	ClientID     string `json:"client_id,omitempty"`
+	ClientSecret string `json:"client_secret,omitempty"`
+	Code         string `json:"code,omitempty"`
+	CodeVerifier string `json:"code_verifier,omitempty"`
+	RedirectUri  string `json:"redirect_uri"`
+	RefreshToken string `json:"refresh_token,omitempty"`
+	IDToken      string
+	Name         string
+	Email        string
+	Password     string
+	Scopes       []string
 	// Session validation token when the GrantType is id_token
 	Nonce string
 	// This holds the value of the ClientID returned by the Authorization server along with IDToken

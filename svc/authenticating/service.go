@@ -66,6 +66,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/dasiyes/ivmapi/pkg/config"
 	"github.com/dasiyes/ivmauth/core"
@@ -130,6 +131,9 @@ type Service interface {
 
 	// GetClientsRedirectURI will return the registred redirection URI for a specific clientID
 	GetClientsRedirectURI(cid string) (string, error)
+
+	// IssueIvmIDToken issues IDToken for users registered on Ivmanto's OAuth server
+	IssueIvmIDToken(uid core.UserID, cid core.ClientID) *core.IDToken
 }
 
 type service struct {
@@ -560,6 +564,28 @@ func (s *service) GetClientsRedirectURI(cid string) (string, error) {
 	}
 
 	return rc.RedirectURI, nil
+}
+
+// IssueIvmIDToken will create a new IDToken (according OpenIDConnect standard)
+// [source](https://openid.net/specs/openid-connect-token-bound-authentication-1_0.html#rfc.section.1.1)
+func (s *service) IssueIvmIDToken(uid core.UserID, cid core.ClientID) *core.IDToken {
+
+	var iat = time.Now().Unix()
+	var exp = iat + 300
+
+	var idt = core.IDToken{
+		// REQUIRED
+		Iss: "https://ivmanto.com",
+		Sub: string(uid),
+		Aud: string(cid),
+		Exp: exp,
+		Iat: iat,
+		// OPTIONAL
+		Email:         "",
+		EmailVerified: false,
+	}
+
+	return &idt
 }
 
 // Get the client ID and the Client secret from web form url encoded

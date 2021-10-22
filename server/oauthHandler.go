@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -14,6 +15,7 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/pkg/forms"
 	"github.com/dasiyes/ivmauth/pkg/ssoapp"
 )
@@ -182,20 +184,124 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 	h.server.IvmSSO.Render(w, r, "login.page.tmpl", &td)
 }
 
-// issueToken will return an access token to the post request
+// [WIP] issueToken will return an access token to the post request
 func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
 
-	defer r.Body.Close()
-	b, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		fmt.Fprintf(w, "error reading body %v", err)
+	// [x] perform a check for content type header - application/json
+	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+		h.server.responseBadRequest(w, "issueTkon-check-content-type", errors.New("unsupported content type"))
+		return
 	}
 
-	// [ ] 1. Call issue Access Token Method
+	// Sample content of the POST request body
+	// [x] **grant_type=authorization_code** - The grant type for this flow is authorization_code
+	// [x] **code=AUTH_CODE_HERE** - This is the code you received in the query string
+	// [x] **redirect_uri=REDIRECT_URI** - Must be identical to the redirect URI provided in the original link
+	// [x] **client_id=CLIENT_ID** - The client ID you received when you first created the application
+	// [x] **client_secret=CLIENT_SECRET** - Since this request is made from server-side code, the secret is included
+	// [x] **code_verifier=CODE_VERIFIER** - to support PKCE the code vrifier plain text should be included
+	var rb core.AuthRequestBody
+	defer r.Body.Close()
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		h.server.responseBadRequest(w, "issueTkon-read-body", err)
+		return
+	}
+
+	err = json.Unmarshal(b, &rb)
+	if err != nil {
+		h.server.responseBadRequest(w, "issueTkon-json-body-unmarshal", err)
+		return
+	}
+
+	switch rb.GrantType {
+	case "authorization_code":
+		h.handleAuthCodeFllow(&rb, w, r)
+		return
+	case "refresh_token":
+		h.handleRefTokenFllow(&rb, w, r)
+		return
+	default:
+		h.server.responseBadRequest(w, "issueTkon-grant-type", fmt.Errorf("unsupported grant_type fllow [%s]", rb.GrantType))
+		return
+	}
+
+}
+
+// handleAuthCodeFllow performs the checks and logic for Authorization_code grant_type fllow
+func (h *oauthHandler) handleAuthCodeFllow(
+	rb *core.AuthRequestBody,
+	w http.ResponseWriter,
+	r *http.Request) {
+
+	sc, err := r.Cookie(h.server.Config.GetSesssionCookieName())
+	if err != nil {
+		h.server.responseBadRequest(w, "handleAuthCodeFllow-get-session", err)
+		return
+	}
+
+	// [x] Check if the provided code value is still active (not expired) in the session store.
+	acsm := h.server.Sm.GetAuthCode(sc.Value)
+	if acsm == nil {
+		h.server.responseBadRequest(w, "handleAuthCodeFllow-get-auth-code", fmt.Errorf("invalid or expired auth code for session %s", sc.Value))
+		return
+	}
+
+	// [x] If code_verifier has a value - encode it and compare it with code_challenger from the session
+	if rb.CodeVerifier != "" {
+		if !tools.VerifyCodeChallenge(
+			acsm["code_challenger"],
+			acsm["code_challenger_method"],
+			rb.CodeVerifier) {
+			h.server.responseBadRequest(w, "handleAuthCodeFllow-VerifyCodeChallenge", fmt.Errorf("failed to verify the code verifier for session %s", sc.Value))
+			return
+		}
+	}
+
+	// [x] verify the redirect_uri
+	if rb.RedirectUri == "" {
+		h.server.responseBadRequest(w, "handleAuthCodeFllow-redirect-uri", fmt.Errorf("invalid or missing redirect uri for session %s", sc.Value))
+		return
+	}
+
+	// rru - registered redirects uris from the client id register.
+	rru, err := h.server.Auth.GetClientsRedirectURI(rb.ClientID)
+	if err != nil {
+		h.server.responseBadRequest(w, "handleAuthCodeFllow-regitred-redirect-uri", fmt.Errorf("unable to acquire register redirect uri for client id %s", rb.ClientID))
+		return
+	}
+
+	if rru != rb.RedirectUri {
+		h.server.responseBadRequest(w, "handleAuthCodeFllow-compare-redirect-uri", fmt.Errorf("not registered redirect uri for client id %s", rb.ClientID))
+		return
+	}
+
+	// [x] 1. Call issue Access Token Method
+	// [ ] refactor the method "IssueAccessToken"
+	cid := core.ClientID(rb.ClientID)
+	uid := core.UserID("")
+	c := core.Client{ClientID: core.ClientID(rb.ClientID)}
+
+	oidt := h.server.Auth.IssueIvmIDToken(uid, cid)
+	at, err := h.server.Auth.IssueAccessToken(oidt, &c)
+	if err != nil {
+		h.server.responseUnauth(w, "handleAuthCodeFllow-issue-accessToken", fmt.Errorf("error issue access token %s", err.Error()))
+		return
+	}
 
 	// [ ] 2. Take the value of AT and RT and store them in Session Store using session Manager
 
 	// [ ] 3. SM to generate a new sessionID with state "Auth" and set it in the session cookie.
 
-	fmt.Fprintf(w, "post body is %v", string(b))
+	fmt.Fprintf(w, "access token is %v", at)
+}
+
+// handleRefTokenFllow performs the checks and logic for refresh_token grant_type fllow
+func (h *oauthHandler) handleRefTokenFllow(
+	rb *core.AuthRequestBody,
+	w http.ResponseWriter,
+	r *http.Request) {
+
+	fmt.Fprintf(w, "post body is %v", rb)
 }
