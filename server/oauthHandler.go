@@ -145,7 +145,7 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 		call_back_url := fmt.Sprintf("https://%s/pg/cb", api_gw_host)
 
 		var ac = h.server.Sm.GetAuthCode(state)
-		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s", call_back_url, ac, state)
+		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s", call_back_url, ac["auth_code"], state)
 
 		fmt.Printf("redirect URL: %s\n", redirectURL)
 
