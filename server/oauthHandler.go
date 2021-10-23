@@ -138,16 +138,11 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 		// https://ivmanto.dev/pg/cb?code=AUTH_CODE_HERE&state=THE_STATE_FROM_THE_FORM
 		// [ ] [dev]:  WHEN credentials are verified and user is authenticated - redirect to the client with all paramrs from method "processAuthCode"
 
-		call_back_url, err := h.server.Auth.GetClientsRedirectURI(cid)
-		if err != nil {
-			_ = level.Error(h.logger).Log("error-get-redirect-uri", err.Error())
-		}
-
-		if len(call_back_url) == 0 {
-			// GetAPIGWSvcURL will return the host for the api gateway service
-			api_gw_host := h.server.Config.GetAPIGWSvcURL()
-			call_back_url = append(call_back_url, fmt.Sprintf("https://%s/pg/cb", api_gw_host))
-		}
+		// GetAPIGWSvcURL will return the host for the api gateway service
+		api_gw_host := h.server.Config.GetAPIGWSvcURL()
+		// TODO [dev]: Get the call_back_url value from the initial auth request using the auth code (SessMan)
+		_ = cid
+		call_back_url := fmt.Sprintf("https://%s/pg/cb", api_gw_host)
 
 		var ac = h.server.Sm.GetAuthCode(state)
 		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s", call_back_url, ac, state)
