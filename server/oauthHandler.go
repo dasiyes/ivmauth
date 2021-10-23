@@ -143,10 +143,10 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 			_ = level.Error(h.logger).Log("error-get-redirect-uri", err.Error())
 		}
 
-		if call_back_url == "" {
+		if len(call_back_url) == 0 {
 			// GetAPIGWSvcURL will return the host for the api gateway service
 			api_gw_host := h.server.Config.GetAPIGWSvcURL()
-			call_back_url = fmt.Sprintf("https://%s/pg/cb", api_gw_host)
+			call_back_url = append(call_back_url, fmt.Sprintf("https://%s/pg/cb", api_gw_host))
 		}
 
 		var ac = h.server.Sm.GetAuthCode(state)
@@ -272,7 +272,16 @@ func (h *oauthHandler) handleAuthCodeFllow(
 		return
 	}
 
-	if rru != rb.RedirectUri {
+	// [x] Verify the uri if registred for the clientID
+	var valid_uri bool
+	for _, u := range rru {
+		if u == rb.RedirectUri {
+			valid_uri = true
+			break
+		}
+	}
+
+	if !valid_uri {
 		h.server.responseBadRequest(w, "handleAuthCodeFllow-compare-redirect-uri", fmt.Errorf("not registered redirect uri for client id %s", rb.ClientID))
 		return
 	}

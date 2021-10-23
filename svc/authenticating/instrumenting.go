@@ -24,15 +24,6 @@ func NewInstrumentingService(counter metrics.Counter, latency metrics.Histogram,
 	}
 }
 
-func (s *instrumentingService) RegisterNewRequest(rh *http.Header, body *core.AuthRequestBody, client *core.Client) (core.AuthRequestID, error) {
-	defer func(begin time.Time) {
-		s.requestCount.With("method", "RegisterNewRequest").Add(1)
-		s.requestLatency.With("method", "RegisterNewRequest").Observe(time.Since(begin).Seconds())
-	}(time.Now())
-
-	return s.next.RegisterNewRequest(rh, body, client)
-}
-
 func (s *instrumentingService) Validate(
 	rh *http.Header,
 	body *core.AuthRequestBody,
@@ -108,7 +99,7 @@ func (s *instrumentingService) ValidateUsersCredentials(email, pass string) (boo
 	return s.next.ValidateUsersCredentials(email, pass)
 }
 
-func (s *instrumentingService) GetClientsRedirectURI(cid string) (uri string, err error) {
+func (s *instrumentingService) GetClientsRedirectURI(cid string) (uri []string, err error) {
 	defer func(begin time.Time) {
 		s.requestCount.With("method", "GetClientsRedirectURI").Add(1)
 		s.requestLatency.With("method", "GetClientsRedirectURI").Observe(time.Since(begin).Seconds())

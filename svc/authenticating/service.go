@@ -1,21 +1,22 @@
 // Roles [RFC6749]
 // OAuth defines four roles:
-//    resource owner
-//       An entity capable of granting access to a protected resource.
-//       When the resource owner is a person, it is referred to as an
-//       end-user.
-//    resource server
-//       The server hosting the protected resources, capable of accepting
-//       and responding to protected resource requests using access tokens.
-//    client
-//       An application making protected resource requests on behalf of the
-//       resource owner and with its authorization.  The term "client" does
-//       not imply any particular implementation characteristics (e.g.,
-//       whether the application executes on a server, a desktop, or other
-//       devices).
-//    authorization server [this service role in the domains Ivmanto]
-//       The server issuing access tokens to the client after successfully
-//       authenticating the resource owner and obtaining authorization.
+// [!]	**resource owner [RO]**
+//       	An entity capable of granting access to a protected resource.
+//       	When the resource owner is a person, it is referred to as an
+//       	end-user.
+// [!]	**resource server [RS]**
+//       	The server hosting the protected resources, capable of accepting
+//       	and responding to protected resource requests using access tokens.
+// [!] 	**client [C]**
+//       	An application making protected resource requests on behalf of the
+//       	resource owner and with its authorization.  The term "client" does
+//       	not imply any particular implementation characteristics (e.g.,
+//       	whether the application executes on a server, a desktop, or other
+//       	devices).
+// [!]	**authorization server [AS]**
+//				[this service role in the domains Ivmanto]
+//       	The server issuing access tokens to the client after successfully
+//       	authenticating the resource owner and obtaining authorization.
 //
 // 	The interaction between the authorization server and resource server
 // 	is beyond the scope of this specification.  The authorization server
@@ -101,8 +102,6 @@ import (
 
 // Service is the interface that provides auth methods.
 type Service interface {
-	// RegisterNewRequest registring a new http request for authentication
-	RegisterNewRequest(rh *http.Header, body *core.AuthRequestBody, client *core.Client) (core.AuthRequestID, error)
 
 	// Validate the auth request according to OAuth2 sepcification (see the notes at the top of of this file)
 	Validate(rh *http.Header, body *core.AuthRequestBody, pks pksrefreshing.Service, client *core.Client) (*core.AccessToken, error)
@@ -130,7 +129,7 @@ type Service interface {
 	ValidateUsersCredentials(email, pass string) (bool, error)
 
 	// GetClientsRedirectURI will return the registred redirection URI for a specific clientID
-	GetClientsRedirectURI(cid string) (string, error)
+	GetClientsRedirectURI(cid string) ([]string, error)
 
 	// IssueIvmIDToken issues IDToken for users registered on Ivmanto's OAuth server
 	IssueIvmIDToken(uid core.UserID, cid core.ClientID) *core.IDToken
@@ -143,20 +142,20 @@ type service struct {
 	config   config.IvmCfg
 }
 
-func (s *service) RegisterNewRequest(rh *http.Header, body *core.AuthRequestBody, client *core.Client) (core.AuthRequestID, error) {
+// func (s *service) RegisterNewRequest(rh *http.Header, body *core.AuthRequestBody, client *core.Client) (core.AuthRequestID, error) {
 
-	if len(*rh) == 0 || core.GetSize(body) == 0 {
-		return "", core.ErrInvalidArgument
-	}
+// 	if len(*rh) == 0 || core.GetSize(body) == 0 {
+// 		return "", core.ErrInvalidArgument
+// 	}
 
-	id := core.NextAuthRequestID()
-	ar := core.NewAuthRequest(id, *rh, body, client)
+// 	id := core.NextAuthRequestID()
+// 	ar := core.NewAuthRequest(id, *rh, body, client)
 
-	if err := s.requests.Store(ar); err != nil {
-		return "", err
-	}
-	return ar.AuthRequestID, nil
-}
+// 	if err := s.requests.Store(ar); err != nil {
+// 		return "", err
+// 	}
+// 	return ar.AuthRequestID, nil
+// }
 
 func (s *service) Validate(
 	rh *http.Header,
@@ -299,7 +298,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 	var cID, cSec string
 	var err error
 
-	// The address where the request was sent to. Should be domain where this library is authoritative to! []
+	// The host is the address where the request is sent to.
 	var host string = r.Host
 
 	// The origin is the address where the request is sent from. Since the CORS is allowed, this value should be controlling the originates from where the library accepts calls from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin]
@@ -308,25 +307,28 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 	// The refrerrer value, as a difference from the origin, will include the full path from where the request was sent from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer]
 	var referer = r.Referer()
 
-	var env string = s.config.GetEnv()
-	var expected_host = s.config.GetAuthSvcCfg().Host
-	var publicClient = false
+	var expected_host = s.config.GetAuthSvcURL()
 
-	if host != expected_host[0] || host == "" || expected_host[0] == "" {
+	// [x] [host]: The address where the request was sent to. Should be domain where this library is authoritative to - ivmauth service host (internal Cloud Run service domain)!
+	if host != expected_host || host == "" || expected_host == "" {
 		fmt.Printf("BadRequest: host: %v,does not match the expected value of: %v, or one of them is empty value\n", host, expected_host)
 		return nil, core.ErrBadRequest
 	}
 
+	var env string = s.config.GetEnv()
 	if origin == "" && env == "prod" {
-		//TODO: implement db support for taking the array of allowed origins
+		//TODO [dev]: implement db support for taking the array of allowed origins
 		fmt.Printf("BadRequest: missing origin value\n")
 		return nil, core.ErrBadRequest
 	}
 
 	if referer == "" {
-		//TODO: consider if this value must be part of the client Authentication process...
+		//TODO [design]: consider if this value must be part of the client Authentication process...
 		fmt.Printf("INFO: missing referer value\n")
 	}
+
+	// TODO [dev]: implement function to take the value from the client register record.
+	var publicClient = false
 
 	// Distinguish the code logic base on the request method
 	if r.Method == "POST" {
@@ -359,11 +361,9 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 					return nil, core.ErrBadRequest
 				}
 			}
-
 		default:
 			fmt.Printf("BadRequest: unsupported content-type: %v", ahct)
 			return nil, core.ErrBadRequest
-
 		}
 
 		// OAuth flow authorization code grant type - GET /auth
@@ -555,12 +555,12 @@ func (s *service) CheckUserRegistration(oidtoken *core.IDToken) {
 }
 
 // GetClientsRedirectURI will return the registred redirection URI for a specific clientID
-func (s *service) GetClientsRedirectURI(cid string) (string, error) {
+func (s *service) GetClientsRedirectURI(cid string) ([]string, error) {
 
 	rc, err := s.clients.Find(core.ClientID(cid))
 	if err != nil {
 		fmt.Printf("while finding clientID: %v in the database error raised: %v\n", cid, err.Error())
-		return "", err
+		return []string{""}, err
 	}
 
 	return rc.RedirectURI, nil

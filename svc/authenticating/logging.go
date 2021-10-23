@@ -36,19 +36,6 @@ func (s *loggingService) Validate(
 	return s.next.Validate(rh, body, pks, client)
 }
 
-func (s *loggingService) RegisterNewRequest(rh *http.Header, body *core.AuthRequestBody, client *core.Client) (id core.AuthRequestID, err error) {
-	defer func(begin time.Time) {
-		_ = s.logger.Log(
-			"method", "RegisterNewRequest",
-			"request_Header_len", len(*rh),
-			"session_id", id,
-			"took", time.Since(begin),
-			"err", err,
-		)
-	}(time.Now())
-	return s.next.RegisterNewRequest(rh, body, client)
-}
-
 func (s *loggingService) AuthenticateClient(r *http.Request) (rc *core.Client, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
@@ -128,7 +115,7 @@ func (s *loggingService) ValidateUsersCredentials(email, pass string) (ok bool, 
 	return s.next.ValidateUsersCredentials(email, pass)
 }
 
-func (s *loggingService) GetClientsRedirectURI(cid string) (uri string, err error) {
+func (s *loggingService) GetClientsRedirectURI(cid string) (uri []string, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "GetClientsRedirectURI",

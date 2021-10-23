@@ -16,7 +16,7 @@ type Client struct {
 	ClientProfile  ClientProfile
 	Status         EntryStatus
 	Scopes         []string
-	RedirectURI    string
+	RedirectURI    []string
 	IsPublicClient bool
 }
 
@@ -44,7 +44,7 @@ func NewClient(id ClientID, status EntryStatus) *Client {
 		ClientProfile:  profile,
 		Status:         status,
 		Scopes:         []string{},
-		RedirectURI:    "",
+		RedirectURI:    []string{""},
 		IsPublicClient: true,
 	}
 }
