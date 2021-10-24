@@ -136,11 +136,11 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 		// https://ivmanto.dev/pg/cb?code=AUTH_CODE_HERE&state=THE_STATE_FROM_THE_FORM
 
 		// GetAPIGWSvcURL will return the host for the api gateway service
-		// api_gw_host := h.server.Config.GetAPIGWSvcURL()
-		// call_back_url := fmt.Sprintf("https://%s/pg/cb", api_gw_host)
+		api_gw_host := h.server.Config.GetAPIGWSvcURL()
+		call_back_url := fmt.Sprintf("https://%s/pg/cb", api_gw_host)
 
 		var ac = h.server.Sm.GetAuthCode(state)
-		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s", ac["redirect_uri"], ac["auth_code"], state)
+		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s", call_back_url, ac["auth_code"], state)
 
 		// [-] remove after debug
 		fmt.Printf("redirect URL: %s\n", redirectURL)
