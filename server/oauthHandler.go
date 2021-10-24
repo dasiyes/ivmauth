@@ -224,7 +224,7 @@ func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// handleAuthCodeFllow performs the checks and logic for Authorization_code grant_type fllow
+// handleAuthCodeFllow performs the checks and logic for Authorization_code grant_type flow
 func (h *oauthHandler) handleAuthCodeFllow(
 	rb *core.AuthRequestBody,
 	w http.ResponseWriter,
@@ -294,11 +294,16 @@ func (h *oauthHandler) handleAuthCodeFllow(
 		return
 	}
 
-	// [ ] 2. Take the value of AT and RT and store them in Session Store using session Manager
+	// [x] 2. Take the value of AT and RT and store them in Session Store using session Manager
+	// [x] 3. SM to generate a new sessionID with state "Auth" and set it in the session cookie.
+	err = h.server.Sm.SessionAuth(w, r, at.AccessToken, at.RefreshToken)
+	if err != nil {
+		h.server.responseUnauth(w, "handleAuthCodeFllow-sm-sessionAuth", fmt.Errorf("error issue new authenticated session %s", err.Error()))
+		return
+	}
 
-	// [ ] 3. SM to generate a new sessionID with state "Auth" and set it in the session cookie.
-
-	fmt.Fprintf(w, "access token is %v", at)
+	// fmt.Fprintf(w, "access token is %v", at)
+	http.Redirect(w, r, rb.RedirectUri, http.StatusSeeOther)
 }
 
 // handleRefTokenFllow performs the checks and logic for refresh_token grant_type fllow
