@@ -22,7 +22,9 @@ sesman_config:
 # api-gateway config
 api_gateway_svc:
   host: ["ivmanto.dev"]
-
+  endpoints:
+    - endpoint: "/pg/cb"
+      method: "GET"
 # web application config
 web_app_svc:
   # Configuring the wep app service
