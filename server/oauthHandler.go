@@ -124,12 +124,11 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 	// var cid = r.FormValue("client_id")
 
 	valid, err := h.server.Auth.ValidateUsersCredentials(email, password)
-	if err != nil {
-		//[ ] swap the commented code after debug is finished
-		//h.server.responseUnauth(w, "authLogin", err)
-		//return
-		fmt.Printf("err: %s\n", err.Error())
-		valid = true
+	if err != nil || !valid {
+		h.server.responseUnauth(w, "authLogin", err)
+		return
+		// fmt.Printf("err: %s\n", err.Error())
+		// valid = true
 	}
 
 	if valid {
