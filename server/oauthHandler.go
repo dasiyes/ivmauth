@@ -79,6 +79,7 @@ func (h *oauthHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
 	var sid = strings.TrimSpace(q.Get("state"))
 	var coch = strings.TrimSpace(q.Get("code_challenge"))
 	var mth = strings.TrimSpace(q.Get("code_challenge_method"))
+	var ru = strings.TrimSpace(q.Get("redirect_uri"))
 
 	if coch == "" || mth == "" {
 		h.server.responseBadRequest(w, "processAuthCode", errors.New("missing mandatory code challenge or method"))
@@ -91,7 +92,7 @@ func (h *oauthHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// save the code_challenge along with the code_challenge_method and the code itself in the Session-Store (firestore)
-	err = h.server.Sm.SaveCodeChallengeAndMethod(sid, coch, mth, code)
+	err = h.server.Sm.SaveACA(sid, coch, mth, code, ru)
 	if err != nil {
 		h.server.responseUnauth(w, "processAuthCode", err)
 		return
@@ -119,34 +120,29 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 	var email = r.FormValue("email")
 	var password = r.FormValue("password")
 	var state = r.FormValue("csrf_token")
-	var cid = r.FormValue("client_id")
+	// var cid = r.FormValue("client_id")
 
 	valid, err := h.server.Auth.ValidateUsersCredentials(email, password)
 	if err != nil {
+		//[ ] swap the commented code after debug is finished
 		//h.server.responseUnauth(w, "authLogin", err)
 		//return
 		fmt.Printf("err: %s\n", err.Error())
+		valid = true
 	}
 
-	// [ ] Replace val in the if below and Use the variable **valid** to ACTIVATE the login form credentials
-	_ = valid
-
-	val := true
-
-	if val {
+	if valid {
 		// the redirect url should be in the format:
 		// https://ivmanto.dev/pg/cb?code=AUTH_CODE_HERE&state=THE_STATE_FROM_THE_FORM
-		// [ ] [dev]:  WHEN credentials are verified and user is authenticated - redirect to the client with all paramrs from method "processAuthCode"
 
 		// GetAPIGWSvcURL will return the host for the api gateway service
-		api_gw_host := h.server.Config.GetAPIGWSvcURL()
-		// TODO [dev]: Get the call_back_url value from the initial auth request using the auth code (SessMan)
-		_ = cid
-		call_back_url := fmt.Sprintf("https://%s/pg/cb", api_gw_host)
+		// api_gw_host := h.server.Config.GetAPIGWSvcURL()
+		// call_back_url := fmt.Sprintf("https://%s/pg/cb", api_gw_host)
 
 		var ac = h.server.Sm.GetAuthCode(state)
-		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s", call_back_url, ac["auth_code"], state)
+		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s", ac["redirect_uri"], ac["auth_code"], state)
 
+		// [-] remove after debug
 		fmt.Printf("redirect URL: %s\n", redirectURL)
 
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
@@ -179,7 +175,7 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 	h.server.IvmSSO.Render(w, r, "login.page.tmpl", &td)
 }
 
-// [WIP] issueToken will return an access token to the post request
+// issueToken will return an access token to the post request
 func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
 
 	// [x] perform a check for content type header - application/json
@@ -221,7 +217,6 @@ func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
 		h.server.responseBadRequest(w, "issueTkon-grant-type", fmt.Errorf("unsupported grant_type fllow [%s]", rb.GrantType))
 		return
 	}
-
 }
 
 // handleAuthCodeFllow performs the checks and logic for Authorization_code grant_type flow
@@ -282,9 +277,8 @@ func (h *oauthHandler) handleAuthCodeFllow(
 	}
 
 	// [x] 1. Call issue Access Token Method
-	// [ ] refactor the method "IssueAccessToken"
 	cid := core.ClientID(rb.ClientID)
-	uid := core.UserID("")
+	uid := core.UserID("") // [!]
 	c := core.Client{ClientID: core.ClientID(rb.ClientID)}
 
 	oidt := h.server.Auth.IssueIvmIDToken(uid, cid)
@@ -302,10 +296,10 @@ func (h *oauthHandler) handleAuthCodeFllow(
 		return
 	}
 
-	// fmt.Fprintf(w, "access token is %v", at)
 	http.Redirect(w, r, rb.RedirectUri, http.StatusSeeOther)
 }
 
+// TODO [dev]:
 // handleRefTokenFllow performs the checks and logic for refresh_token grant_type fllow
 func (h *oauthHandler) handleRefTokenFllow(
 	rb *core.AuthRequestBody,
