@@ -44,6 +44,7 @@ func (h *oauthHandler) router() chi.Router {
 	return r
 }
 
+// [!] ACF -> S2
 // processAuthCode will handle the requests sent for authorize as initation of the AuthCode fllow with PKCE extension
 func (h *oauthHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
 
@@ -98,6 +99,7 @@ func (h *oauthHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// [!] ACF S3 ->
 	// GetAPIGWSvcURL will return the host for the api gateway service
 	var api_gw_host = h.server.Config.GetAPIGWSvcURL()
 	var redirectURL = fmt.Sprintf("https://%s/oauth/ui/login?t=%s", api_gw_host, sid)
@@ -106,6 +108,7 @@ func (h *oauthHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 }
 
+// [!] ACF -> S4
 // authLogin - validate user's input credentials
 func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 
@@ -147,6 +150,7 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 		// [-] remove after debug
 		fmt.Printf("redirect URL: %s\n", redirectURL)
 
+		// [!] ACF S7 ->
 		// redirect to the web application server endpoint dedicated to call-back from /oauth/login
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 		return

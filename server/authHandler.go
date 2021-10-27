@@ -13,7 +13,6 @@ import (
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/xid"
 	"github.com/segmentio/ksuid"
 
 	"github.com/dasiyes/ivmauth/core"
@@ -116,14 +115,15 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// TODO: implement the []scopes that will be registred of the pair client-user
+	client.Scopes = []string{}
+
 	reqbody, err := h.aus.GetRequestBody(r)
 	if err != nil {
 		_ = level.Error(h.logger).Log("error ", err)
 		core.EncodeError(context.TODO(), http.StatusBadRequest, err, w)
 		return
 	}
-
-	// TODO: implement the scope of the client
 
 	usr, err := h.aus.RegisterUser(reqbody.Name, reqbody.Email, reqbody.Password)
 	if err != nil {
@@ -132,20 +132,10 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	at, _ := h.aus.IssueAccessToken(&core.IDToken{
-		Sub: string(usr.SubCode),
-		Jti: xid.New().String(),
-	}, &client)
-
-	usr.UpdateRefreshToken(at.RefreshToken)
-
-	if err = h.aus.UpdateUser(usr); err != nil {
-		h.logger.Log("error update user in the db", err.Error())
-	}
-
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	if err := json.NewEncoder(w).Encode(at); err != nil {
-		_ = h.logger.Log("error", err)
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(usr); err != nil {
+		_ = level.Error(h.logger).Log("error-json-enc", err)
 		core.EncodeError(context.TODO(), http.StatusInternalServerError, err, w)
 		return
 	}
