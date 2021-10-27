@@ -45,7 +45,7 @@ type AuthRequestBody struct {
 	IDToken      string
 	Name         string
 	Email        string
-	Password     string
+	Password     string `json:"-,omitempty"`
 	Scopes       []string
 	// Session validation token when the GrantType is id_token
 	Nonce string
