@@ -132,6 +132,7 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	usr.Password = ""
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	if err := json.NewEncoder(w).Encode(usr); err != nil {
