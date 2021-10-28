@@ -124,10 +124,14 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 	var email = r.FormValue("email")
 	var password = r.FormValue("password")
 	var state = r.FormValue("csrf_token")
-	// var cid = r.FormValue("client_id")
+	var cid = r.FormValue("client_id")
+
+	_ = cid
+	_ = level.Debug(h.logger).Log("cid", cid, "email", email, "password", password)
 
 	valid, err := h.server.Auth.ValidateUsersCredentials(email, password)
 	if err != nil || !valid {
+		_ = level.Error(h.logger).Log("vaid", valid, "error", err.Error())
 		h.server.responseUnauth(w, "authLogin", err)
 		return
 		// fmt.Printf("err: %s\n", err.Error())
