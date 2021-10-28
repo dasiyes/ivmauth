@@ -262,9 +262,10 @@ func (s *service) ValidateUsersCredentials(email, pass string) (bool, error) {
 		return valid, err
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(pass))
+	h := []byte(usr.Password)
+	err = bcrypt.CompareHashAndPassword(h, []byte(pass))
 	if err != nil {
-		return valid, fmt.Errorf("usr.Password=%s; bytes:%v; pass=%s; bytes:%v; error:%v", usr.Password, []byte(usr.Password), pass, []byte(pass), err.Error())
+		return valid, fmt.Errorf("usr.Password=%s; pass=%s; error:%v", usr.Password, pass, err.Error())
 	}
 	if err == nil {
 		valid = true
@@ -742,6 +743,5 @@ func hashPass(p []byte) ([]byte, error) {
 		fmt.Printf("hash:%v, err:%s", h, err.Error())
 		return nil, err
 	}
-	fmt.Printf("hash:%v, err:nil", h)
 	return h, err
 }
