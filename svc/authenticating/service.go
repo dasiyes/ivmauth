@@ -264,7 +264,7 @@ func (s *service) ValidateUsersCredentials(email, pass string) (bool, error) {
 
 	err = bcrypt.CompareHashAndPassword([]byte(usr.Password), []byte(pass))
 	if err != nil {
-		return valid, err
+		return valid, fmt.Errorf("usr.Password=%s; bytes:%v; pass=%s; bytes:%v; error:%v", usr.Password, []byte(usr.Password), pass, []byte(pass), err.Error())
 	}
 	if err == nil {
 		valid = true
