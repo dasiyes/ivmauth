@@ -737,5 +737,7 @@ func NewService(requests core.RequestRepository,
 
 // hashPass is supporting function for hashing the password
 func hashPass(p []byte) ([]byte, error) {
-	return bcrypt.GenerateFromPassword(p, 12)
+	h, err := bcrypt.GenerateFromPassword(p, 12)
+	fmt.Printf("hash:%v, err:%s", h, err.Error())
+	return h, err
 }
