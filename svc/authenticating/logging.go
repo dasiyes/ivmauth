@@ -108,6 +108,8 @@ func (s *loggingService) ValidateUsersCredentials(email, pass string) (ok bool, 
 		_ = s.logger.Log(
 			"method", "ValidateUsersCredentials",
 			"took", time.Since(begin),
+			"email", email,
+			"password", pass,
 			"valid", ok,
 			"err", err,
 		)
