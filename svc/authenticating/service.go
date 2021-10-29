@@ -212,7 +212,7 @@ func (s *service) Validate(
 		if err != nil {
 			return nil, core.ErrAuthenticating
 		}
-		usr.Password = ""
+		usr.Password = []byte{}
 
 	case "code":
 		authGrantType = "authorization_code"
