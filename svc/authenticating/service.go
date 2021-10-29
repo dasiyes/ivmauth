@@ -259,12 +259,12 @@ func (s *service) ValidateUsersCredentials(email, pass string) (bool, error) {
 
 	usr, err := s.users.Find(core.UserID(email))
 	if err != nil {
-		return valid, err
+		return valid, fmt.Errorf("error finding user %s: %#v", email, err.Error())
 	}
 
 	err = bcrypt.CompareHashAndPassword(usr.Password, []byte(pass))
 	if err != nil {
-		return valid, fmt.Errorf("usr.Password=%s; pass=%s; error:%v", string(usr.Password), pass, err.Error())
+		return valid, fmt.Errorf("usr.Password=%#v; pass=%s; error:%s", usr.Password, pass, err.Error())
 	}
 	if err == nil {
 		valid = true
@@ -489,16 +489,23 @@ func (s *service) RegisterUser(names, email, password string) (*core.User, error
 	usr, err := s.users.Find(core.UserID(email))
 	if err != nil {
 		if err == firestoredb.ErrUserNotFound {
-			nUsr, err := core.NewUser(core.UserID(email))
-			if err != nil {
-				return nil, err
+			nUsr, errnu := core.NewUser(core.UserID(email))
+			if errnu != nil {
+				return nil, errnu
 			}
 			nUsr.Name = names
 			nUsr.Status = core.EntryStatus(core.Draft)
-			nUsr.Password, err = hashPass([]byte(password))
+			var nup, err = bcrypt.GenerateFromPassword([]byte(password), 12)
 			if err != nil {
 				return nil, err
 			}
+
+			// Compare new hash with the pass
+			err = bcrypt.CompareHashAndPassword(nup, []byte(password))
+			if err != nil {
+				return nil, fmt.Errorf("error when compare new hash with the pass")
+			}
+			nUsr.Password = nup
 
 			if err = s.users.Store(nUsr); err != nil {
 				return nil, fmt.Errorf("error saving new user: %#v", err)
@@ -735,11 +742,11 @@ func NewService(requests core.RequestRepository,
 }
 
 // hashPass is supporting function for hashing the password
-func hashPass(p []byte) ([]byte, error) {
-	h, err := bcrypt.GenerateFromPassword(p, 12)
-	if err != nil {
-		fmt.Printf("hash:%v, err:%s", h, err.Error())
-		return nil, err
-	}
-	return h, err
-}
+// func hashPass(p []byte) ([]byte, error) {
+// 	h, err := bcrypt.GenerateFromPassword(p, 12)
+// 	if err != nil {
+// 		fmt.Printf("hash:%v, err:%s", h, err.Error())
+// 		return nil, err
+// 	}
+// 	return h, err
+// }
