@@ -496,11 +496,10 @@ func (s *service) RegisterUser(names, email, password string) (*core.User, error
 			}
 			nUsr.Name = names
 			nUsr.Status = core.EntryStatus(core.Draft)
-			hp, err := hashPass([]byte(password))
+			nUsr.Password, err = hashPass([]byte(password))
 			if err != nil {
 				return nil, err
 			}
-			nUsr.Password = string(hp)
 
 			if err = s.users.Store(nUsr); err != nil {
 				return nil, fmt.Errorf("error saving new user: %#v", err)

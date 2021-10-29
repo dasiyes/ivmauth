@@ -17,7 +17,7 @@ type User struct {
 
 	UserID       UserID `json:"email"`
 	Name         string
-	Password     string
+	Password     []byte
 	Avatar       string
 	Status       EntryStatus
 	OIDCProvider string
