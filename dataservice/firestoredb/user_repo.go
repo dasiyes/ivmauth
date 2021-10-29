@@ -49,9 +49,7 @@ func (ur *userRepository) Find(id core.UserID) (*core.User, error) {
 
 		err = doc.DataTo(&u)
 		if err != nil {
-			return nil, err
-			// TODO: review the error for missing permissions
-			//continue
+			return nil, fmt.Errorf("error while convert DataTo user object for %s", doc.Ref.ID)
 		}
 		if core.UserID(doc.Ref.ID) == id {
 			break
