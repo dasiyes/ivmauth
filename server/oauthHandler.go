@@ -119,7 +119,12 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	r.ParseForm()
+	err := r.ParseForm()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("while parsing the form error: %s", err.Error()))
+		return
+	}
 
 	var email = r.FormValue("email")
 	var password = r.FormValue("password")
