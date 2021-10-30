@@ -202,7 +202,7 @@ func (s *service) Validate(
 
 		authGrantType = "password_credentials"
 
-		// TODO: [IVM-6] implement password fllow
+		// TODO: [IVM-6] implement password flow
 		usr, err = s.users.Find(core.UserID(body.Email))
 		if err != nil {
 			return nil, err

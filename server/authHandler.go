@@ -46,6 +46,7 @@ func (h *authHandler) router() chi.Router {
 	return r
 }
 
+// TODO: the entire method need to be changed according to new apiGATEWAY and SessionManager authentication process
 func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
@@ -71,12 +72,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	var tt = r.Header.Get("x-token-type")
 	if tt != "" {
 		go h.pks.DownloadPKSinCache(tt)
-		// TODO: debug to find why it does not work
-		// go h.pks.InitOIDProviders()
 	}
-
-	// ? Registering auth request (NOT REQUIRED - moved to middleware requestLogging)
-	// _, _ = h.aus.RegisterNewRequest(&r.Header, reqbody, &client)
 
 	// Validate auth request. Authenticated client's scope to consider
 	at, err := h.aus.Validate(&r.Header, reqbody, h.pks, &client)
@@ -86,7 +82,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	}
 
 	// Get a new session for the authenticated request
-	// TODO: instead of creatimg a new Session, get the cookie "ivmid" from the current request and for this session id change the status of the session in the shared database (Firestore - collection sessions).
+	// TODO: instead of creating a new Session, get the cookie "ivmid" from the current request and for this session id change the status of the session in the shared database (Firestore - collection sessions).
 	ns, err := h.sm.SessionStart(w, r)
 	if err != nil {
 		_ = level.Error(h.logger).Log("SessionManagerError", err.Error())
@@ -101,6 +97,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// userRegistration will create a new user's record in the Firestore database - collection `users`.
 func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
@@ -142,6 +139,7 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// TODO: this method will serve requests to `GET /auth` - confirm if it is still required
 func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
 
 	// The query is already unescaped in the middleware authenticatedClient
