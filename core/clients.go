@@ -11,11 +11,13 @@ type ClientID string
 
 // Client is one of the objects for registering or authenticating
 type Client struct {
-	ClientID      ClientID
-	ClientSecret  string
-	ClientProfile ClientProfile
-	Status        EntryStatus
-	Scopes        []string
+	ClientID       ClientID
+	ClientSecret   string
+	ClientProfile  ClientProfile
+	Status         EntryStatus
+	Scopes         []string
+	RedirectURI    []string
+	IsPublicClient bool
 }
 
 // ClientProfile is a client Descriptor
@@ -37,11 +39,13 @@ func NewClient(id ClientID, status EntryStatus) *Client {
 	profile := ClientProfile{}
 
 	return &Client{
-		ClientID:      id,
-		ClientSecret:  "",
-		ClientProfile: profile,
-		Status:        status,
-		Scopes:        []string{},
+		ClientID:       id,
+		ClientSecret:   "",
+		ClientProfile:  profile,
+		Status:         status,
+		Scopes:         []string{},
+		RedirectURI:    []string{""},
+		IsPublicClient: true,
 	}
 }
 

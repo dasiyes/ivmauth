@@ -13,7 +13,6 @@ import (
 	kitlog "github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/xid"
 	"github.com/segmentio/ksuid"
 
 	"github.com/dasiyes/ivmauth/core"
@@ -47,6 +46,7 @@ func (h *authHandler) router() chi.Router {
 	return r
 }
 
+// TODO: the entire method need to be changed according to new apiGATEWAY and SessionManager authentication process
 func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
@@ -72,12 +72,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	var tt = r.Header.Get("x-token-type")
 	if tt != "" {
 		go h.pks.DownloadPKSinCache(tt)
-		// TODO: debug to find why it does not work
-		// go h.pks.InitOIDProviders()
 	}
-
-	// ? Registering auth request (NOT REQUIRED - moved to middleware requestLogging)
-	// _, _ = h.aus.RegisterNewRequest(&r.Header, reqbody, &client)
 
 	// Validate auth request. Authenticated client's scope to consider
 	at, err := h.aus.Validate(&r.Header, reqbody, h.pks, &client)
@@ -87,7 +82,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	}
 
 	// Get a new session for the authenticated request
-	// TODO: instead of creatimg a new Session, get the cookie "ivmid" from the current request and for this session id change the status of the session in the shared database (Firestore - collection sessions).
+	// TODO: instead of creating a new Session, get the cookie "ivmid" from the current request and for this session id change the status of the session in the shared database (Firestore - collection sessions).
 	ns, err := h.sm.SessionStart(w, r)
 	if err != nil {
 		_ = level.Error(h.logger).Log("SessionManagerError", err.Error())
@@ -102,6 +97,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// userRegistration will create a new user's record in the Firestore database - collection `users`.
 func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
@@ -116,14 +112,15 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// TODO: implement the []scopes that will be registred of the pair client-user
+	client.Scopes = []string{}
+
 	reqbody, err := h.aus.GetRequestBody(r)
 	if err != nil {
 		_ = level.Error(h.logger).Log("error ", err)
 		core.EncodeError(context.TODO(), http.StatusBadRequest, err, w)
 		return
 	}
-
-	// TODO: implement the scope of the client
 
 	usr, err := h.aus.RegisterUser(reqbody.Name, reqbody.Email, reqbody.Password)
 	if err != nil {
@@ -132,25 +129,17 @@ func (h *authHandler) userRegistration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	at, _ := h.aus.IssueAccessToken(&core.IDToken{
-		Sub: string(usr.SubCode),
-		Jti: xid.New().String(),
-	}, &client)
-
-	usr.UpdateRefreshToken(at.RefreshToken)
-
-	if err = h.aus.UpdateUser(usr); err != nil {
-		h.logger.Log("error update user in the db", err.Error())
-	}
-
+	usr.Password = []byte{}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	if err := json.NewEncoder(w).Encode(at); err != nil {
-		_ = h.logger.Log("error", err)
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(usr); err != nil {
+		_ = level.Error(h.logger).Log("error-json-enc", err)
 		core.EncodeError(context.TODO(), http.StatusInternalServerError, err, w)
 		return
 	}
 }
 
+// TODO: this method will serve requests to `GET /auth` - confirm if it is still required
 func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
 
 	// The query is already unescaped in the middleware authenticatedClient

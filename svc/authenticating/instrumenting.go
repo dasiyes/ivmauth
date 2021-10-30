@@ -24,15 +24,6 @@ func NewInstrumentingService(counter metrics.Counter, latency metrics.Histogram,
 	}
 }
 
-func (s *instrumentingService) RegisterNewRequest(rh *http.Header, body *core.AuthRequestBody, client *core.Client) (core.AuthRequestID, error) {
-	defer func(begin time.Time) {
-		s.requestCount.With("method", "RegisterNewRequest").Add(1)
-		s.requestLatency.With("method", "RegisterNewRequest").Observe(time.Since(begin).Seconds())
-	}(time.Now())
-
-	return s.next.RegisterNewRequest(rh, body, client)
-}
-
 func (s *instrumentingService) Validate(
 	rh *http.Header,
 	body *core.AuthRequestBody,
@@ -97,4 +88,31 @@ func (s *instrumentingService) UpdateUser(u *core.User) error {
 	}(time.Now())
 
 	return s.next.UpdateUser(u)
+}
+
+func (s *instrumentingService) ValidateUsersCredentials(email, pass string) (bool, error) {
+	defer func(begin time.Time) {
+		s.requestCount.With("method", "ValidateUsersCredentials").Add(1)
+		s.requestLatency.With("method", "ValidateUsersCredentials").Observe(time.Since(begin).Seconds())
+	}(time.Now())
+
+	return s.next.ValidateUsersCredentials(email, pass)
+}
+
+func (s *instrumentingService) GetClientsRedirectURI(cid string) (uri []string, err error) {
+	defer func(begin time.Time) {
+		s.requestCount.With("method", "GetClientsRedirectURI").Add(1)
+		s.requestLatency.With("method", "GetClientsRedirectURI").Observe(time.Since(begin).Seconds())
+	}(time.Now())
+
+	return s.next.GetClientsRedirectURI(cid)
+}
+
+func (s *instrumentingService) IssueIvmIDToken(uid core.UserID, cid core.ClientID) *core.IDToken {
+	defer func(begin time.Time) {
+		s.requestCount.With("method", "IssueIvmIDToken").Add(1)
+		s.requestLatency.With("method", "IssueIvmIDToken").Observe(time.Since(begin).Seconds())
+	}(time.Now())
+
+	return s.next.IssueIvmIDToken(uid, cid)
 }

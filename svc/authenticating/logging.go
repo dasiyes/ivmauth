@@ -36,19 +36,6 @@ func (s *loggingService) Validate(
 	return s.next.Validate(rh, body, pks, client)
 }
 
-func (s *loggingService) RegisterNewRequest(rh *http.Header, body *core.AuthRequestBody, client *core.Client) (id core.AuthRequestID, err error) {
-	defer func(begin time.Time) {
-		_ = s.logger.Log(
-			"method", "RegisterNewRequest",
-			"request_Header_len", len(*rh),
-			"session_id", id,
-			"took", time.Since(begin),
-			"err", err,
-		)
-	}(time.Now())
-	return s.next.RegisterNewRequest(rh, body, client)
-}
-
 func (s *loggingService) AuthenticateClient(r *http.Request) (rc *core.Client, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
@@ -114,4 +101,42 @@ func (s *loggingService) UpdateUser(u *core.User) (err error) {
 		)
 	}(time.Now())
 	return s.next.UpdateUser(u)
+}
+
+func (s *loggingService) ValidateUsersCredentials(email, pass string) (ok bool, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "ValidateUsersCredentials",
+			"took", time.Since(begin),
+			"email", email,
+			"password", pass,
+			"valid", ok,
+			"err", err,
+		)
+	}(time.Now())
+	return s.next.ValidateUsersCredentials(email, pass)
+}
+
+func (s *loggingService) GetClientsRedirectURI(cid string) (uri []string, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "GetClientsRedirectURI",
+			"took", time.Since(begin),
+			"clientID", cid,
+			"err", err,
+		)
+	}(time.Now())
+	return s.next.GetClientsRedirectURI(cid)
+}
+
+func (s *loggingService) IssueIvmIDToken(uid core.UserID, cid core.ClientID) *core.IDToken {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "IssueIvmIDToken",
+			"userID", uid,
+			"clientID", cid,
+			"took", time.Since(begin),
+		)
+	}(time.Now())
+	return s.next.IssueIvmIDToken(uid, cid)
 }

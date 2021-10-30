@@ -1,21 +1,22 @@
 // Roles [RFC6749]
 // OAuth defines four roles:
-//    resource owner
-//       An entity capable of granting access to a protected resource.
-//       When the resource owner is a person, it is referred to as an
-//       end-user.
-//    resource server
-//       The server hosting the protected resources, capable of accepting
-//       and responding to protected resource requests using access tokens.
-//    client
-//       An application making protected resource requests on behalf of the
-//       resource owner and with its authorization.  The term "client" does
-//       not imply any particular implementation characteristics (e.g.,
-//       whether the application executes on a server, a desktop, or other
-//       devices).
-//    authorization server [this service role in the domains Ivmanto]
-//       The server issuing access tokens to the client after successfully
-//       authenticating the resource owner and obtaining authorization.
+// [!]	**resource owner [RO]**
+//       	An entity capable of granting access to a protected resource.
+//       	When the resource owner is a person, it is referred to as an
+//       	end-user.
+// [!]	**resource server [RS]**
+//       	The server hosting the protected resources, capable of accepting
+//       	and responding to protected resource requests using access tokens.
+// [!] 	**client [C]**
+//       	An application making protected resource requests on behalf of the
+//       	resource owner and with its authorization.  The term "client" does
+//       	not imply any particular implementation characteristics (e.g.,
+//       	whether the application executes on a server, a desktop, or other
+//       	devices).
+// [!]	**authorization server [AS]**
+//				[this service role in the domains Ivmanto]
+//       	The server issuing access tokens to the client after successfully
+//       	authenticating the resource owner and obtaining authorization.
 //
 // 	The interaction between the authorization server and resource server
 // 	is beyond the scope of this specification.  The authorization server
@@ -66,6 +67,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/dasiyes/ivmapi/pkg/config"
 	"github.com/dasiyes/ivmauth/core"
@@ -100,8 +102,6 @@ import (
 
 // Service is the interface that provides auth methods.
 type Service interface {
-	// RegisterNewRequest registring a new http request for authentication
-	RegisterNewRequest(rh *http.Header, body *core.AuthRequestBody, client *core.Client) (core.AuthRequestID, error)
 
 	// Validate the auth request according to OAuth2 sepcification (see the notes at the top of of this file)
 	Validate(rh *http.Header, body *core.AuthRequestBody, pks pksrefreshing.Service, client *core.Client) (*core.AccessToken, error)
@@ -124,6 +124,15 @@ type Service interface {
 
 	// UpdateUser will update the user object from the parameter in the db
 	UpdateUser(u *core.User) error
+
+	// ValidateUsersCredentials will use the UsersRepository to find and validate user's credentials
+	ValidateUsersCredentials(email, pass string) (bool, error)
+
+	// GetClientsRedirectURI will return the registred redirection URI for a specific clientID
+	GetClientsRedirectURI(cid string) ([]string, error)
+
+	// IssueIvmIDToken issues IDToken for users registered on Ivmanto's OAuth server
+	IssueIvmIDToken(uid core.UserID, cid core.ClientID) *core.IDToken
 }
 
 type service struct {
@@ -133,20 +142,20 @@ type service struct {
 	config   config.IvmCfg
 }
 
-func (s *service) RegisterNewRequest(rh *http.Header, body *core.AuthRequestBody, client *core.Client) (core.AuthRequestID, error) {
+// func (s *service) RegisterNewRequest(rh *http.Header, body *core.AuthRequestBody, client *core.Client) (core.AuthRequestID, error) {
 
-	if len(*rh) == 0 || core.GetSize(body) == 0 {
-		return "", core.ErrInvalidArgument
-	}
+// 	if len(*rh) == 0 || core.GetSize(body) == 0 {
+// 		return "", core.ErrInvalidArgument
+// 	}
 
-	id := core.NextAuthRequestID()
-	ar := core.NewAuthRequest(id, *rh, body, client)
+// 	id := core.NextAuthRequestID()
+// 	ar := core.NewAuthRequest(id, *rh, body, client)
 
-	if err := s.requests.Store(ar); err != nil {
-		return "", err
-	}
-	return ar.AuthRequestID, nil
-}
+// 	if err := s.requests.Store(ar); err != nil {
+// 		return "", err
+// 	}
+// 	return ar.AuthRequestID, nil
+// }
 
 func (s *service) Validate(
 	rh *http.Header,
@@ -193,7 +202,7 @@ func (s *service) Validate(
 
 		authGrantType = "password_credentials"
 
-		// TODO: [IVM-6] implement password fllow
+		// TODO: [IVM-6] implement password flow
 		usr, err = s.users.Find(core.UserID(body.Email))
 		if err != nil {
 			return nil, err
@@ -203,7 +212,7 @@ func (s *service) Validate(
 		if err != nil {
 			return nil, core.ErrAuthenticating
 		}
-		usr.Password = ""
+		usr.Password = []byte{}
 
 	case "code":
 		authGrantType = "authorization_code"
@@ -244,6 +253,26 @@ func (s *service) Validate(
 	return at, nil
 }
 
+// ValidateUsersCredentials will use the UsersRepository to find and validate user's credentials
+func (s *service) ValidateUsersCredentials(email, pass string) (bool, error) {
+	var valid = false
+
+	usr, err := s.users.Find(core.UserID(email))
+	if err != nil {
+		return valid, fmt.Errorf("error finding user %s: %#v", email, err.Error())
+	}
+
+	err = bcrypt.CompareHashAndPassword(usr.Password, []byte(pass))
+	if err != nil {
+		return valid, fmt.Errorf("usr.Password=%v; length: %d; pass=%s; error:%s", usr.Password, len(usr.Password), pass, err.Error())
+	}
+	if err == nil {
+		valid = true
+	}
+
+	return valid, nil
+}
+
 // [3.2.1] AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
 // A server MUST respond with a 400 (Bad Request) status code to any
 //  [x] HTTP/1.1 request message that lacks a Host header field
@@ -269,7 +298,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 	var cID, cSec string
 	var err error
 
-	// The address where the request was sent to. Should be domain where this library is authoritative to! []
+	// The host is the address where the request is sent to.
 	var host string = r.Host
 
 	// The origin is the address where the request is sent from. Since the CORS is allowed, this value should be controlling the originates from where the library accepts calls from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin]
@@ -278,24 +307,28 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 	// The refrerrer value, as a difference from the origin, will include the full path from where the request was sent from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer]
 	var referer = r.Referer()
 
-	var env string = s.config.GetEnv()
-	var expected_host = s.config.GetAuthSvcCfg().Host
+	var expected_host = s.config.GetAuthSvcURL()
 
-	if host != expected_host[0] || host == "" || expected_host[0] == "" {
+	// [x] [host]: The address where the request was sent to. Should be domain where this library is authoritative to - ivmauth service host (internal Cloud Run service domain)!
+	if host != expected_host || host == "" || expected_host == "" {
 		fmt.Printf("BadRequest: host: %v,does not match the expected value of: %v, or one of them is empty value\n", host, expected_host)
 		return nil, core.ErrBadRequest
 	}
 
+	var env string = s.config.GetEnv()
 	if origin == "" && env == "prod" {
-		//TODO: implement db support for taking the array of allowed origins
+		//TODO [dev]: implement db support for taking the array of allowed origins
 		fmt.Printf("BadRequest: missing origin value\n")
 		return nil, core.ErrBadRequest
 	}
 
 	if referer == "" {
-		//TODO: consider if this value must be part of the client Authentication process...
+		//TODO [design]: consider if this value must be part of the client Authentication process...
 		fmt.Printf("INFO: missing referer value\n")
 	}
+
+	// TODO [dev]: implement function to take the value from the client register record.
+	var publicClient = false
 
 	// Distinguish the code logic base on the request method
 	if r.Method == "POST" {
@@ -304,13 +337,15 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 
 		switch {
 		case ahct == "application/x-www-form-urlencoded":
+			// Usually this is public client and client secret would not be available. Do check for user agent to be browser?!
+			publicClient = true
 			cID, cSec, err = getClientIDSecWFUE(r)
 			if err != nil {
 				fmt.Printf("Badrequest: error getting clientID and client secret from application/x-www-form-urlencoded request. Error: %v", err.Error())
 				return nil, core.ErrBadRequest
 			}
 		case strings.HasPrefix(ahct, "application/json"):
-			xic := r.Header.Get("x-ivm-client")
+			xic := r.Header.Get("X-Ivm-Client")
 			hab := r.Header.Get("Authorization")
 
 			if xic == "" && strings.HasPrefix(hab, "Basic ") {
@@ -326,12 +361,9 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 					return nil, core.ErrBadRequest
 				}
 			}
-
 		default:
-			if r.Method == "POST" {
-				fmt.Printf("BadRequest: unsupported content-type: %v", ahct)
-				return nil, core.ErrBadRequest
-			}
+			fmt.Printf("BadRequest: unsupported content-type: %v", ahct)
+			return nil, core.ErrBadRequest
 		}
 
 		// OAuth flow authorization code grant type - GET /auth
@@ -357,17 +389,21 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 		fmt.Printf("while finding clientID: %v in the database error raised: %v\n", cID, err.Error())
 		return nil, err
 	}
-	if rc.ClientSecret != cSec && r.Method != "GET" {
-		fmt.Printf("client secret provided within the request %v, does not match the one in the DB\n", rc.ClientSecret)
-		return nil, core.ErrClientAuth
+	if !publicClient {
+		if rc.ClientSecret != cSec && r.Method != "GET" {
+			fmt.Printf("client secret provided within the request %v, does not match the one in the DB\n", rc.ClientSecret)
+			return nil, core.ErrClientAuth
+		}
 	}
 
 	return rc, nil
 }
 
-// getXClient - retrievs the ClientID and Client Secret from the custom header X-IVM-CLIENT for the cases when the Authorization header is having Bearer token
+// getXClient - retrievs the ClientID and Client Secret from the custom header X-IVM-CLIENT.
+// This function expects the ClientID and ClientSecret as Bsic auth string.
 func getXClient(xic string) (cid string, csc string) {
 
+	// TODO: remove after debug
 	fmt.Printf("xic: %v\n", xic)
 
 	cis := strings.Split(xic, " ")
@@ -431,6 +467,12 @@ func (s *service) GetRequestBody(r *http.Request) (*core.AuthRequestBody, error)
 				rb.AsrCID = lblval[1]
 			case "client_id":
 				rb.ClientID = lblval[1]
+			case "name":
+				rb.Name = lblval[1]
+			case "email":
+				rb.Email = lblval[1]
+			case "password":
+				rb.Password = lblval[1]
 			}
 		}
 	}
@@ -451,31 +493,46 @@ func (s *service) IssueAccessToken(oidt *core.IDToken, client *core.Client) (*co
 func (s *service) RegisterUser(names, email, password string) (*core.User, error) {
 
 	usr, err := s.users.Find(core.UserID(email))
-	if err != nil {
-		if err == firestoredb.ErrUserNotFound {
-			nUsr, err := core.NewUser(core.UserID(email))
-			if err != nil {
-				return nil, err
-			}
-			nUsr.Name = names
-			nUsr.Status = core.EntryStatus(core.Draft)
-			hp, err := hashPass([]byte(password))
-			if err != nil {
-				return nil, err
-			}
-			nUsr.Password = string(hp)
-
-			if err = s.users.Store(nUsr); err != nil {
-				return nil, fmt.Errorf("error saving new user: %#v", err)
-			}
-			fmt.Printf("user %#v successfully registred\n", nUsr.UserID)
-			return nUsr, nil
-		}
-
-		return nil, fmt.Errorf("error while searching for a user: %#v", err)
+	if err == nil && usr != nil {
+		return nil, fmt.Errorf("user %#v already registered in the db", usr.UserID)
+	}
+	if err != nil && err != firestoredb.ErrUserNotFound {
+		return nil, fmt.Errorf("failed to confirm that the user is NOT yet registered: %#v", err)
 	}
 
-	return nil, fmt.Errorf("user %#v already registered in the db", usr.UserID)
+	if names == "" || email == "" || password == "" {
+		return nil, fmt.Errorf("one or more mandatory attribute(s) is empty! Names: %s, email: %s", names, email)
+	}
+
+	nUsr, errnu := core.NewUser(core.UserID(email))
+	if errnu != nil {
+		return nil, fmt.Errorf("error while creating new user object: %#v", errnu)
+	}
+
+	nUsr.Name = names
+
+	nUsr.Status = core.EntryStatus(core.Draft)
+
+	var nup, errgp = bcrypt.GenerateFromPassword([]byte(password), 12)
+	if errgp != nil {
+		return nil, fmt.Errorf("error while bcrypting the password: %#v", errgp)
+	}
+
+	// Compare new hash with the pass
+	err = bcrypt.CompareHashAndPassword(nup, []byte(password))
+	if err != nil {
+		return nil, fmt.Errorf("error when compare new hash with the pass")
+	}
+
+	nUsr.Password = nup
+
+	if err = s.users.Store(nUsr); err != nil {
+		return nil, fmt.Errorf("error saving new user: %#v", err)
+	}
+
+	fmt.Printf("user %#v successfully registred.\n", nUsr.UserID)
+	return nUsr, nil
+
 }
 
 // UpdateUser will update the user changes in the DB
@@ -518,8 +575,42 @@ func (s *service) CheckUserRegistration(oidtoken *core.IDToken) {
 	fmt.Printf("user %#v already registered in the db.", usr.UserID)
 }
 
+// GetClientsRedirectURI will return the registred redirection URI for a specific clientID
+func (s *service) GetClientsRedirectURI(cid string) ([]string, error) {
+
+	rc, err := s.clients.Find(core.ClientID(cid))
+	if err != nil {
+		fmt.Printf("while finding clientID: %v in the database error raised: %v\n", cid, err.Error())
+		return []string{""}, err
+	}
+
+	return rc.RedirectURI, nil
+}
+
+// IssueIvmIDToken will create a new IDToken (according OpenIDConnect standard)
+// [source](https://openid.net/specs/openid-connect-token-bound-authentication-1_0.html#rfc.section.1.1)
+func (s *service) IssueIvmIDToken(uid core.UserID, cid core.ClientID) *core.IDToken {
+
+	var iat = time.Now().Unix()
+	var exp = iat + 300
+
+	var idt = core.IDToken{
+		// REQUIRED
+		Iss: "https://ivmanto.com",
+		Sub: string(uid),
+		Aud: string(cid),
+		Exp: exp,
+		Iat: iat,
+		// OPTIONAL
+		Email:         "",
+		EmailVerified: false,
+	}
+
+	return &idt
+}
+
 // Get the client ID and the Client secret from web form url encoded
-func getClientIDSecWFUE(r *http.Request) (cID string, cSec string, err error) {
+func getClientIDSecWFUE(r *http.Request) (cID, cSec string, err error) {
 
 	// standard: https://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.1
 	// Forms submitted with this content type must be encoded as follows:
@@ -665,6 +756,12 @@ func NewService(requests core.RequestRepository,
 	}
 }
 
-func hashPass(p []byte) ([]byte, error) {
-	return bcrypt.GenerateFromPassword(p, 12)
-}
+// hashPass is supporting function for hashing the password
+// func hashPass(p []byte) ([]byte, error) {
+// 	h, err := bcrypt.GenerateFromPassword(p, 12)
+// 	if err != nil {
+// 		fmt.Printf("hash:%v, err:%s", h, err.Error())
+// 		return nil, err
+// 	}
+// 	return h, err
+// }

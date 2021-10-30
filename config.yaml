@@ -1,0 +1,40 @@
+# ivmauth service configuration file
+
+# environment
+env: STAGING
+
+# current service configuration
+auth_svc:
+  host: ["localhost:8888"]
+  port: ${PORT}
+
+# cloud environment config
+cloud_env:
+  project_id: 'ivmauth'
+
+# session man config
+sesman_config:
+  cookie_name: "ivmid"
+  max_lifetime: 3600
+  visit_cookie_name: "iv"
+  project_id: $FIRESTORE_PROJECT_ID
+
+# api-gateway config
+api_gateway_svc:
+  host: ["ivmanto.dev"]
+
+# web application config
+web_app_svc:
+  # Configuring the wep app service
+  name: webAppSvc
+  endpoints: []
+  timeout: 60
+  host: ["ivmanto-com-xmywgxnrfq-ez.a.run.app"]
+  version: 0.0.3
+
+# access token config
+at_config:
+  validity: 3600
+  realm:    "ivmanto.com"
+  alg:      "RS256"
+  issuer:   "https://accounts.ivmanto.com"

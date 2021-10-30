@@ -1,3 +1,5 @@
+v0.0.13
+        - changes to support OAuth2 with PKCE extension
 v0.0.12
         - bugfix: Compare ClientID - clean whitespaces
 v0.0.11
