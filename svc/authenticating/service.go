@@ -264,7 +264,7 @@ func (s *service) ValidateUsersCredentials(email, pass string) (bool, error) {
 
 	err = bcrypt.CompareHashAndPassword(usr.Password, []byte(pass))
 	if err != nil {
-		return valid, fmt.Errorf("usr.Password=%#v; pass=%s; error:%s", usr.Password, pass, err.Error())
+		return valid, fmt.Errorf("usr.Password=%v; length: %d; pass=%s; error:%s", usr.Password, len(usr.Password), pass, err.Error())
 	}
 	if err == nil {
 		valid = true
@@ -510,7 +510,7 @@ func (s *service) RegisterUser(names, email, password string) (*core.User, error
 			if err = s.users.Store(nUsr); err != nil {
 				return nil, fmt.Errorf("error saving new user: %#v", err)
 			}
-			fmt.Printf("user %#v successfully registred\n", nUsr.UserID)
+			fmt.Printf("user %#v successfully registred. Pass byte (nup) length: %d\n", nUsr.UserID, len(nup))
 			return nUsr, nil
 		}
 
