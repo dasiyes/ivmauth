@@ -44,8 +44,8 @@ type AuthRequestBody struct {
 	RefreshToken string `json:"refresh_token,omitempty"`
 	IDToken      string
 	Name         string
-	Email        string
-	Password     string `json:"-,omitempty"`
+	Email        string `json:"email"`
+	Password     string `json:"password,omitempty"`
 	Scopes       []string
 	// Session validation token when the GrantType is id_token
 	Nonce string

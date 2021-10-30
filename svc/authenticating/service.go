@@ -467,6 +467,12 @@ func (s *service) GetRequestBody(r *http.Request) (*core.AuthRequestBody, error)
 				rb.AsrCID = lblval[1]
 			case "client_id":
 				rb.ClientID = lblval[1]
+			case "name":
+				rb.Name = lblval[1]
+			case "email":
+				rb.Email = lblval[1]
+			case "password":
+				rb.Password = lblval[1]
 			}
 		}
 	}
@@ -495,7 +501,7 @@ func (s *service) RegisterUser(names, email, password string) (*core.User, error
 	}
 
 	if names == "" || email == "" || password == "" {
-		return nil, fmt.Errorf("one or more mandatory attributes is empty! Names: %s, email: %s", names, email)
+		return nil, fmt.Errorf("one or more mandatory attribute(s) is empty! Names: %s, email: %s", names, email)
 	}
 
 	nUsr, errnu := core.NewUser(core.UserID(email))
