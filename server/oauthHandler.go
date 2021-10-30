@@ -134,6 +134,12 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 	_ = cid
 	_ = level.Debug(h.logger).Log("cid", cid, "email", email, "password", password)
 
+	if email == "" || password == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("one or more empty manadatory attribute %s", email))
+		return
+	}
+
 	valid, err := h.server.Auth.ValidateUsersCredentials(email, password)
 	if err != nil || !valid {
 		_ = level.Error(h.logger).Log("vaid", valid, "error", err.Error())

@@ -487,37 +487,46 @@ func (s *service) IssueAccessToken(oidt *core.IDToken, client *core.Client) (*co
 func (s *service) RegisterUser(names, email, password string) (*core.User, error) {
 
 	usr, err := s.users.Find(core.UserID(email))
-	if err != nil {
-		if err == firestoredb.ErrUserNotFound {
-			nUsr, errnu := core.NewUser(core.UserID(email))
-			if errnu != nil {
-				return nil, errnu
-			}
-			nUsr.Name = names
-			nUsr.Status = core.EntryStatus(core.Draft)
-			var nup, err = bcrypt.GenerateFromPassword([]byte(password), 12)
-			if err != nil {
-				return nil, err
-			}
-
-			// Compare new hash with the pass
-			err = bcrypt.CompareHashAndPassword(nup, []byte(password))
-			if err != nil {
-				return nil, fmt.Errorf("error when compare new hash with the pass")
-			}
-			nUsr.Password = nup
-
-			if err = s.users.Store(nUsr); err != nil {
-				return nil, fmt.Errorf("error saving new user: %#v", err)
-			}
-			fmt.Printf("user %#v successfully registred. Pass byte (nup) length: %d\n", nUsr.UserID, len(nup))
-			return nUsr, nil
-		}
-
-		return nil, fmt.Errorf("error while searching for a user: %#v", err)
+	if err == nil && usr != nil {
+		return nil, fmt.Errorf("user %#v already registered in the db", usr.UserID)
+	}
+	if err != nil && err != firestoredb.ErrUserNotFound {
+		return nil, fmt.Errorf("failed to confirm that the user is NOT yet registered: %#v", err)
 	}
 
-	return nil, fmt.Errorf("user %#v already registered in the db", usr.UserID)
+	if names == "" || email == "" || password == "" {
+		return nil, fmt.Errorf("one or more mandatory attributes is empty! Names: %s, email: %s", names, email)
+	}
+
+	nUsr, errnu := core.NewUser(core.UserID(email))
+	if errnu != nil {
+		return nil, fmt.Errorf("error while creating new user object: %#v", errnu)
+	}
+
+	nUsr.Name = names
+
+	nUsr.Status = core.EntryStatus(core.Draft)
+
+	var nup, errgp = bcrypt.GenerateFromPassword([]byte(password), 12)
+	if errgp != nil {
+		return nil, fmt.Errorf("error while bcrypting the password: %#v", errgp)
+	}
+
+	// Compare new hash with the pass
+	err = bcrypt.CompareHashAndPassword(nup, []byte(password))
+	if err != nil {
+		return nil, fmt.Errorf("error when compare new hash with the pass")
+	}
+
+	nUsr.Password = nup
+
+	if err = s.users.Store(nUsr); err != nil {
+		return nil, fmt.Errorf("error saving new user: %#v", err)
+	}
+
+	fmt.Printf("user %#v successfully registred.\n", nUsr.UserID)
+	return nUsr, nil
+
 }
 
 // UpdateUser will update the user changes in the DB
