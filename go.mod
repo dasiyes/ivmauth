@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	cloud.google.com/go/firestore v1.6.1
-	github.com/dasiyes/ivmapi v0.0.18-dev1
+	github.com/dasiyes/ivmapi v0.0.18-dev2
 	github.com/dasiyes/ivmsesman v0.4.8-dev9
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-chi/chi v1.5.4
