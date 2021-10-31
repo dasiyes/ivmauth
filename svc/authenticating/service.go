@@ -74,36 +74,36 @@ import (
 	"github.com/dasiyes/ivmauth/dataservice/firestoredb"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/dvsekhvalnov/jose2go/base64url"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // TODO [dev]: replace the following two packages:
 // "github.com/dgrijalva/jwt-go"
-// "github.com/dvsekhvalnov/jose2go/base64url"
+// [x] "github.com/dvsekhvalnov/jose2go/base64url"
 
 // TODO: Review the service concept against the checklist below:
 // **Authentication Framework Evaluation Checklist**
-// - Provides the ability to exchange credentials (username/password, token, and so on) for a valid session.
-// - Supports proper session management (www.owasp.org/index.php/Session_Management_Cheat_Sheet).
-// - Lets users opt in to two-factor authentication.
-// - In a browser-based environment, properly marks the session cookie as HTTPOnly (www.owasp.org/index.php/HttpOnly) and secure (www.owasp.org/index.php/SecureFlag).
-// - Provides support for Cross-Site Request Forgery (CSRF; goo.gl/TwcSJX) protection/ defenses.
-// - Supports token-based authentication mechanisms (such as OAuth).
-// - Supports proper password storage (www.owasp.org/index.php/Password_Storage_Cheat_Sheet).
-// - Provides integration with third-party authentication providers.
-// - Logs all authentication activity (and supports proper audit trails  of login/ logout, token  creation  and exchange, revocation,  and so on).
-// - Has a public record of good security response, disclosure, and fixes.
-// - Supports secure account-recovery flows (third-party authentication providers make this easier).
-// - Never exposes credentials in plaintext, whether in user interfaces, URLs, storage, logs, or network communications.
-// - Enforces use of credentials with sufficient entropy.
-// - Protects against online brute-force attacks.
-// - Protects against session fixation attacks.
+// [x] Provides the ability to exchange credentials (username/password, token, and so on) for a valid session.
+// [ ] Supports proper session management (www.owasp.org/index.php/Session_Management_Cheat_Sheet).
+// [ ] Lets users opt in to two-factor authentication.
+// [x] In a browser-based environment, properly marks the session cookie as HTTPOnly (www.owasp.org/index.php/HttpOnly) and secure (www.owasp.org/index.php/SecureFlag).
+// [ ] Provides support for Cross-Site Request Forgery (CSRF; goo.gl/TwcSJX) protection/ defenses.
+// [x] Supports token-based authentication mechanisms (such as OAuth2).
+// [x] Supports proper password storage (www.owasp.org/index.php/Password_Storage_Cheat_Sheet).
+//		 - bcrypt with cost (work factor) 12 is used
+// [ ] Provides integration with third-party authentication providers.
+// [ ] Logs all authentication activity (and supports proper audit trails  of login/ logout, token  creation  and exchange, revocation,  and so on).
+// [ ] Has a public record of good security response, disclosure, and fixes.
+// [ ] Supports secure account-recovery flows (third-party authentication providers make this easier).
+// [ ] Never exposes credentials in plaintext, whether in user interfaces, URLs, storage, logs, or network communications.
+// [ ] Enforces use of credentials with sufficient entropy.
+// [ ] Protects against online brute-force attacks.
+// [ ] Protects against session fixation attacks.
 
 // Service is the interface that provides auth methods.
 type Service interface {
 
-	// Validate the auth request according to OAuth2 sepcification (see the notes at the top of of this file)
+	// DEPRICATED Validate the auth request according to OAuth2 sepcification (see the notes at the top of of this file)
 	Validate(rh *http.Header, body *core.AuthRequestBody, pks pksrefreshing.Service, client *core.Client) (*core.AccessToken, error)
 
 	// AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
@@ -142,21 +142,7 @@ type service struct {
 	config   config.IvmCfg
 }
 
-// func (s *service) RegisterNewRequest(rh *http.Header, body *core.AuthRequestBody, client *core.Client) (core.AuthRequestID, error) {
-
-// 	if len(*rh) == 0 || core.GetSize(body) == 0 {
-// 		return "", core.ErrInvalidArgument
-// 	}
-
-// 	id := core.NextAuthRequestID()
-// 	ar := core.NewAuthRequest(id, *rh, body, client)
-
-// 	if err := s.requests.Store(ar); err != nil {
-// 		return "", err
-// 	}
-// 	return ar.AuthRequestID, nil
-// }
-
+// DEPRICATED this method will be replaced by several new methods to handle apiGateway with Session Manager application architecture
 func (s *service) Validate(
 	rh *http.Header,
 	body *core.AuthRequestBody,
@@ -399,31 +385,6 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 	return rc, nil
 }
 
-// getXClient - retrievs the ClientID and Client Secret from the custom header X-IVM-CLIENT.
-// This function expects the ClientID and ClientSecret as Bsic auth string.
-func getXClient(xic string) (cid string, csc string) {
-
-	// TODO: remove after debug
-	fmt.Printf("xic: %v\n", xic)
-
-	cis := strings.Split(xic, " ")
-	if len(cis) != 2 || cis[0] != "Basic" {
-		return "", ""
-	}
-
-	dc, err := base64url.Decode(cis[1])
-	if err != nil {
-		return "", ""
-	}
-
-	cp := strings.Split(string(dc), ":")
-	if len(cp) == 1 {
-		return "", ""
-	}
-
-	return cp[0], cp[1]
-}
-
 // GetRequestBody considers the contet type header and reads the request body within core.AuthRequestBody
 func (s *service) GetRequestBody(r *http.Request) (*core.AuthRequestBody, error) {
 
@@ -532,7 +493,6 @@ func (s *service) RegisterUser(names, email, password string) (*core.User, error
 
 	fmt.Printf("user %#v successfully registred.\n", nUsr.UserID)
 	return nUsr, nil
-
 }
 
 // UpdateUser will update the user changes in the DB
@@ -755,13 +715,3 @@ func NewService(requests core.RequestRepository,
 		config:   config,
 	}
 }
-
-// hashPass is supporting function for hashing the password
-// func hashPass(p []byte) ([]byte, error) {
-// 	h, err := bcrypt.GenerateFromPassword(p, 12)
-// 	if err != nil {
-// 		fmt.Printf("hash:%v, err:%s", h, err.Error())
-// 		return nil, err
-// 	}
-// 	return h, err
-// }

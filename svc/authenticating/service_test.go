@@ -1,13 +1,13 @@
 package authenticating
 
 import (
+	b64 "encoding/base64"
 	"errors"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/dasiyes/ivmauth/core"
-	"github.com/dvsekhvalnov/jose2go/base64url"
 )
 
 // TODO:	AuthenticateClient
@@ -18,8 +18,8 @@ func TestAuthenticateClientAH(t *testing.T) {
 	s := NewService(nil, &clients, nil, nil)
 
 	// prep the client credentials for Auth Header
-	bc := "Basic " + base64url.Encode([]byte("xxx.apps.ivmanto.dev:ivmanto-2021"))
-
+	// bc := "Basic " + base64url.Encode()
+	bc := b64.URLEncoding.EncodeToString([]byte("xxx.apps.ivmanto.dev:ivmanto-2021"))
 	// Store the same client in the clients repository
 	client2 := core.NewClient("xxx.apps.ivmanto.dev", core.Active)
 	client2.ClientSecret = "ivmanto-2021"
