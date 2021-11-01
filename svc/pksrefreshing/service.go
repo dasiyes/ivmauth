@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/dasiyes/ivmauth/core"
+	"github.com/dasiyes/ivmconfig/src/pkg/config"
 )
 
 // Service is the interface that provides the service's methods.
@@ -53,7 +54,7 @@ func (s *service) InitOIDProviders() {
 // NewPKS creates new Public Key Set for the ip (Identity Provider)
 func (s *service) newPKS(ip string) error {
 
-	var oidc core.OpenIDConfiguration
+	var oidc config.OpenIDConfiguration
 	var prvn core.ProviderName
 	var oidp core.OIDProvider
 	var pks *core.PublicKeySet
@@ -76,7 +77,7 @@ func (s *service) newPKS(ip string) error {
 		_ = s.providers.Store(&oidp)
 
 		// fullfiling PKS
-		pks.URL, err = url.Parse(oidc.JWKSURI)
+		pks.URL, err = url.Parse(oidc.JwksURI)
 		if err != nil {
 			return err
 		}
@@ -238,9 +239,9 @@ func downloadJWKS(pks *core.PublicKeySet) ([]byte, int64, error) {
 
 // getGooglesOIC - calls the URL https://accounts.google.com/.well-known/openid-configuration
 // and extracts the jwks_uri attribute to be further used here
-func getGooglesOIC(pks *core.PublicKeySet) (config core.OpenIDConfiguration, err error) {
+func getGooglesOIC(pks *core.PublicKeySet) (cfg config.OpenIDConfiguration, err error) {
 
-	var oidconfig core.OpenIDConfiguration
+	var oidconfig config.OpenIDConfiguration
 
 	resp, err := pks.HTTPClient.Get("https://accounts.google.com/.well-known/openid-configuration")
 	if err != nil {

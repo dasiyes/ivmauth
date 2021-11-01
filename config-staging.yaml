@@ -39,4 +39,4 @@ at_config:
   validity: 3600
   realm:    "ivmanto.com"
   alg:      "RS256"
-  issuer:   "https://accounts.ivmanto.com"
+  issuer:   "https://accounts.ivmanto.dev"

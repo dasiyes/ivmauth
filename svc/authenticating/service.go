@@ -59,8 +59,6 @@
 package authenticating
 
 import (
-	"bytes"
-	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -69,41 +67,41 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dasiyes/ivmapi/pkg/config"
 	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/dataservice/firestoredb"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
+	"github.com/dasiyes/ivmconfig/src/pkg/config"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/dvsekhvalnov/jose2go/base64url"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // TODO [dev]: replace the following two packages:
 // "github.com/dgrijalva/jwt-go"
-// "github.com/dvsekhvalnov/jose2go/base64url"
+// [x] "github.com/dvsekhvalnov/jose2go/base64url"
 
 // TODO: Review the service concept against the checklist below:
 // **Authentication Framework Evaluation Checklist**
-// - Provides the ability to exchange credentials (username/password, token, and so on) for a valid session.
-// - Supports proper session management (www.owasp.org/index.php/Session_Management_Cheat_Sheet).
-// - Lets users opt in to two-factor authentication.
-// - In a browser-based environment, properly marks the session cookie as HTTPOnly (www.owasp.org/index.php/HttpOnly) and secure (www.owasp.org/index.php/SecureFlag).
-// - Provides support for Cross-Site Request Forgery (CSRF; goo.gl/TwcSJX) protection/ defenses.
-// - Supports token-based authentication mechanisms (such as OAuth).
-// - Supports proper password storage (www.owasp.org/index.php/Password_Storage_Cheat_Sheet).
-// - Provides integration with third-party authentication providers.
-// - Logs all authentication activity (and supports proper audit trails  of login/ logout, token  creation  and exchange, revocation,  and so on).
-// - Has a public record of good security response, disclosure, and fixes.
-// - Supports secure account-recovery flows (third-party authentication providers make this easier).
-// - Never exposes credentials in plaintext, whether in user interfaces, URLs, storage, logs, or network communications.
-// - Enforces use of credentials with sufficient entropy.
-// - Protects against online brute-force attacks.
-// - Protects against session fixation attacks.
+// [x] Provides the ability to exchange credentials (username/password, token, and so on) for a valid session.
+// [ ] Supports proper session management (www.owasp.org/index.php/Session_Management_Cheat_Sheet).
+// [ ] Lets users opt in to two-factor authentication.
+// [x] In a browser-based environment, properly marks the session cookie as HTTPOnly (www.owasp.org/index.php/HttpOnly) and secure (www.owasp.org/index.php/SecureFlag).
+// [ ] Provides support for Cross-Site Request Forgery (CSRF; goo.gl/TwcSJX) protection/ defenses.
+// [x] Supports token-based authentication mechanisms (such as OAuth2).
+// [x] Supports proper password storage (www.owasp.org/index.php/Password_Storage_Cheat_Sheet).
+//		 - bcrypt with cost (work factor) 12 is used
+// [ ] Provides integration with third-party authentication providers.
+// [ ] Logs all authentication activity (and supports proper audit trails  of login/ logout, token  creation  and exchange, revocation,  and so on).
+// [ ] Has a public record of good security response, disclosure, and fixes.
+// [ ] Supports secure account-recovery flows (third-party authentication providers make this easier).
+// [ ] Never exposes credentials in plaintext, whether in user interfaces, URLs, storage, logs, or network communications.
+// [ ] Enforces use of credentials with sufficient entropy.
+// [ ] Protects against online brute-force attacks.
+// [ ] Protects against session fixation attacks.
 
 // Service is the interface that provides auth methods.
 type Service interface {
 
-	// Validate the auth request according to OAuth2 sepcification (see the notes at the top of of this file)
+	// DEPRICATED Validate the auth request according to OAuth2 sepcification (see the notes at the top of of this file)
 	Validate(rh *http.Header, body *core.AuthRequestBody, pks pksrefreshing.Service, client *core.Client) (*core.AccessToken, error)
 
 	// AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
@@ -142,21 +140,7 @@ type service struct {
 	config   config.IvmCfg
 }
 
-// func (s *service) RegisterNewRequest(rh *http.Header, body *core.AuthRequestBody, client *core.Client) (core.AuthRequestID, error) {
-
-// 	if len(*rh) == 0 || core.GetSize(body) == 0 {
-// 		return "", core.ErrInvalidArgument
-// 	}
-
-// 	id := core.NextAuthRequestID()
-// 	ar := core.NewAuthRequest(id, *rh, body, client)
-
-// 	if err := s.requests.Store(ar); err != nil {
-// 		return "", err
-// 	}
-// 	return ar.AuthRequestID, nil
-// }
-
+// DEPRICATED this method will be replaced by several new methods to handle apiGateway with Session Manager application architecture
 func (s *service) Validate(
 	rh *http.Header,
 	body *core.AuthRequestBody,
@@ -399,31 +383,6 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 	return rc, nil
 }
 
-// getXClient - retrievs the ClientID and Client Secret from the custom header X-IVM-CLIENT.
-// This function expects the ClientID and ClientSecret as Bsic auth string.
-func getXClient(xic string) (cid string, csc string) {
-
-	// TODO: remove after debug
-	fmt.Printf("xic: %v\n", xic)
-
-	cis := strings.Split(xic, " ")
-	if len(cis) != 2 || cis[0] != "Basic" {
-		return "", ""
-	}
-
-	dc, err := base64url.Decode(cis[1])
-	if err != nil {
-		return "", ""
-	}
-
-	cp := strings.Split(string(dc), ":")
-	if len(cp) == 1 {
-		return "", ""
-	}
-
-	return cp[0], cp[1]
-}
-
 // GetRequestBody considers the contet type header and reads the request body within core.AuthRequestBody
 func (s *service) GetRequestBody(r *http.Request) (*core.AuthRequestBody, error) {
 
@@ -532,7 +491,6 @@ func (s *service) RegisterUser(names, email, password string) (*core.User, error
 
 	fmt.Printf("user %#v successfully registred.\n", nUsr.UserID)
 	return nUsr, nil
-
 }
 
 // UpdateUser will update the user changes in the DB
@@ -609,139 +567,6 @@ func (s *service) IssueIvmIDToken(uid core.UserID, cid core.ClientID) *core.IDTo
 	return &idt
 }
 
-// Get the client ID and the Client secret from web form url encoded
-func getClientIDSecWFUE(r *http.Request) (cID, cSec string, err error) {
-
-	// standard: https://www.w3.org/TR/html401/interact/forms.html#h-17.13.4.1
-	// Forms submitted with this content type must be encoded as follows:
-	//
-	// Control names and values are escaped. Space characters are replaced by `+', and then reserved characters are escaped as described in [RFC1738], section 2.2: Non-alphanumeric characters are replaced by `%HH', a percent sign and two hexadecimal digits representing the ASCII code of the character. Line breaks are represented as "CR LF" pairs (i.e., `%0D%0A').
-	// The control names/values are listed in the order they appear in the document. The name is separated from the value by `=' and name/value pairs are separated from each other by `&'.
-
-	// TODO: activate the code after debug
-	// if r.TLS == nil {
-	// 	return "", "", ErrTLS
-	// }
-
-	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return "", "", err
-	}
-
-	fp := strings.Split(string(body), "&")
-	for _, p := range fp {
-		if strings.HasPrefix(p, "client_id") {
-			cID = strings.Split(p, "=")[1]
-		} else if strings.HasPrefix(p, "client_secret") {
-			cSec = strings.Split(p, "=")[1]
-		}
-	}
-
-	// set the body back to the request. For cases when needs to read again.
-	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-
-	return cID, cSec, nil
-}
-
-// validateIDToken will provide validation of OpenIDConnect ID Tokens
-func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (*jwt.Token, *core.IDToken, error) {
-
-	var err error
-	var tkn *jwt.Token
-	var oidt = core.IDToken{}
-
-	_, err = pks.GetPKSCache(idP)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// validate idToken
-	tkn, err = jwt.ParseWithClaims(rawIDToken, &oidt, func(token *jwt.Token) (interface{}, error) {
-
-		tKid := token.Header["kid"].(string)
-		alg := token.Method.Alg()
-		if strings.ToUpper(token.Header["typ"].(string)) != "JWT" {
-			return "", core.ErrAuthenticating
-		}
-		switch alg {
-		case "RS256":
-			n, e, err := pks.GetRSAPublicKey(idP, tKid)
-			if err != nil {
-				return nil, err
-			}
-
-			return &rsa.PublicKey{
-				N: n,
-				E: e,
-			}, nil
-		default:
-			return "", nil
-		}
-	})
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return tkn, &oidt, nil
-}
-
-// validateOpenIDClaims will validate the jwtoken's claims from the respective Identity Provider as IDToken
-// and return nil error in successful validation.
-//
-// 1. verify the client side set nonce and asrCID to match the values in the token's claims
-// 2. validate the IDToken against the openID Connect standard
-// 3. validate the issuer to match the expected Identity Provider
-// 4. verify the authorized party (Azp) to match clienID
-func validateOpenIDClaims(
-	oidt *core.IDToken, body *core.AuthRequestBody, idP string, pks pksrefreshing.Service) error {
-
-	var err error
-
-	if oidt.Nonce != body.Nonce {
-		return core.ErrSessionToken
-	}
-
-	// ISSUE: jwt-go package does not support loading the toke claims into IDToken when the AUD type is set to array of[]string. With flat string type works well.
-	// ? TODO: report the issue to package repo...
-
-	if oidt.Aud != body.AsrCID {
-		return core.ErrCompromisedAud
-	}
-
-	if err = oidt.Valid(); err != nil {
-		return err
-	}
-
-	var issval string
-
-	issval, err = pks.GetIssuerVal(idP)
-	if err != nil {
-		return fmt.Errorf("%v inner %v", core.ErrInvalidIDToken, err)
-	}
-	if oidt.Iss != issval {
-		return core.ErrInvalidIDToken
-	}
-
-	if oidt.Azp != "" && body.ClientID != "" {
-		if oidt.Azp != body.ClientID {
-			return fmt.Errorf("%v inner %v", core.ErrInvalidIDToken, "authorized party not verified")
-		}
-	}
-
-	if oidt.Aud != body.ClientID {
-		return core.ErrInvalidIDToken
-	}
-
-	// TODO: Check if this key is available in the OpenID spec for other Identity Providers
-	if !oidt.EmailVerified {
-		return core.ErrInvalidIDToken
-	}
-
-	return nil
-}
-
 // NewService creates a authenticating service with necessary dependencies.
 func NewService(requests core.RequestRepository,
 	clients core.ClientRepository,
@@ -755,13 +580,3 @@ func NewService(requests core.RequestRepository,
 		config:   config,
 	}
 }
-
-// hashPass is supporting function for hashing the password
-// func hashPass(p []byte) ([]byte, error) {
-// 	h, err := bcrypt.GenerateFromPassword(p, 12)
-// 	if err != nil {
-// 		fmt.Printf("hash:%v, err:%s", h, err.Error())
-// 		return nil, err
-// 	}
-// 	return h, err
-// }

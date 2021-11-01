@@ -1,14 +1,13 @@
 package core
 
 import (
+	b64 "encoding/base64"
 	"encoding/json"
 	"errors"
 	"math/big"
 	"net/http"
 	"net/url"
 	"time"
-
-	"github.com/dvsekhvalnov/jose2go/base64url"
 )
 
 // PublicKeySet will be used to hold the public keys sets form the
@@ -186,7 +185,8 @@ func (pks *PublicKeySet) GetKidNE(kid string) (*big.Int, int, error) {
 		return nil, 0, InvalidPubliKeySet(errors.New("JWK not found by the provided kid"))
 	}
 
-	nb, err := base64url.Decode(n)
+	// nb, err := base64url.Decode(n)
+	nb, err := b64.URLEncoding.DecodeString(n)
 	if err != nil {
 		return nil, 0, InvalidPubliKeySet(errors.New("invalid JWK modulus"))
 	}

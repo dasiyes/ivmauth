@@ -1,10 +1,11 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 
-	"github.com/dasiyes/ivmapi/pkg/config"
+	"github.com/dasiyes/ivmconfig/src/pkg/config"
 	"github.com/dasiyes/ivmsesman"
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/kit/log"
@@ -67,6 +68,9 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 	fileServer := http.FileServer(http.Dir("./ui/static"))
 	r.Method("GET", "/static/*", http.StripPrefix("/static/", fileServer))
 
+	// OpenID Connect configuration
+	r.Method("GET", "/.well-known/openid-configuration", s.oidcc())
+
 	// Attach instrumenting
 	r.Method("GET", "/oauth/metrics", promhttp.Handler())
 
@@ -92,6 +96,23 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 // ServeHTTP request entry point
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.router.ServeHTTP(w, r)
+}
+
+// OpenID Connect Configuration
+func (s *Server) oidcc() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var ivmoid *config.OpenIDConfiguration = s.Config.GetIvmantoOIDC()
+
+		w.Header().Set("Content-Type", "application/json")
+		rsl, err := json.MarshalIndent(ivmoid, "", " ")
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(`smthg went wrong`))
+			return
+		}
+		w.WriteHeader(200)
+		w.Write(rsl)
+	})
 }
 
 // responseUnauth returns response status code 401 Unauthorized
