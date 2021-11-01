@@ -6,7 +6,7 @@ import (
 	"crypto/rsa"
 	"time"
 
-	"github.com/dasiyes/ivmapi/pkg/config"
+	"github.com/dasiyes/ivmconfig/src/pkg/config"
 	"github.com/dgrijalva/jwt-go"
 )
 

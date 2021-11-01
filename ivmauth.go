@@ -18,10 +18,10 @@ import (
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 
-	ivmcfg "github.com/dasiyes/ivmapi/pkg/config"
 	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/pkg/ssoapp"
 	"github.com/dasiyes/ivmauth/svc/authenticating"
+	ivmcfg "github.com/dasiyes/ivmconfig/src/pkg/config"
 
 	"github.com/dasiyes/ivmauth/dataservice/firestoredb"
 	"github.com/dasiyes/ivmauth/dataservice/inmem"
@@ -36,7 +36,7 @@ func main() {
 		inmemory = flag.Bool("inmem", false, "use in-memory repositories")
 		// TODO:
 		env = flag.String("env", "dev", "The environment where the service will run. It will define the config file name to load by adding suffix '-$env' to 'config'. Accepted values: dev|staging|prod ")
-		cf  = flag.String("c", "config.yaml", "The configuration file name to use for api-gateway config values")
+		cf  = flag.String("c", "config.yaml", "The configuration file name to use for oauth server config values and dependent services")
 	)
 
 	flag.Parse()
