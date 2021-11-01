@@ -1,6 +1,6 @@
 v0.0.14
         - refactoring OpenID configuration
-        - moving OIDC into configuration
+        - moving OIDC into ivmconfig package
         
 v0.0.13
         - changes to support OAuth2 with PKCE extension
