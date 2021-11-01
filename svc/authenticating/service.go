@@ -59,7 +59,6 @@
 package authenticating
 
 import (
-	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -566,49 +565,6 @@ func (s *service) IssueIvmIDToken(uid core.UserID, cid core.ClientID) *core.IDTo
 	}
 
 	return &idt
-}
-
-// validateIDToken will provide validation of OpenIDConnect ID Tokens
-func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (*jwt.Token, *core.IDToken, error) {
-
-	var err error
-	var tkn *jwt.Token
-	var oidt = core.IDToken{}
-
-	_, err = pks.GetPKSCache(idP)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// validate idToken
-	tkn, err = jwt.ParseWithClaims(rawIDToken, &oidt, func(token *jwt.Token) (interface{}, error) {
-
-		tKid := token.Header["kid"].(string)
-		alg := token.Method.Alg()
-		if strings.ToUpper(token.Header["typ"].(string)) != "JWT" {
-			return "", core.ErrAuthenticating
-		}
-		switch alg {
-		case "RS256":
-			n, e, err := pks.GetRSAPublicKey(idP, tKid)
-			if err != nil {
-				return nil, err
-			}
-
-			return &rsa.PublicKey{
-				N: n,
-				E: e,
-			}, nil
-		default:
-			return "", nil
-		}
-	})
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return tkn, &oidt, nil
 }
 
 // NewService creates a authenticating service with necessary dependencies.

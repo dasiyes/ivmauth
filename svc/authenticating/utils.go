@@ -2,6 +2,7 @@ package authenticating
 
 import (
 	"bytes"
+	"crypto/rsa"
 	b64 "encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
+	"github.com/dgrijalva/jwt-go"
 )
 
 // getXClient - retrievs the ClientID and Client Secret from the provided xic string that represents the ClientID and ClientSecret as Basic auth string.
@@ -68,6 +70,49 @@ func getClientIDSecWFUE(r *http.Request) (cID, cSec string, err error) {
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
 	return cID, cSec, nil
+}
+
+// validateIDToken will provide validation of OpenIDConnect ID Tokens
+func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (*jwt.Token, *core.IDToken, error) {
+
+	var err error
+	var tkn *jwt.Token
+	var oidt = core.IDToken{}
+
+	_, err = pks.GetPKSCache(idP)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// validate idToken
+	tkn, err = jwt.ParseWithClaims(rawIDToken, &oidt, func(token *jwt.Token) (interface{}, error) {
+
+		tKid := token.Header["kid"].(string)
+		alg := token.Method.Alg()
+		if strings.ToUpper(token.Header["typ"].(string)) != "JWT" {
+			return "", core.ErrAuthenticating
+		}
+		switch alg {
+		case "RS256":
+			n, e, err := pks.GetRSAPublicKey(idP, tKid)
+			if err != nil {
+				return nil, err
+			}
+
+			return &rsa.PublicKey{
+				N: n,
+				E: e,
+			}, nil
+		default:
+			return "", nil
+		}
+	})
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return tkn, &oidt, nil
 }
 
 // validateOpenIDClaims - will validate the jwtoken's claims from the respective Identity Provider as IDToken
