@@ -47,9 +47,9 @@ func getXClient(xic string) (cid string, csc string) {
 // The control names/values are listed in the order they appear in the document. The name is separated from the value by `=' and name/value pairs are separated from each other by `&'.
 func getClientIDSecWFUE(r *http.Request) (cID, cSec string, err error) {
 
-	if r.TLS == nil {
-		return "", "", core.ErrTLS
-	}
+	// if r.TLS == nil {
+	// 	return "", "", core.ErrTLS
+	// }
 
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)

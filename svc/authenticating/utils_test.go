@@ -39,15 +39,16 @@ func TestGetClientIDSecWFUE(t *testing.T) {
 	r.Host = "example.com"
 	// =================================
 
-	t.Run("Test error TLS",
-		func(t *testing.T) {
-			cid, csc, err := getClientIDSecWFUE(r)
+	// [!] Activate the snippet below if r.TLS chek in utils is activated
+	// t.Run("Test error TLS",
+	// 	func(t *testing.T) {
+	// 		cid, csc, err := getClientIDSecWFUE(r)
 
-			if cid != "" && csc != "" && err.Error() != "unsecured transport of credentials" {
-				t.Logf("cid: %s, csc: %s, error: %#v", cid, csc, err)
-				t.Fail()
-			}
-		})
+	// 		if cid != "" && csc != "" && err.Error() != "unsecured transport of credentials" {
+	// 			t.Logf("cid: %s, csc: %s, error: %#v", cid, csc, err)
+	// 			t.Fail()
+	// 		}
+	// 	})
 
 	// Config TLS to to make it work
 	r = httptest.NewRequest(http.MethodPost, "https://192.0.2.1:1234", nil)
