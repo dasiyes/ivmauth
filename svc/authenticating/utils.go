@@ -271,7 +271,8 @@ func validateClientExists(r *http.Request, clients core.ClientRepository) (*core
 	}
 
 	q := r.URL.Query()
-	var cID = strings.TrimSpace(q.Get("client_id"))
+	var cID = q.Get("client_id")
+	cID = strings.TrimSpace(cID)
 	if cID == "" {
 		return nil, fmt.Errorf("while validating clientID exists - missing client_id! %#v", core.ErrBadRequest)
 	}
