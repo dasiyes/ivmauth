@@ -241,7 +241,7 @@ func getAndAuthRegisteredClient(clients core.ClientRepository, cID, cSec string)
 
 	switch rc.ClientType {
 	case core.Confidential:
-		if cSec != "" && rc.ClientSecret == cSec {
+		if cSec != "" && strings.TrimSpace(rc.ClientSecret) == strings.TrimSpace(cSec) {
 			return rc, nil
 		} else {
 			return nil, fmt.Errorf("authentication failed for clientID %s, clientType %s, %#v", cID, rc.ClientType.String(), core.ErrClientAuth)
