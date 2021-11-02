@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/dasiyes/ivmauth/core"
@@ -217,7 +218,11 @@ func checkValidClientAuthRequest(r *http.Request, cfg config.IvmCfg) (bool, erro
 	}
 
 	if r.Method != http.MethodPost {
-		return false, fmt.Errorf("request method %s is not accepted. Only POST method is a valid request method", r.Method)
+		// Check for an exception - validate the clientID is registred for GET /oauth/authorize endpoint
+		if r.Method == http.MethodGet && r.URL.Path == "/oauth/authorize" {
+			return true, nil
+		}
+		return false, fmt.Errorf("request method %s is not accepted", r.Method)
 	}
 
 	return true, nil
@@ -253,4 +258,28 @@ func getAndAuthRegisteredClient(clients core.ClientRepository, cID, cSec string)
 	default:
 		return nil, fmt.Errorf("unsupported client type. %#v", core.ErrBadRequest)
 	}
+}
+
+// validateClientExists - just finds by client_id from request query into the database as registred clientID and returns the object - otherwise error. To NOT be confused with authenticate client.
+func validateClientExists(r *http.Request, clients core.ClientRepository) (*core.Client, error) {
+
+	var err error
+
+	r.URL.RawQuery, err = url.QueryUnescape(r.URL.RawQuery)
+	if err != nil {
+		return nil, fmt.Errorf("while validating clientID exists, error: %#v! %#v", err, core.ErrBadRequest)
+	}
+
+	q := r.URL.Query()
+	var cID = q.Get("client_id")
+	if cID == "" {
+		return nil, fmt.Errorf("while validating clientID exists - missing client_id! %#v", core.ErrBadRequest)
+	}
+
+	rc, err := clients.Find(core.ClientID(cID))
+	if err != nil {
+		return nil, fmt.Errorf("while finding clientID: %v in the database error raised: %#v", cID, err)
+	}
+
+	return rc, nil
 }

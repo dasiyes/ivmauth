@@ -331,6 +331,15 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 		return nil, fmt.Errorf("while validating client auth rquest, error: %#v!\n %#v", err, core.ErrBadRequest)
 	}
 
+	// [!] Validate Client Exists only for `GET /oauth/authorize`. This will ONLY validate that the clientID is registered in the database => thus IS VALID.
+	if r.Method == http.MethodGet && r.URL.Path == "/oauth/authorize" {
+		rc, err := validateClientExists(r, s.clients)
+		if err != nil {
+			return nil, fmt.Errorf("while validating client_id exists, error: %#v! %#v", err, core.ErrBadRequest)
+		}
+		return rc, nil
+	}
+
 	// [DOC]
 	// This section defines a set of Client Authentication methods that are used by Clients
 	// to authenticate to this Authorization Server when using the Token Endpoint. During

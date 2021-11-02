@@ -2,6 +2,7 @@ v0.0.15
         - service tests
         - implementing check list
         - refactoring Authenticating Service method (AuthenticateClient etc)
+        - extended with validate client exists (as part of AuthenticateClient)
 
 v0.0.14
         - refactoring OpenID configuration
