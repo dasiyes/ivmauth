@@ -63,7 +63,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -257,130 +256,147 @@ func (s *service) ValidateUsersCredentials(email, pass string) (bool, error) {
 	return valid, nil
 }
 
-// [3.2.1] AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
-// A server MUST respond with a 400 (Bad Request) status code to any
-//  [x] HTTP/1.1 request message that lacks a Host header field
-//  and
-//  [x] to any request message that contains more than one Host header field
-//	or
-//  [x] a Host header field with an invalid field-value .
+// [DOC]
+// 3.2.1.  Client Authentication [The OAuth 2.1 Authorization Framework] DRAFT
 //
-// Ivmanto authentication library (ivmauth) will authenticate clientIDs provided in 3 ways as followig:
-//  * content-ype: "application/x-www-form-urlencoded":
-//    - clientID and clientSecret as query parameters from the request body
-//      Example: qs.stringify({'client_id': 'xxx.apps.core.dev', 'client_secret': 'ivmanto-2021'});
+//    Confidential clients or other clients issued client credentials MUST
+//    authenticate with the authorization server as described in
+//    Section 2.3 when making requests to the token endpoint.  Client
+//    authentication is used for:
 //
-//  * content-type: "application/json":
-//    - Header "Authorization" as Base64 encoded string of "clientID:clientSecret";
-//		- Header "X-IVM-CLIENT" as Base64 encoded string of "clientID:clientSecret";
+//    *  Enforcing the binding of refresh tokens and authorization codes to
+//       the client they were issued to.  Client authentication is critical
+//       when an authorization code is transmitted to the redirection
+//       endpoint over an insecure channel or when the redirection URI has
+//       not been registered in full.
 //
-// ** All 3 places are check for each request.
+//    *  Recovering from a compromised client by disabling the client or
+//       changing its credentials, thus preventing an attacker from abusing
+//			 stolen refresh tokens.  Changing a single set of client
+//       credentials is significantly faster than revoking an entire set of
+//       refresh tokens.
 //
+//    *  Implementing authentication management best practices, which
+//       require periodic credential rotation.  Rotation of an entire set
+//       of refresh tokens can be challenging, while rotation of a single
+//       set of client credentials is significantly easier.
+//
+//    A client MAY use the "client_id" request parameter to identify itself
+//    when sending requests to the token endpoint.  In the
+//    "authorization_code" "grant_type" request to the token endpoint, an
+//    unauthenticated client MUST send its "client_id" to prevent itself
+//    from inadvertently accepting a code intended for a client with a
+//    different "client_id".  This protects the client from substitution of
+//    the authentication code.  (It provides no additional security for the
+//    protected resource.)
+
+// [DOC]
+// 2.3.  Client Authentication [The OAuth 2.1 Authorization Framework] DRAFT
+//
+//    If the client type is confidential, the client and authorization
+//    server establish a client authentication method suitable for the
+//    security requirements of the authorization server.  The authorization
+//    server MAY accept any form of client authentication meeting its
+//    security requirements.
+//
+//    Confidential clients are typically issued (or establish) a set of
+//    client credentials used for authenticating with the authorization
+//    server (e.g., password, public/private key pair).
+//
+//    Authorization servers SHOULD use client authentication if possible.
+//
+//    [!] It is RECOMMENDED to use asymmetric (public-key based) methods for
+//    client authentication such as mTLS [RFC8705] or "private_key_jwt"
+//    [OpenID].  When asymmetric methods for client authentication are
+//    used, authorization servers do not need to store sensitive symmetric
+//    keys, making these methods more robust against a number of attacks.
+//
+//    The authorization server MAY establish a client authentication method
+//    with public clients.  However, the authorization server MUST NOT rely
+//    on public client authentication for the purpose of identifying the
+//    client.
+//
+//    [!][x] The client MUST NOT use more than one authentication method in each
+//    request.
+
 // TODO: OpenID Connect guidences to follow (https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication)
 func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 
 	var cID, cSec string
 	var err error
 
-	// The host is the address where the request is sent to.
-	var host string = r.Host
-
-	// The origin is the address where the request is sent from. Since the CORS is allowed, this value should be controlling the originates from where the library accepts calls from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin]
-	var origin string = r.Header.Get("Origin")
-
-	// The refrerrer value, as a difference from the origin, will include the full path from where the request was sent from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer]
-	var referer = r.Referer()
-
-	var expected_host = s.config.GetAuthSvcURL()
-
-	// [x] [host]: The address where the request was sent to. Should be domain where this library is authoritative to - ivmauth service host (internal Cloud Run service domain)!
-	if host != expected_host || host == "" || expected_host == "" {
-		fmt.Printf("BadRequest: host: %v,does not match the expected value of: %v, or one of them is empty value\n", host, expected_host)
-		return nil, core.ErrBadRequest
+	// Checking if the request qualifies as **VALID**
+	ok, err := checkValidClientAuthRequest(r, s.config)
+	if !ok && err != nil {
+		return nil, fmt.Errorf("while validating client auth rquest, error: %#v!\n %#v", err, core.ErrBadRequest)
 	}
 
-	var env string = s.config.GetEnv()
-	if origin == "" && env == "prod" {
-		//TODO [dev]: implement db support for taking the array of allowed origins
-		fmt.Printf("BadRequest: missing origin value\n")
-		return nil, core.ErrBadRequest
+	// [DOC]
+	// This section defines a set of Client Authentication methods that are used by Clients
+	// to authenticate to this Authorization Server when using the Token Endpoint. During
+	// Client Registration, the RP (Client) MAY register a Client Authentication method. If // no method is registered, the default method is `client_secret_basic`.
+	//
+	//These Client Authentication methods supported by (Ivmanto's OAuth server) are:
+	//
+	// `client_secret_basic`:
+	// Clients that have received a `client_secret` value from the Authorization Server
+	// authenticate with the Authorization Server in accordance with Section 2.3.1 of
+	// OAuth 2.0 [RFC6749] using the **HTTP Basic authentication scheme**.
+	//
+	// `client_secret_post`:
+	// Clients that have received a `client_secret` value from the Authorization Server,
+	// authenticate with the Authorization Server in accordance with Section 2.3.1 of
+	// OAuth 2.0 [RFC6749] by including the **Client Credentials in the request body**.
+	//
+	// `none`:
+	// The Client does not authenticate itself at the Token Endpoint, either because it
+	// is a Public Client with no Client Secret or other authentication mechanism.
+
+	// [!] AuthenticateClient method `client_secret_basic`
+	//		 - Ivmanto OAuth server specific for Basic auth is that IF header Authrozation is taken for Bearer token, to use as alternative custome header `X-Ivm-Client`.
+	var hav = r.Header.Get("Authorization")
+	if !strings.HasPrefix(hav, "Basic ") {
+		// Use the alternative custom header `X-Ivm-Client`
+		hav = r.Header.Get("X-Ivm-Client")
 	}
 
-	if referer == "" {
-		//TODO [design]: consider if this value must be part of the client Authentication process...
-		fmt.Printf("INFO: missing referer value\n")
-	}
+	// authenticate using hav
+	if strings.HasPrefix(hav, "Basic ") {
 
-	// TODO [dev]: implement function to take the value from the client register record.
-	var publicClient = false
-
-	// Distinguish the code logic base on the request method
-	if r.Method == "POST" {
-
-		ahct := r.Header.Get("Content-Type")
-
-		switch {
-		case ahct == "application/x-www-form-urlencoded":
-			// Usually this is public client and client secret would not be available. Do check for user agent to be browser?!
-			publicClient = true
-			cID, cSec, err = getClientIDSecWFUE(r)
-			if err != nil {
-				fmt.Printf("Badrequest: error getting clientID and client secret from application/x-www-form-urlencoded request. Error: %v", err.Error())
-				return nil, core.ErrBadRequest
-			}
-		case strings.HasPrefix(ahct, "application/json"):
-			xic := r.Header.Get("X-Ivm-Client")
-			hab := r.Header.Get("Authorization")
-
-			if xic == "" && strings.HasPrefix(hab, "Basic ") {
-				cID, cSec, _ = r.BasicAuth()
-				if cID == "" || cSec == "" {
-					fmt.Printf("BadRequest: [Authorization] header empty value for clientID: %v, or client secret xxx\n", cID)
-					return nil, core.ErrBadRequest
-				}
-			} else {
-				cID, cSec = getXClient(xic)
-				if cID == "" || cSec == "" {
-					fmt.Printf("BadRequest: [x-ivm-client] header empty value for clientID: %v, or client secret xxx\n", cID)
-					return nil, core.ErrBadRequest
-				}
-			}
-		default:
-			fmt.Printf("BadRequest: unsupported content-type: %v", ahct)
-			return nil, core.ErrBadRequest
-		}
-
-		// OAuth flow authorization code grant type - GET /auth
-	} else if r.Method == "GET" {
-
-		r.URL.RawQuery, err = url.QueryUnescape(r.URL.RawQuery)
-		if err != nil {
-			fmt.Printf("error unescaping URL query %v\n", err)
-		}
-		q := r.URL.Query()
-		cID = q.Get("client_id")
+		cID, cSec = getXClient(hav)
 		if cID == "" {
-			fmt.Printf("BadRequest: GET /auth query param client_id is empty value: %v\n", cID)
-			return nil, core.ErrBadRequest
+			return nil, fmt.Errorf("client_secret_basic method failed: invalid clientID [%s] or client secret. %#v", cID, core.ErrBadRequest)
 		}
-	}
 
-	// TODO: remove after debug
-	fmt.Printf("provided clientID: %v\n", cID)
-
-	rc, err := s.clients.Find(core.ClientID(cID))
-	if err != nil {
-		fmt.Printf("while finding clientID: %v in the database error raised: %v\n", cID, err.Error())
-		return nil, err
-	}
-	if !publicClient {
-		if rc.ClientSecret != cSec && r.Method != "GET" {
-			fmt.Printf("client secret provided within the request %v, does not match the one in the DB\n", rc.ClientSecret)
-			return nil, core.ErrClientAuth
+		rc, err := getAndAuthRegisteredClient(s.clients, cID, cSec)
+		if err != nil {
+			return nil, fmt.Errorf("client_secret_basic method failed. Auth error %#v, %#v", err, core.ErrBadRequest)
 		}
+
+		// returns the registered client object as means of `it is found and authenticated`!
+		return rc, nil
 	}
 
-	return rc, nil
+	// client auth method `client_secret_basic` can not be used for this request due to missing Header value!
+	// Continue checking for
+	// [!] AuthenticateClient method `client_secret_post`
+	var hct = r.Header.Get("Content-Type")
+	if hct == "application/x-www-form-urlencoded" {
+		cID, cSec, err = getClientIDSecWFUE(r)
+		if err != nil {
+			return nil, fmt.Errorf("client_secret_post method failed. Error %#v. %#v", err, core.ErrBadRequest)
+		}
+
+		rc, err := getAndAuthRegisteredClient(s.clients, cID, cSec)
+		if err != nil {
+			return nil, fmt.Errorf("client_secret_post method failed. Auth error %#v, %#v", err, core.ErrBadRequest)
+		}
+
+		// returns the registered client object as means of `it is found and authenticated`!
+		return rc, nil
+	}
+
+	return nil, fmt.Errorf("client_secret_post method failed. Unsupported content type %s. %#v", hct, core.ErrBadRequest)
 }
 
 // GetRequestBody considers the contet type header and reads the request body within core.AuthRequestBody

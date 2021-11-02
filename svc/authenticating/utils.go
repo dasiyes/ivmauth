@@ -11,6 +11,7 @@ import (
 
 	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
+	"github.com/dasiyes/ivmconfig/src/pkg/config"
 	"github.com/dgrijalva/jwt-go"
 )
 
@@ -171,4 +172,85 @@ func validateOpenIDClaims(
 	}
 
 	return nil
+}
+
+// A server MUST respond with a 400 (Bad Request) status code to any
+//  [x] HTTP/1.1 request message that lacks a Host header field
+//  and
+//  [x] to any request message that contains more than one Host header field
+//	or
+//  [x] a Host header field with an invalid field-value .
+func checkValidClientAuthRequest(r *http.Request, cfg config.IvmCfg) (bool, error) {
+
+	// The host is the address where the request is sent to.
+	var host string = r.Host
+
+	// The host header SHOULD be only one value. If there is more - bad request is returned.
+	var hosts = r.Header.Values("Host")
+	if len(hosts) > 1 {
+		return false, core.ErrBadRequest
+	}
+
+	// The origin is the address where the request is sent from. Since the CORS is allowed, this value should be controlling the originates from where the library accepts calls from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin]
+	var origin string = r.Header.Get("Origin")
+
+	// The refrerrer value, as a difference from the origin, will include the full path from where the request was sent from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer]
+	var referer = r.Referer()
+
+	// [x] [host]: The address where the request was sent to. Should be domain where this library is authoritative to - i.e. ivmanto.dev
+	var expected_host = cfg.GetAuthSvcURL()
+
+	if host != expected_host || host == "" || expected_host == "" {
+		return false, core.ErrBadRequest
+	}
+
+	var env string = cfg.GetEnv()
+	if origin == "" && env == "prod" {
+		//TODO [dev]: implement db support for taking the array of allowed origins
+		fmt.Printf("BadRequest: missing origin value\n")
+		return false, core.ErrBadRequest
+	}
+
+	if referer == "" {
+		//TODO [design]: consider if this value must be part of the client Authentication process...
+		fmt.Printf("INFO: missing referer value\n")
+	}
+
+	if r.Method != http.MethodPost {
+		return false, fmt.Errorf("request method %s is not accepted. Only POST method is a valid request method", r.Method)
+	}
+
+	return true, nil
+}
+
+// getAndAuthRegisteredClient - will find the client from the request by its clientID and will authenticate it based on its type and respective credentials. In case of successful authentication will return the client object, otherwise error
+func getAndAuthRegisteredClient(clients core.ClientRepository, cID, cSec string) (*core.Client, error) {
+
+	// [ ] remove after debug
+	fmt.Printf("provided clientID to authenticate: %s\n", cID)
+
+	rc, err := clients.Find(core.ClientID(cID))
+	if err != nil {
+		return nil, fmt.Errorf("while finding clientID: %v in the database error raised: %#v", cID, err)
+	}
+
+	switch rc.ClientType {
+	case core.Confidential:
+		if cSec != "" && rc.ClientSecret == cSec {
+			return rc, nil
+		} else {
+			return nil, fmt.Errorf("authentication failed for clientID %s, clientType %s, %#v", cID, rc.ClientType.String(), core.ErrClientAuth)
+		}
+	case core.Credentialed:
+		// TODO [dev]: identify the use case for this client Type and implement the logic
+		return nil, fmt.Errorf("unsupported client type. %#v", core.ErrBadRequest)
+	case core.Public:
+		// TODO [dev]: DO NOT trust the client identity. INVOLVE the resource owner in another comm channel?
+		if cSec == "" && rc.ClientSecret == "" {
+			return rc, nil
+		}
+		return nil, fmt.Errorf("unsupported client type. %#v", core.ErrBadRequest)
+	default:
+		return nil, fmt.Errorf("unsupported client type. %#v", core.ErrBadRequest)
+	}
 }

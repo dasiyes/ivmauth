@@ -1,3 +1,8 @@
+v0.0.15
+        - service tests
+        - implementing check list
+        - refactoring Authenticating Service method (AuthenticateClient etc)
+
 v0.0.14
         - refactoring OpenID configuration
         - moving OIDC into ivmconfig package
