@@ -239,12 +239,15 @@ func getAndAuthRegisteredClient(clients core.ClientRepository, cID, cSec string)
 		return nil, fmt.Errorf("while finding clientID: %v in the database error raised: %#v", cID, err)
 	}
 
+	var dbCS = strings.TrimSpace(rc.ClientSecret)
+	cSec = strings.TrimSpace(cSec)
+
 	switch rc.ClientType {
 	case core.Confidential:
-		if cSec != "" && strings.TrimSpace(rc.ClientSecret) == strings.TrimSpace(cSec) {
+		if cSec != "" && dbCS == cSec {
 			return rc, nil
 		} else {
-			return nil, fmt.Errorf("authentication failed for clientID %s, clientType %s, %#v", cID, rc.ClientType.String(), core.ErrClientAuth)
+			return nil, fmt.Errorf("authentication failed for clientID %s, clientType %s, dbCS: %s, cSec: %s,%#v", cID, rc.ClientType.String(), dbCS, cSec, core.ErrClientAuth)
 		}
 	case core.Credentialed:
 		// TODO [dev]: identify the use case for this client Type and implement the logic
