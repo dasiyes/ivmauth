@@ -155,8 +155,10 @@ func validateOpenIDClaims(
 		return core.ErrSessionToken
 	}
 
-	// ISSUE: jwt-go package does not support loading the token claims into IDToken when the AUD type is set to array of []string. With flat string type works well.
-	// ? TODO: report the issue to package repo...
+	// ISSUE: jwt-go package (now replaced by golang-jwt/jwt package) does not support
+	// loading the token claims into IDToken when the AUD type is set to array of
+	// []string! With flat string type works well.
+	// TODO [dev]: try the same above with the new package...
 
 	if oidt.Aud != body.AsrCID {
 		return core.ErrCompromisedAud

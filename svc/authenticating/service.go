@@ -74,10 +74,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// TODO [dev]: replace the following two packages:
-// "github.com/golang-jwt/jwt" replace with "github.com/golang-jwt/jwt"
-// [x] "github.com/dvsekhvalnov/jose2go/base64url"
-
 // TODO: Review the service concept against the checklist below:
 // **Authentication Framework Evaluation Checklist**
 // [x] Provides the ability to exchange credentials (username/password, token, and so on) for a valid session.
