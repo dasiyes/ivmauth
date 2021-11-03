@@ -16,8 +16,10 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-// getXClient - retrievs the ClientID and Client Secret from the provided xic string that represents the ClientID and ClientSecret as Basic auth string.
-func getXClient(xic string) (cid string, csc string) {
+// getClientIDSecFromBasic - retrievs the ClientID and Client Secret from
+// the provided xic string that represents the ClientID and ClientSecret
+// as Basic auth string.
+func getClientIDSecFromBasic(xic string) (cid string, csc string) {
 
 	// TODO: remove after debug
 	fmt.Printf("xic: %v\n", xic)
@@ -72,6 +74,23 @@ func getClientIDSecWFUE(r *http.Request) (cID, cSec string, err error) {
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
 	return cID, cSec, nil
+}
+
+// getClientIDFromReqQueryPrm - will retrieve the client ID from the request parameters
+func getClientIDFromReqQueryPrm(r *http.Request) (cid string, err error) {
+
+	r.URL.RawQuery, err = url.QueryUnescape(r.URL.RawQuery)
+	if err != nil {
+		return "", fmt.Errorf("while validating clientID exists, error: %#v! %#v", err, core.ErrBadRequest)
+	}
+
+	q := r.URL.Query()
+	cid = q.Get("client_id")
+	cid = strings.TrimSpace(cid)
+	if cid == "" {
+		return "", fmt.Errorf("while validating clientID exists - missing client_id! %#v", core.ErrBadRequest)
+	}
+	return cid, nil
 }
 
 // validateIDToken will provide validation of OpenIDConnect ID Tokens
@@ -263,27 +282,52 @@ func getAndAuthRegisteredClient(clients core.ClientRepository, cID, cSec string)
 	}
 }
 
-// validateClientExists - just finds by client_id from request query into the database as registred clientID and returns the object - otherwise error. To NOT be confused with authenticate client.
+// validateClientExists - just finds by client_id from request query into
+// the database as registred clientID and returns the object - otherwise error.
+// Do NOT confused with authenticate client.
 func validateClientExists(r *http.Request, clients core.ClientRepository) (*core.Client, error) {
 
 	var err error
+	var cID string
+	var rc *core.Client
+	mrp := r.Method + " " + r.URL.Path
 
-	r.URL.RawQuery, err = url.QueryUnescape(r.URL.RawQuery)
-	if err != nil {
-		return nil, fmt.Errorf("while validating clientID exists, error: %#v! %#v", err, core.ErrBadRequest)
+	switch mrp {
+	case "GET /oauth/authorize":
+		cID, err = getClientIDFromReqQueryPrm(r)
+		if err != nil {
+			return nil, fmt.Errorf("while getting clientID: %v from query param error raised: %#v", cID, err)
+		}
+	case "POST /oauth/login":
+		cID, _, err = getClientIDSecWFUE(r)
+		if err != nil {
+			return nil, fmt.Errorf("while getting clientID: %v from request body error raised: %#v", cID, err)
+		}
+	default:
+		cID = ""
 	}
 
-	q := r.URL.Query()
-	var cID = q.Get("client_id")
-	cID = strings.TrimSpace(cID)
 	if cID == "" {
-		return nil, fmt.Errorf("while validating clientID exists - missing client_id! %#v", core.ErrBadRequest)
+		return nil, fmt.Errorf("clientID value is missing.%#v", core.ErrBadRequest)
 	}
 
-	rc, err := clients.Find(core.ClientID(cID))
+	rc, err = clients.Find(core.ClientID(cID))
 	if err != nil {
 		return nil, fmt.Errorf("while finding clientID: %v in the database error raised: %#v", cID, err)
 	}
 
 	return rc, nil
+}
+
+// This function will match the cases when clientID must be ONLY validated but not authenticated.
+func isClientIDValidateCase(r *http.Request) bool {
+	mrp := r.Method + " " + r.URL.Path
+	switch {
+	case mrp == "GET /oauth/authorize":
+		return true
+	case mrp == "POST /oauth/login":
+		return true
+	default:
+		return false
+	}
 }

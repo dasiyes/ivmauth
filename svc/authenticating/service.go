@@ -331,8 +331,12 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 		return nil, fmt.Errorf("while validating client auth rquest, error: %#v!\n %#v", err, core.ErrBadRequest)
 	}
 
-	// [!] Validate Client Exists only for `GET /oauth/authorize`. This will ONLY validate that the clientID is registered in the database => thus IS VALID.
-	if r.Method == http.MethodGet && r.URL.Path == "/oauth/authorize" {
+	// [!] Validate only Client Exists.
+	// This will ONLY validate that the clientID is registered in the
+	// database => thus IS VALID.
+	// Cases that are validated will NOT proceed with authentication.
+	// isClientIDValidateCase validates the use-cases!
+	if isClientIDValidateCase(r) {
 		rc, err := validateClientExists(r, s.clients)
 		if err != nil {
 			return nil, fmt.Errorf("while validating client_id exists, error: %#v! %#v", err, core.ErrBadRequest)
@@ -372,7 +376,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 	// authenticate using hav
 	if strings.HasPrefix(hav, "Basic ") {
 
-		cID, cSec = getXClient(hav)
+		cID, cSec = getClientIDSecFromBasic(hav)
 		if cID == "" {
 			return nil, fmt.Errorf("client_secret_basic method failed: invalid clientID [%s] or client secret. %#v", cID, core.ErrBadRequest)
 		}
@@ -425,11 +429,6 @@ func (s *service) GetRequestBody(r *http.Request) (*core.AuthRequestBody, error)
 		var body []byte
 		var fp []string
 		var lblval []string
-
-		// TODO: [IVM-5] ENABLE after debug completed
-		// if r.TLS == nil {
-		// 	return "", errTLS
-		// }
 
 		defer r.Body.Close()
 		body, err = ioutil.ReadAll(r.Body)

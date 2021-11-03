@@ -9,7 +9,7 @@
                 <h2>Ivmanto &copy;</h2>
                 <h4>Login</h4>
             </header>
-            <form class="login-form" action='/oauth/login' method='POST' novalidate>
+            <form class="login-form" action='/oauth/login' method='POST'>
                 <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
                 <input type='hidden' name='client_id' value='{{.ClientID}}'>
                 {{with .Form}}
