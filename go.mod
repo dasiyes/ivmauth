@@ -4,10 +4,9 @@ go 1.17
 
 require (
 	cloud.google.com/go/firestore v1.5.0
-	github.com/dasiyes/ivmapi v0.0.18-dev2
+	github.com/dasiyes/ivmapi v0.0.17
 	github.com/dasiyes/ivmconfig v0.0.0-20211101133446-3eaa7d3739a8
 	github.com/dasiyes/ivmsesman v0.4.8-dev9
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-chi/chi v1.5.4
 	github.com/go-kit/kit v0.10.0
 	github.com/pborman/uuid v1.2.1
@@ -19,6 +18,7 @@ require (
 )
 
 require (
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect
 	golang.org/x/net v0.0.0-20210503060351-7fd8e65b6420 // indirect
 	golang.org/x/oauth2 v0.0.0-20211005180243-6b3c2da341f1 // indirect

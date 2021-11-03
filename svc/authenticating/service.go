@@ -70,12 +70,12 @@ import (
 	"github.com/dasiyes/ivmauth/dataservice/firestoredb"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 	"github.com/dasiyes/ivmconfig/src/pkg/config"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // TODO [dev]: replace the following two packages:
-// "github.com/dgrijalva/jwt-go"
+// "github.com/golang-jwt/jwt" replace with "github.com/golang-jwt/jwt"
 // [x] "github.com/dvsekhvalnov/jose2go/base64url"
 
 // TODO: Review the service concept against the checklist below:

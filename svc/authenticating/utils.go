@@ -13,7 +13,7 @@ import (
 	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 	"github.com/dasiyes/ivmconfig/src/pkg/config"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 )
 
 // getClientIDSecFromBasic - retrievs the ClientID and Client Secret from

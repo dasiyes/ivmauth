@@ -14,7 +14,7 @@ import (
 func TestGetXClient(t *testing.T) {
 	xic := "Basic " + b64.URLEncoding.EncodeToString([]byte("clientID:clientSECRET"))
 
-	cid, csc := getXClient(xic)
+	cid, csc := getClientIDSecFromBasic(xic)
 
 	if cid != "clientID" || csc != "clientSECRET" {
 		t.Fail()
