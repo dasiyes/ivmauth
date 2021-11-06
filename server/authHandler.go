@@ -10,8 +10,8 @@ import (
 
 	"github.com/dasiyes/ivmsesman"
 	"github.com/go-chi/chi"
-	kitlog "github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	kitlog "github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/segmentio/ksuid"
 

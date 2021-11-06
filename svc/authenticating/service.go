@@ -1,61 +1,3 @@
-// Roles [RFC6749]
-// OAuth defines four roles:
-// [!]	**resource owner [RO]**
-//       	An entity capable of granting access to a protected resource.
-//       	When the resource owner is a person, it is referred to as an
-//       	end-user.
-// [!]	**resource server [RS]**
-//       	The server hosting the protected resources, capable of accepting
-//       	and responding to protected resource requests using access tokens.
-// [!] 	**client [C]**
-//       	An application making protected resource requests on behalf of the
-//       	resource owner and with its authorization.  The term "client" does
-//       	not imply any particular implementation characteristics (e.g.,
-//       	whether the application executes on a server, a desktop, or other
-//       	devices).
-// [!]	**authorization server [AS]**
-//				[this service role in the domains Ivmanto]
-//       	The server issuing access tokens to the client after successfully
-//       	authenticating the resource owner and obtaining authorization.
-//
-// 	The interaction between the authorization server and resource server
-// 	is beyond the scope of this specification.  The authorization server
-// 	may be the same server as the resource server or a separate entity.
-// 	A single authorization server may issue access tokens accepted by
-// 	multiple resource servers.
-
-// 1.3.  Authorization Grant 	[RFC6749]
-//  An authorization grant is a credential representing the resource owner’s authorization (to access its protected resources) used by the client to obtain an access token.  This specification defines four grant types -- authorization code, implicit, resource owner password credentials, and client credentials -- as well as an extensibility mechanism for defining additional types.
-
-// 1.3.1.  Authorization Code
-// 	The authorization code is obtained by using an authorization server as an intermediary between the client and resource owner.  Instead of requesting authorization directly from the resource owner, the client directs the resource owner to an authorization server (via its user-agent as defined in [RFC2616]), which in turn directs the resource owner back to the client with the authorization code. Before directing the resource owner back to the client with the authorization code, the authorization server authenticates the resource owner and obtains authorization.  Because the resource owner only authenticates with the authorization server, the resource owner’s credentials are never shared with the client. The authorization code provides a few important security benefits, such as the ability to authenticate the client, as well as the transmission of the access token directly to the client without passing it through the resource owner’s user-agent and potentially exposing it to others, including the resource owner.
-
-// 3.2.1.  Client Authentication
-//	Confidential clients or other clients issued client credentials MUST authenticate with the authorization server as described in Section 2.3 when making requests to the token endpoint.  Client authentication is used for:
-//	o  Enforcing the binding of refresh tokens and authorization codes to the client they were issued to.  Client authentication is critical when an authorization code is transmitted to the redirection endpoint over an insecure channel or when the redirection URI has not been registered in full.
-//	o  Recovering from a compromised client by disabling the client or changing its credentials, thus preventing an attacker from abusing stolen refresh tokens.  Changing a single set of client credentials is significantly faster than revoking an entire set of refresh tokens.
-//	o  Implementing authentication management best practices, which require periodic credential rotation.  Rotation of an entire set of refresh tokens can be challenging, while rotation of a single set of client credentials is significantly easier. A client MAY use the "client_id" request parameter to identify itself when sending requests to the token endpoint.  In the "authorization_code" "grant_type" request to the token endpoint, an unauthenticated client MUST send its "client_id" to prevent itself from inadvertently accepting a code intended for a client with a different "client_id".  This protects the client from substitution of the authentication code.  (It provides no additional security for the protected resource.)
-
-// Validate receives all POST request calls to /auth path and validates
-// them according to OAuth2 [RFC6749]
-//
-// According to [RFC6479] Protocol Flow - this part is steps (C)-(D):
-// receives --(C)-- Authorization Grant -->
-// returns  <-(D)----- Access Token -------
-// (C)  The client requests an access token by authenticating with the
-//       authorization server and presenting the authorization grant.
-// (D)  The authorization server authenticates the client and validates
-//       the authorization grant, and if valid, issues an access token.
-//
-// * [1] Get the ClientID / ClientSecret from the req headers. [step (C) client authentication]
-// * [1.1] authenticate the client [step (D) autenticate client]
-// 	 - step 1.1) is done by the method AuthenticateClient, called from authHandler.authenticateRequest
-//
-// * [2] Identify the grant_type [step (C) presents authorization grant] The client receives an authorization grant, which is a credential representing the resource owner’s authorization, expressed using one of four grant types defined in this specification or using an extension grant type.  The authorization grant type depends on the method used by the client to request authorization and the types supported by the authorization server.
-// * [2.1] Switch the logic based on the identified grant_type at [2].
-// * [2.2] validate the authorization grant
-// * [3] issue a new Access Token for the realm core. Consider the scopes.
-
 package authenticating
 
 import (
@@ -74,10 +16,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// TODO: Review the service concept against the checklist below:
+// TODO [dev]: Review the service concept against the checklist below:
 // **Authentication Framework Evaluation Checklist**
 // [x] Provides the ability to exchange credentials (username/password, token, and so on) for a valid session.
-// [ ] Supports proper session management (www.owasp.org/index.php/Session_Management_Cheat_Sheet).
+// [x] Supports proper session management (www.owasp.org/index.php/Session_Management_Cheat_Sheet).
 // [ ] Lets users opt in to two-factor authentication.
 // [x] In a browser-based environment, properly marks the session cookie as HTTPOnly (www.owasp.org/index.php/HttpOnly) and secure (www.owasp.org/index.php/SecureFlag).
 // [ ] Provides support for Cross-Site Request Forgery (CSRF; goo.gl/TwcSJX) protection/ defenses.
