@@ -83,7 +83,7 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 
 	// Get a new session for the authenticated request
 	// TODO: instead of creating a new Session, get the cookie "ivmid" from the current request and for this session id change the status of the session in the shared database (Firestore - collection sessions).
-	ns, err := h.sm.SessionStart(w, r)
+	ns, err := h.sm.SessionManager(w, r)
 	if err != nil {
 		_ = level.Error(h.logger).Log("SessionManagerError", err.Error())
 	}

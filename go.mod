@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/firestore v1.6.1
 	github.com/dasiyes/ivmapi v0.0.18-dev2
 	github.com/dasiyes/ivmconfig v0.0.0-20211101133446-3eaa7d3739a8
-	github.com/dasiyes/ivmsesman v0.4.8-dev9
+	github.com/dasiyes/ivmsesman v0.4.9-dev11
 	github.com/go-chi/chi v1.5.4
 	github.com/go-kit/kit v0.12.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
@@ -24,6 +24,7 @@ require (
 	github.com/cncf/xds/go v0.0.0-20211011173535-cb28da3451f1 // indirect
 	github.com/envoyproxy/go-control-plane v0.10.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v0.6.2 // indirect
+	github.com/go-chi/chi/v5 v5.0.5 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect
 	golang.org/x/net v0.0.0-20211101193420-4a448f8816b3 // indirect
 	golang.org/x/oauth2 v0.0.0-20211028175245-ba495a64dcb5 // indirect
