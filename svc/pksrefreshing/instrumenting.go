@@ -23,11 +23,13 @@ func NewInstrumentingService(counter metrics.Counter, latency metrics.Histogram,
 	}
 }
 
-func (s *instrumentingService) InitOIDProviders() {
+func (s *instrumentingService) InitOIDProviders(oidps []string) (errs []error) {
 	defer func(begin time.Time) {
 		s.requestCount.With("method", "InitOIDProviders").Add(1)
 		s.requestLatency.With("method", "InitOIDProviders").Observe(time.Since(begin).Seconds())
 	}(time.Now())
+
+	return s.next.InitOIDProviders(oidps)
 }
 
 func (s *instrumentingService) GetRSAPublicKey(identityProvider string, kid string) (n *big.Int, e int, err error) {

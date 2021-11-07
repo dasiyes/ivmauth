@@ -1,5 +1,6 @@
 
 v0.0.16
+        - implementing `ivmanto` as OID Provider
         - service tests
         - refactoring Authenticating Service method (AuthenticateClient etc)
 

@@ -1,7 +1,9 @@
 package core
 
 import (
+	"encoding/hex"
 	"fmt"
+	"math/rand"
 	"reflect"
 	"strings"
 )
@@ -67,4 +69,16 @@ func GetSize(v interface{}) int {
 		}
 	}
 	return size
+}
+
+// Generate a new token ID
+func genTID(realm string) string {
+
+	newS := realm
+	// ns is generated at package initiation time
+	r2 := rand.New(ns)
+	src := []byte(newS + fmt.Sprintf("%d", *r2))
+	dst := make([]byte, hex.EncodedLen(len(src)))
+	_ = hex.Encode(dst, src)
+	return string(dst)
 }

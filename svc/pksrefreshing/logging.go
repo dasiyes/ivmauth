@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/dasiyes/ivmauth/core"
-	"github.com/go-kit/kit/log"
+	"github.com/go-kit/log"
 )
 
 type loggingService struct {
@@ -18,13 +18,15 @@ func NewLoggingService(logger log.Logger, s Service) Service {
 	return &loggingService{logger, s}
 }
 
-func (s *loggingService) InitOIDProviders() {
+func (s *loggingService) InitOIDProviders(oidps []string) (errs []error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "InitOIDProviders",
 			"took", time.Since(begin),
+			"errors_raised", len(errs),
 		)
 	}(time.Now())
+	return s.next.InitOIDProviders(oidps)
 }
 
 func (s *loggingService) GetRSAPublicKey(identityProvider string, kid string) (n *big.Int, e int, err error) {

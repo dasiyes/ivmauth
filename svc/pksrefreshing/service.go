@@ -1,8 +1,10 @@
+// The package pksrefreshing will holds the methods to manage and serve the OpenID Providers' public keys
 package pksrefreshing
 
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"math/big"
 	"net/url"
@@ -18,7 +20,7 @@ import (
 type Service interface {
 
 	// InitOIDProviders
-	InitOIDProviders()
+	InitOIDProviders(oidps []string) (errs []error)
 
 	// GetRSAPublicKey gets the jwks, finds the JWK by kid and returns it as rsa.PublicKey format
 	GetRSAPublicKey(identityProvider string, kid string) (*big.Int, int, error)
@@ -37,26 +39,29 @@ type Service interface {
 type service struct {
 	keyset    core.PublicKeySetRepository
 	providers core.OIDProviderRepository
+	cfg       *config.OpenIDConfiguration
 }
 
 // Initiating OpenID Providers
-func (s *service) InitOIDProviders() {
+func (s *service) InitOIDProviders(oidps []string) []error {
 	var err error
-	var ips = []string{"google", "apple"}
+	var errs []error
 
-	for _, ip := range ips {
+	for _, ip := range oidps {
 		if err = s.newPKS(ip); err != nil {
+			errs = append(errs, fmt.Errorf("while init provider [%s], raised [%#v]", ip, err))
 			continue
 		}
 	}
+	return errs
 }
 
 // NewPKS creates new Public Key Set for the ip (Identity Provider)
 func (s *service) newPKS(ip string) error {
 
-	var oidc config.OpenIDConfiguration
+	var oidc *config.OpenIDConfiguration
 	var prvn core.ProviderName
-	var oidp core.OIDProvider
+	var oidp *core.OIDProvider
 	var pks *core.PublicKeySet
 	var err error
 
@@ -64,17 +69,45 @@ func (s *service) newPKS(ip string) error {
 	pks = core.NewPublicKeySet(ip)
 
 	switch ip {
+	case "ivmanto":
+		// [x] Implement initial load of Ivmanto's OID Provider configuration from the config file. Update the configuration into the firestore DB.
+		// cfg passed to pkr service will hold defacto Ivmanto's configuration loaded from the config file.
+		oidp = core.NewOIDProvider(prvn)
+		oidp.Oidc = s.cfg
+
+		if err = s.providers.Store(oidp); err != nil {
+			return err
+		}
+
+		// fullfilling PKS
+		pks.URL, err = url.Parse(oidp.Oidc.JwksURI)
+		if err != nil {
+			return err
+		}
+
+		jwks, exp, err := downloadJWKS(pks)
+		if err != nil {
+			return err
+		}
+
+		if err := pks.Init(jwks, exp); err != nil {
+			return err
+		}
+
+		if err := s.keyset.Store(pks); err != nil {
+			return err
+		}
+
 	case "google":
 		// getting Google's OpenID Configuration
 		oidc, err = getGooglesOIC(pks)
 		if err != nil {
 			return err
 		}
-		oidp = core.OIDProvider{
-			ProviderName: prvn,
-			Oidc:         oidc,
-		}
-		_ = s.providers.Store(&oidp)
+		oidp = core.NewOIDProvider(prvn)
+		oidp.Oidc = oidc
+
+		_ = s.providers.Store(oidp)
 
 		// fullfiling PKS
 		pks.URL, err = url.Parse(oidc.JwksURI)
@@ -192,15 +225,21 @@ func (s *service) GetIssuerVal(provider string) (string, error) {
 }
 
 // NewService creates a authenticating service with necessary dependencies.
-func NewService(pksr core.PublicKeySetRepository, oidpr core.OIDProviderRepository) Service {
+func NewService(
+	pksr core.PublicKeySetRepository,
+	oidpr core.OIDProviderRepository,
+	cfg *config.OpenIDConfiguration) Service {
+
 	return &service{
 		keyset:    pksr,
 		providers: oidpr,
+		cfg:       cfg,
 	}
 }
 
 // downloadJWKS - download jwks from the URL for the respective Identity provider
 func downloadJWKS(pks *core.PublicKeySet) ([]byte, int64, error) {
+
 	resp, err := pks.HTTPClient.Get(pks.URL.String())
 	if err != nil {
 		return nil, 0, err
@@ -226,8 +265,8 @@ func downloadJWKS(pks *core.PublicKeySet) ([]byte, int64, error) {
 			mapr := strings.Split(p, "=")
 			ma, err := strconv.ParseInt(mapr[1], 10, 64)
 			if err != nil {
-				// TODO: logging ("WARNING: Cache-Control max-age value is not an int.")
-				ma = 0
+				fmt.Printf("error converting max-age value to int. Default value of 3600 seconds will be used. error: %#v", err)
+				ma = 3600
 			}
 			exp += ma
 		}
@@ -239,27 +278,27 @@ func downloadJWKS(pks *core.PublicKeySet) ([]byte, int64, error) {
 
 // getGooglesOIC - calls the URL https://accounts.google.com/.well-known/openid-configuration
 // and extracts the jwks_uri attribute to be further used here
-func getGooglesOIC(pks *core.PublicKeySet) (cfg config.OpenIDConfiguration, err error) {
+func getGooglesOIC(pks *core.PublicKeySet) (cfg *config.OpenIDConfiguration, err error) {
 
 	var oidconfig config.OpenIDConfiguration
 
 	resp, err := pks.HTTPClient.Get("https://accounts.google.com/.well-known/openid-configuration")
 	if err != nil {
-		return oidconfig, ErrExtEndpointResponse
+		return &oidconfig, ErrExtEndpointResponse
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return oidconfig, ErrExtEndpointResponse
+		return &oidconfig, ErrExtEndpointResponse
 	}
 
 	if resp.Header.Get("Content-Type") == "application/json" {
 		if err := json.NewDecoder(resp.Body).Decode(&oidconfig); err != nil {
-			return oidconfig, ErrExtEndpointResponse
+			return &oidconfig, ErrExtEndpointResponse
 		}
 	}
 
-	return oidconfig, nil
+	return &oidconfig, nil
 }
 
 // ErrInvalidArgument is returned when one or more arguments are invalid.

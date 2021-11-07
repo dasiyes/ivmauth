@@ -30,6 +30,13 @@ atc:
   alg:      "RS256"
   issuer:   "https://accounts.ivmanto.com"
 
+# supported OpenID Providers
+oidps:
+  - "ivmanto"
+  - "google"
+  - "github"
+  - "apple"
+
 # ivmanto openID config
 ivmanto_oidc:
   issuer: "https://accounts.ivmanto.dev"
@@ -37,7 +44,7 @@ ivmanto_oidc:
   token_endpoint: "https://accounts.ivmanto.dev/oauth/v1/token"
   device_authorization_endpoint: ""
   revocation_endpoint: "https://accounts.ivmanto.dev/oauth/v1/revoke"
-  jwks_uri: "https://accounts.ivmanto.dev/oauth/v1/certs"
+  jwks_uri: "https://www.ivmanto.dev/oauth/v1/certs"
   token_endpoint_auth_methods_supported:
     - "client_secret_basic"
     - "private_key_jwt"
