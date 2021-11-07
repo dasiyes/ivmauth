@@ -13,9 +13,11 @@ import (
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/log"
 	"github.com/go-kit/log/level"
+	"github.com/justinas/nosurf"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/dasiyes/ivmauth/core"
+	"github.com/dasiyes/ivmauth/pkg/forms"
 	"github.com/dasiyes/ivmauth/pkg/ssoapp"
 )
 
@@ -134,11 +136,34 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 
 	// [ ] Check where this is used???
 	var cid = r.FormValue("client_id")
-
-	// [ ] get the value as CSRFToken AND compare it to the CSRFToken value from  assigned to the session document/record
-	var state = r.FormValue("csrf_token")
-
 	_ = cid
+
+	// Handle CSRF protection
+	var formCSRFToken = r.FormValue("csrf_token")
+	stc, err := r.Cookie("csrf_token")
+	if err == http.ErrNoCookie {
+		// [ ] potential CSRF attack - log the request with all possible details
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("missing csrf_token cookie: %#v", err))
+		return
+	}
+	// Verifying the CSRF tokens
+	if !nosurf.VerifyToken(formCSRFToken, stc.Value) {
+		// [ ] potential CSRF attack - log the request with all possible details
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("invalid CSRF tokens. [%s]", stc.Value))
+		return
+	}
+
+	// Getting state value (defacto pre-session id)
+	sc, err := r.Cookie(h.server.Config.GetSesssionCookieName())
+	if err == http.ErrNoCookie {
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("missing session id cookie: %#v", err))
+		return
+	}
+	var state = sc.Value
+
 	_ = level.Debug(h.logger).Log("cid", cid, "email", email, "password", password)
 
 	if email == "" || password == "" {
@@ -179,7 +204,9 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 // userLoginForm will handle the UI for users Login Form
 func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 
-	var td = ssoapp.TemplateData{}
+	var td = ssoapp.TemplateData{
+		Form: forms.New(nil),
+	}
 
 	h.server.IvmSSO.Render(w, r, "login.page.tmpl", &td)
 }
