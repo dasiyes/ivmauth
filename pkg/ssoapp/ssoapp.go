@@ -4,7 +4,7 @@ import (
 	"html/template"
 
 	"github.com/dasiyes/ivmauth/core"
-	kitlog "github.com/go-kit/kit/log"
+	kitlog "github.com/go-kit/log"
 )
 
 type IvmSSO struct {

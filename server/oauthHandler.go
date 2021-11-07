@@ -11,8 +11,9 @@ import (
 
 	"github.com/dasiyes/ivmapi/pkg/tools"
 	"github.com/go-chi/chi"
-	kitlog "github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	kitlog "github.com/go-kit/log"
+	"github.com/go-kit/log/level"
+	"github.com/justinas/nosurf"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/dasiyes/ivmauth/core"
@@ -35,6 +36,7 @@ func (h *oauthHandler) router() chi.Router {
 		r.Post("/login", h.authLogin)
 		r.Post("/token", h.issueToken)
 		r.Route("/ui", func(r chi.Router) {
+			r.Use(noSurf)
 			r.Get("/login", h.userLoginForm)
 		})
 	})
@@ -101,7 +103,10 @@ func (h *oauthHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
 
 	// [!] ACF S3 ->
 	// GetAPIGWSvcURL will return the host for the api gateway service
+	//
 	var api_gw_host = h.server.Config.GetAPIGWSvcURL()
+
+	// While the current session id (sid) is defacto pre-session (session before a user is authenticated) - it can be used as CSRFToken.
 	var redirectURL = fmt.Sprintf("https://%s/oauth/ui/login?t=%s", api_gw_host, sid)
 
 	// redirect the user to user's Login form to capture its credentials
@@ -128,10 +133,37 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 
 	var email = r.FormValue("email")
 	var password = r.FormValue("password")
-	var state = r.FormValue("csrf_token")
-	var cid = r.FormValue("client_id")
 
+	// [ ] Check where this is used???
+	var cid = r.FormValue("client_id")
 	_ = cid
+
+	// Handle CSRF protection
+	var formCSRFToken = r.FormValue("csrf_token")
+	stc, err := r.Cookie("csrf_token")
+	if err == http.ErrNoCookie {
+		// [ ] potential CSRF attack - log the request with all possible details
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("missing csrf_token cookie: %#v", err))
+		return
+	}
+	// Verifying the CSRF tokens
+	if !nosurf.VerifyToken(formCSRFToken, stc.Value) {
+		// [ ] potential CSRF attack - log the request with all possible details
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("invalid CSRF tokens. [%s]", stc.Value))
+		return
+	}
+
+	// Getting state value (defacto pre-session id)
+	sc, err := r.Cookie(h.server.Config.GetSesssionCookieName())
+	if err == http.ErrNoCookie {
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("missing session id cookie: %#v", err))
+		return
+	}
+	var state = sc.Value
+
 	_ = level.Debug(h.logger).Log("cid", cid, "email", email, "password", password)
 
 	if email == "" || password == "" {
@@ -145,8 +177,6 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 		_ = level.Error(h.logger).Log("vaid", valid, "error", err.Error())
 		h.server.responseUnauth(w, "authLogin", err)
 		return
-		// fmt.Printf("err: %s\n", err.Error())
-		// valid = true
 	}
 
 	if valid {
@@ -162,9 +192,6 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 		var ac = h.server.Sm.GetAuthCode(state)
 		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s", call_back_url, ac["auth_code"], state)
 
-		// [-] remove after debug
-		fmt.Printf("redirect URL: %s\n", redirectURL)
-
 		// [!] ACF S7 ->
 		// redirect to the web application server endpoint dedicated to call-back from /oauth/login
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
@@ -176,24 +203,11 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 
 // userLoginForm will handle the UI for users Login Form
 func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
-	// fmt.Fprintln(w, "display the Login Form")
-
-	var state = r.URL.Query().Get("t")
-	var cid string
-
-	cc, err := r.Cookie("c")
-	if err != nil {
-		_ = level.Error(h.logger).Log("error-get-client-id", err.Error())
-		cid = ""
-	} else {
-		cid = cc.Value
-	}
 
 	var td = ssoapp.TemplateData{
-		CSRFToken: state,
-		Form:      forms.New(nil),
-		ClientID:  cid,
+		Form: forms.New(nil),
 	}
+
 	h.server.IvmSSO.Render(w, r, "login.page.tmpl", &td)
 }
 

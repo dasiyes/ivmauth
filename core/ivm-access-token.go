@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/dasiyes/ivmconfig/src/pkg/config"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 )
 
 // AccessToken represents the object returned to the requestor

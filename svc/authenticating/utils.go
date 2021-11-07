@@ -7,15 +7,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/dasiyes/ivmconfig/src/pkg/config"
+	"github.com/golang-jwt/jwt"
 )
 
-// getXClient - retrievs the ClientID and Client Secret from the provided xic string that represents the ClientID and ClientSecret as Basic auth string.
-func getXClient(xic string) (cid string, csc string) {
+// getClientIDSecFromBasic - retrievs the ClientID and Client Secret from
+// the provided xic string that represents the ClientID and ClientSecret
+// as Basic auth string.
+func getClientIDSecFromBasic(xic string) (cid string, csc string) {
 
 	// TODO: remove after debug
 	fmt.Printf("xic: %v\n", xic)
@@ -70,6 +74,23 @@ func getClientIDSecWFUE(r *http.Request) (cID, cSec string, err error) {
 	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
 	return cID, cSec, nil
+}
+
+// getClientIDFromReqQueryPrm - will retrieve the client ID from the request parameters
+func getClientIDFromReqQueryPrm(r *http.Request) (cid string, err error) {
+
+	r.URL.RawQuery, err = url.QueryUnescape(r.URL.RawQuery)
+	if err != nil {
+		return "", fmt.Errorf("while validating clientID exists, error: %#v! %#v", err, core.ErrBadRequest)
+	}
+
+	q := r.URL.Query()
+	cid = q.Get("client_id")
+	cid = strings.TrimSpace(cid)
+	if cid == "" {
+		return "", fmt.Errorf("while validating clientID exists - missing client_id! %#v", core.ErrBadRequest)
+	}
+	return cid, nil
 }
 
 // validateIDToken will provide validation of OpenIDConnect ID Tokens
@@ -134,8 +155,10 @@ func validateOpenIDClaims(
 		return core.ErrSessionToken
 	}
 
-	// ISSUE: jwt-go package does not support loading the token claims into IDToken when the AUD type is set to array of []string. With flat string type works well.
-	// ? TODO: report the issue to package repo...
+	// ISSUE: jwt-go package (now replaced by golang-jwt/jwt package) does not support
+	// loading the token claims into IDToken when the AUD type is set to array of
+	// []string! With flat string type works well.
+	// TODO [dev]: try the same above with the new package...
 
 	if oidt.Aud != body.AsrCID {
 		return core.ErrCompromisedAud
@@ -171,4 +194,142 @@ func validateOpenIDClaims(
 	}
 
 	return nil
+}
+
+// A server MUST respond with a 400 (Bad Request) status code to any
+//  [x] HTTP/1.1 request message that lacks a Host header field
+//  and
+//  [x] to any request message that contains more than one Host header field
+//	or
+//  [x] a Host header field with an invalid field-value .
+func checkValidClientAuthRequest(r *http.Request, cfg config.IvmCfg) (bool, error) {
+
+	// The host is the address where the request is sent to.
+	var host string = r.Host
+
+	// The host header SHOULD be only one value. If there is more - bad request is returned.
+	var hosts = r.Header.Values("Host")
+	if len(hosts) > 1 {
+		return false, core.ErrBadRequest
+	}
+
+	// The origin is the address where the request is sent from. Since the CORS is allowed, this value should be controlling the originates from where the library accepts calls from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Origin]
+	var origin string = r.Header.Get("Origin")
+
+	// The refrerrer value, as a difference from the origin, will include the full path from where the request was sent from. [https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referer]
+	var referer = r.Referer()
+
+	// [x] [host]: The address where the request was sent to. Should be domain where this library is authoritative to - i.e. ivmanto.dev
+	var expected_host = cfg.GetAuthSvcURL()
+
+	if host != expected_host || host == "" || expected_host == "" {
+		return false, core.ErrBadRequest
+	}
+
+	var env string = cfg.GetEnv()
+	if origin == "" && env == "prod" {
+		//TODO [dev]: implement db support for taking the array of allowed origins
+		fmt.Printf("BadRequest: missing origin value\n")
+		return false, core.ErrBadRequest
+	}
+
+	if referer == "" {
+		//TODO [design]: consider if this value must be part of the client Authentication process...
+		fmt.Printf("INFO: missing referer value\n")
+	}
+
+	if r.Method != http.MethodPost {
+		// Check for an exception - validate the clientID is registred for GET /oauth/authorize endpoint
+		if r.Method == http.MethodGet && r.URL.Path == "/oauth/authorize" {
+			return true, nil
+		}
+		return false, fmt.Errorf("request method %s is not accepted", r.Method)
+	}
+
+	return true, nil
+}
+
+// getAndAuthRegisteredClient - will find the client from the request by its clientID and will authenticate it based on its type and respective credentials. In case of successful authentication will return the client object, otherwise error
+func getAndAuthRegisteredClient(clients core.ClientRepository, cID, cSec string) (*core.Client, error) {
+
+	// [ ] remove after debug
+	fmt.Printf("provided clientID to authenticate: %s\n", cID)
+
+	rc, err := clients.Find(core.ClientID(cID))
+	if err != nil {
+		return nil, fmt.Errorf("while finding clientID: %v in the database error raised: %#v", cID, err)
+	}
+
+	var dbCS = strings.TrimSpace(rc.ClientSecret)
+	cSec = strings.TrimSpace(cSec)
+
+	switch rc.ClientType {
+	case core.Confidential:
+		if cSec != "" && dbCS == cSec {
+			return rc, nil
+		} else {
+			return nil, fmt.Errorf("authentication failed for clientID %s, clientType %s, dbCS: %s, cSec: %s,%#v", cID, rc.ClientType.String(), dbCS, cSec, core.ErrClientAuth)
+		}
+	case core.Credentialed:
+		// TODO [dev]: identify the use case for this client Type and implement the logic
+		return nil, fmt.Errorf("unsupported client type. %#v", core.ErrBadRequest)
+	case core.Public:
+		// TODO [dev]: DO NOT trust the client identity. INVOLVE the resource owner in another comm channel?
+		if cSec == "" && rc.ClientSecret == "" {
+			return rc, nil
+		}
+		return nil, fmt.Errorf("unsupported client type. %#v", core.ErrBadRequest)
+	default:
+		return nil, fmt.Errorf("unsupported client type. %#v", core.ErrBadRequest)
+	}
+}
+
+// validateClientExists - just finds by client_id from request query into
+// the database as registred clientID and returns the object - otherwise error.
+// Do NOT confused with authenticate client.
+func validateClientExists(r *http.Request, clients core.ClientRepository) (*core.Client, error) {
+
+	var err error
+	var cID string
+	var rc *core.Client
+	mrp := r.Method + " " + r.URL.Path
+
+	switch mrp {
+	case "GET /oauth/authorize":
+		cID, err = getClientIDFromReqQueryPrm(r)
+		if err != nil {
+			return nil, fmt.Errorf("while getting clientID: %v from query param error raised: %#v", cID, err)
+		}
+	case "POST /oauth/login":
+		cID, _, err = getClientIDSecWFUE(r)
+		if err != nil {
+			return nil, fmt.Errorf("while getting clientID: %v from request body error raised: %#v", cID, err)
+		}
+	default:
+		cID = ""
+	}
+
+	if cID == "" {
+		return nil, fmt.Errorf("clientID value is missing.%#v", core.ErrBadRequest)
+	}
+
+	rc, err = clients.Find(core.ClientID(cID))
+	if err != nil {
+		return nil, fmt.Errorf("while finding clientID: %v in the database error raised: %#v", cID, err)
+	}
+
+	return rc, nil
+}
+
+// This function will match the cases when clientID must be ONLY validated but not authenticated.
+func isClientIDValidateCase(r *http.Request) bool {
+	mrp := r.Method + " " + r.URL.Path
+	switch {
+	case mrp == "GET /oauth/authorize":
+		return true
+	case mrp == "POST /oauth/login":
+		return true
+	default:
+		return false
+	}
 }

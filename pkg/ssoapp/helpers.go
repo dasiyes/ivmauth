@@ -7,7 +7,8 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log/level"
+	"github.com/justinas/nosurf"
 )
 
 func (a *IvmSSO) serverError(w http.ResponseWriter, err error) {
@@ -37,16 +38,27 @@ func (a *IvmSSO) Render(w http.ResponseWriter, r *http.Request, name string, td 
 
 // addDefaultData set the dataset for the form to be rendered
 func (a *IvmSSO) addDefaultData(td *TemplateData, r *http.Request) *TemplateData {
+
 	if td == nil {
 		td = &TemplateData{}
 	}
 
-	//TODO [dev]: take the session ID as CSRFToken ...
-	// td.CSRFToken = nosurf.Token(r)
+	var cid string
+	cc, err := r.Cookie("c")
+	if err != nil {
+		cid = ""
+		fmt.Printf("unable to get clientID. error %#v", err)
+	} else {
+		cid = cc.Value
+	}
+
+	// generates new CSRFToken
+	td.CSRFToken = nosurf.Token(r)
 
 	td.CurrentYear = time.Now().Year()
 	// td.Flash = a.session.PopString(r, "flash")
 	// td.IsAuthenticated = a.isAuthenticated(r)
+	td.ClientID = cid
 
 	return td
 }
