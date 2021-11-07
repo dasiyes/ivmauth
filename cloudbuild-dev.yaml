@@ -16,7 +16,7 @@ steps:
     '--memory', '1Gi', '--cpu', '2',
     # '--no-use-http2', 
     '--no-allow-unauthenticated', 
-    '--service-account', 'ivmauth-staging@$${PROJECT_ID}.iam.gserviceaccount.com', 
+    '--service-account', 'ivmauth-staging@${PROJECT_ID}.iam.gserviceaccount.com', 
     '--min-instances', '0', '--max-instances', '2',
     '--set-env-vars','FIRESTORE_PROJECT_ID=${_FIRESTORE_PROJECT_ID}']
 images:
