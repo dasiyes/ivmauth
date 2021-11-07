@@ -1,7 +1,11 @@
-v0.0.15
+
+v0.0.16
         - service tests
-        - implementing check list
         - refactoring Authenticating Service method (AuthenticateClient etc)
+
+v0.0.15
+        
+        - implementing CSRF protection
         - extended with validate client exists (as part of AuthenticateClient)
 
 v0.0.14
