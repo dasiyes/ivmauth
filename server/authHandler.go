@@ -165,7 +165,10 @@ func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Location", ru)
 	w.WriteHeader(http.StatusSeeOther)
-	w.Write(nil)
+	_, err = w.Write(nil)
+	if err != nil {
+		w.WriteHeader(500)
+	}
 }
 
 // Response to "GET /" with the current version of the Ivmanto's auth service
