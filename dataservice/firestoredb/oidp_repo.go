@@ -3,6 +3,7 @@ package firestoredb
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"cloud.google.com/go/firestore"
 	"github.com/dasiyes/ivmauth/core"
@@ -17,6 +18,11 @@ type oidProviderRepository struct {
 
 // Store - stores the provider registrations
 func (ip *oidProviderRepository) Store(pr *core.OIDProvider) error {
+
+	_, err := ip.client.Collection(ip.collection).Doc(string(pr.ProviderName)).Set(context.TODO(), pr)
+	if err != nil {
+		return fmt.Errorf("unable to save in session repository - error: %v", err)
+	}
 
 	return nil
 }
