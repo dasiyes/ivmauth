@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	b64 "encoding/base64"
@@ -10,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"math/bits"
 	"net/http"
 	"net/url"
 	"time"
@@ -224,6 +224,7 @@ func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod) error {
 
 	var prvkey *rsa.PrivateKey
 	var pk rsa.PublicKey
+
 	var err error
 	var kty, use, kid string
 
@@ -247,7 +248,8 @@ func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod) error {
 		Kty: kty,
 		Use: use,
 		Kid: kid,
-		N:   pk.N.String(),
+		Alg: sm.Alg(),
+		N:   NToString(pk.N.String()),
 		E:   ExpToString(pk.E),
 	}
 
@@ -282,7 +284,7 @@ type PublicKeySetRepository interface {
 	FindAll() []*PublicKeySet
 }
 
-//Public key (JWK) exponent parameter (https://datatracker.ietf.org/doc/html/draft-ietf-jose-json-web-algorithms-31#section-6.3.1.2)
+// Public key (JWK) exponent parameter (https://datatracker.ietf.org/doc/html/draft-ietf-jose-json-web-algorithms-31#section-6.3.1.2)
 //
 // The "e" (exponent) member contains the exponent value for the RSA
 // public key.  It is represented as the base64url encoding of the
@@ -292,46 +294,28 @@ type PublicKeySetRepository interface {
 // octet sequence to be base64url encoded MUST consist of the three
 // octets [1, 0, 1].
 func ExpToString(pkE int) string {
-	var e uint64 = uint64(pkE)
-	var ebs []byte
-	var eBytes []byte
 
-	binary.BigEndian.PutUint64(ebs, e)
-
-	if len(ebs) < 8 {
-		eBytes = make([]byte, 8-len(ebs), 8)
-		eBytes = append(eBytes, ebs...)
-	} else {
-		eBytes = ebs
-	}
-
-	eStr := b64.URLEncoding.EncodeToString(eBytes)
+	var ebs = encodeUint(uint64(pkE))
+	eStr := b64.URLEncoding.EncodeToString(ebs)
 	return eStr
 }
 
-func ExpFromString(eStr string) int {
-	// eStr := "AQAB"
-	decE, err := b64.StdEncoding.DecodeString(eStr)
-	if err != nil {
-		fmt.Printf("%#v", err)
-		return 0
-	}
+// Custom transform of uint to []byte
+// source: (https://stackoverflow.com/questions/16888357/convert-an-integer-to-a-byte-array)
+func encodeUint(x uint64) []byte {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, x)
+	return buf[bits.LeadingZeros64(x)>>3:]
+}
 
-	var eBytes []byte
-	if len(decE) < 8 {
-		eBytes = make([]byte, 8-len(decE), 8)
-		eBytes = append(eBytes, decE...)
-	} else {
-		eBytes = decE
-	}
-	eReader := bytes.NewReader(eBytes)
-	var e uint64
-
-	err = binary.Read(eReader, binary.BigEndian, &e)
-	if err != nil {
-		fmt.Printf("%#v", err)
-		return 0
-	}
-	//pKey := rsa.PublicKey{N: n, E: int(e)}
-	return int(e)
+// Public Key (JWK) N (modulus) parameter (https://datatracker.ietf.org/doc/html/draft-ietf-jose-json-web-algorithms-31#section-6.3.1.1)
+//
+// The "n" (modulus) member contains the modulus value for the RSA
+// public key.  It is represented as the base64url encoding of the
+// value's unsigned big endian representation as an octet sequence.  The
+// octet sequence MUST utilize the minimum number of octets to represent
+// the value.
+func NToString(nStr string) string {
+	nb64 := b64.URLEncoding.EncodeToString([]byte(nStr))
+	return nb64
 }
