@@ -293,10 +293,11 @@ type PublicKeySetRepository interface {
 // octets [1, 0, 1].
 func ExpToString(pkE int) string {
 	var e uint64 = uint64(pkE)
-
 	var ebs []byte
 	var eBytes []byte
+
 	binary.BigEndian.PutUint64(ebs, e)
+
 	if len(ebs) < 8 {
 		eBytes = make([]byte, 8-len(ebs), 8)
 		eBytes = append(eBytes, ebs...)
