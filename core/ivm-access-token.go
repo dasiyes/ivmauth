@@ -121,6 +121,7 @@ func (c *ivmantoATClaims) Valid() error {
 }
 
 // Issue a new JWT Token with respective Signing method and claims
+// [ ] Review this possible cache solution: https://github.com/ReneKroon/ttlcache
 func newJWToken(claims jwt.Claims, sm jwt.SigningMethod) (string, error) {
 
 	var token *jwt.Token
@@ -129,8 +130,8 @@ func newJWToken(claims jwt.Claims, sm jwt.SigningMethod) (string, error) {
 	switch sm.Alg() {
 	case "RS256":
 
-		// TODO [dev]: think about how to use this key and how to rotate it !!!
-		// TODO [dev]: implement kid ?!
+		// TODO [dev]: take the public keys from the endpoint.
+		// TODO [dev]: find how to use the public key to sign the new JWT
 		key, err := rsa.GenerateKey(rand.Reader, 2048)
 
 		if err != nil {

@@ -76,3 +76,14 @@ func (s *loggingService) GetIssuerVal(provider string) (iss string, err error) {
 	}(time.Now())
 	return s.next.GetIssuerVal(provider)
 }
+
+func (s *loggingService) PKSRotator() (err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "PKSRotator",
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.next.PKSRotator()
+}

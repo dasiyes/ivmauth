@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"cloud.google.com/go/firestore"
 	"github.com/dasiyes/ivmauth/core"
+	"google.golang.org/api/iterator"
 )
 
 type publicKeySetRepository struct {
@@ -34,12 +36,40 @@ func (pksr *publicKeySetRepository) Store(pk *core.PublicKeySet) error {
 // Find - finds a Public Key Set in the repository
 func (pksr *publicKeySetRepository) Find(ip string) (*core.PublicKeySet, error) {
 
-	return nil, errors.New("key not found")
+	iter := pksr.client.Collection(pksr.collection).Documents(*pksr.ctx)
+
+	var pks core.PublicKeySet
+
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			return nil, errors.New("key not found")
+		}
+		if err != nil {
+			if strings.Contains(err.Error(), "Missing or insufficient permissions") {
+				return nil, ErrInsufficientPermissions
+			} else {
+				fmt.Printf("err while iterate firestoreDB: %#v", err)
+			}
+			continue
+		}
+
+		err = doc.DataTo(&pks)
+		if err != nil {
+			return nil, fmt.Errorf("error while convert DataTo pks object for %s", doc.Ref.ID)
+		}
+		if doc.Ref.ID == ip {
+			break
+		}
+		pks = core.PublicKeySet{}
+	}
+
+	return &pks, nil
 }
 
 // FindAll - find and returns all stored Public Key Sets
 func (pksr *publicKeySetRepository) FindAll() []*core.PublicKeySet {
-	// TODO: implement FindAll
+	// TODO [dev]: implement FindAll
 	return []*core.PublicKeySet{}
 }
 

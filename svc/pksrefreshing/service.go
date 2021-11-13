@@ -2,6 +2,8 @@
 package pksrefreshing
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,6 +16,7 @@ import (
 
 	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmconfig/src/pkg/config"
+	"github.com/golang-jwt/jwt"
 )
 
 // Service is the interface that provides the service's methods.
@@ -34,6 +37,9 @@ type Service interface {
 
 	// Get the issuer value from the OpenIDProvider stored
 	GetIssuerVal(provider string) (string, error)
+
+	// PKSRotetor will take care for rotating PKS for OIDProvider Ivmanto
+	PKSRotator() error
 }
 
 type service struct {
@@ -94,6 +100,11 @@ func (s *service) newPKS(ip string) error {
 			return err
 		}
 
+		err = pks.AddJWK(jwt.SigningMethodRS256)
+		if err != nil {
+			return err
+		}
+
 		if err := s.keyset.Store(pks); err != nil {
 			return err
 		}
@@ -124,6 +135,7 @@ func (s *service) newPKS(ip string) error {
 		if err := s.keyset.Store(pks); err != nil {
 			return err
 		}
+
 	default:
 		// TODO: Add more Identity providers below
 	}
@@ -222,6 +234,32 @@ func (s *service) GetIssuerVal(provider string) (string, error) {
 		return "", err
 	}
 	return prv.Oidc.Issuer, nil
+}
+
+// PKSRotetor will take care for rotating PKS for OIDProvider Ivmanto
+//
+// [ ] 1. We request/create new key material.
+// [ ] 2. Then we publish the new validation key in addition to the current one.
+// [ ] 3. All clients and APIs now have a chance to learn about the new key the next time they update their local copy of the discovery document.
+// [ ] 4. After a certain amount of time (e.g. 24h) all clients and APIs should now accept both the old and the new key material.
+// [ ] 5. Keep the old key material around for as long as you like, maybe you have long-lived tokens that need validation.
+// [ ] 6. Retire the old key material when it is not used anymore.
+// [ ] 7. All clients and APIs will “forget” the old key next time they update their local copy of the discovery document.
+// This requires that clients and APIs use the discovery document, and also have a feature to periodically refresh their configuration.
+func (s *service) PKSRotator() error {
+
+	// TODO [dev]: add time-based code that will TRIGGER the key rotation on regular (ie. 1 month) base.
+
+	// TODO [dev]: generate Public key from the private key below.
+	// TODO [dev]: implement kid ?!
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+
+	if err != nil {
+		return err
+	}
+	_ = key
+
+	return nil
 }
 
 // NewService creates a authenticating service with necessary dependencies.

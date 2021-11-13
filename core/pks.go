@@ -1,13 +1,21 @@
 package core
 
 import (
+	"bytes"
+	"crypto/rand"
+	"crypto/rsa"
 	b64 "encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/golang-jwt/jwt"
+	"github.com/segmentio/ksuid"
 )
 
 // PublicKeySet will be used to hold the public keys sets form the
@@ -143,7 +151,7 @@ func (pks *PublicKeySet) Init(newKey []byte, exp int64) error {
 	pks.Expires = exp
 
 	if err := json.Unmarshal(newKey, pks.Jwks); err != nil {
-		return InvalidPubliKeySet(err)
+		return InvalidPublicKeySet(err)
 	}
 	return nil
 }
@@ -151,7 +159,7 @@ func (pks *PublicKeySet) Init(newKey []byte, exp int64) error {
 // GetKid - returns a JWK found by its kid
 func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 	if len(pks.Jwks.Keys) == 0 {
-		return JWK{}, InvalidPubliKeySet(errors.New("empty set of JWKs"))
+		return JWK{}, InvalidPublicKeySet(errors.New("empty set of JWKs"))
 	}
 	var n, e string
 	var jwk JWK
@@ -163,7 +171,7 @@ func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 		}
 	}
 	if n == "" && e == "" {
-		return JWK{}, InvalidPubliKeySet(errors.New("JWK not found by the provided kid"))
+		return JWK{}, InvalidPublicKeySet(errors.New("JWK not found by the provided kid"))
 	}
 	return jwk, nil
 }
@@ -171,7 +179,7 @@ func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 // GetKidNE - returns modulus N and pblic exponent E as big.Int and int respectively
 func (pks *PublicKeySet) GetKidNE(kid string) (*big.Int, int, error) {
 	if len(pks.Jwks.Keys) == 0 {
-		return nil, 0, InvalidPubliKeySet(errors.New("empty set of JWKs"))
+		return nil, 0, InvalidPublicKeySet(errors.New("empty set of JWKs"))
 	}
 	var n, e string
 	for _, jwk := range pks.Jwks.Keys {
@@ -182,13 +190,13 @@ func (pks *PublicKeySet) GetKidNE(kid string) (*big.Int, int, error) {
 		}
 	}
 	if n == "" && e == "" {
-		return nil, 0, InvalidPubliKeySet(errors.New("JWK not found by the provided kid"))
+		return nil, 0, InvalidPublicKeySet(errors.New("JWK not found by the provided kid"))
 	}
 
 	// nb, err := base64url.Decode(n)
 	nb, err := b64.URLEncoding.DecodeString(n)
 	if err != nil {
-		return nil, 0, InvalidPubliKeySet(errors.New("invalid JWK modulus"))
+		return nil, 0, InvalidPublicKeySet(errors.New("invalid JWK modulus"))
 	}
 	// TODO add a condition to check if the jwk.e is not
 	ei := 65537
@@ -206,9 +214,52 @@ func (pks *PublicKeySet) LenJWKS() int {
 	return len(pks.Jwks.Keys)
 }
 
+// AddJWK will generate new private key and from it will add a new JWK into JWKS
+func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod) error {
+
+	var jwks = pks.LenJWKS()
+	if jwks > 2 {
+		return fmt.Errorf("There are already %d JWKeys", jwks)
+	}
+
+	var prvkey *rsa.PrivateKey
+	var pk rsa.PublicKey
+	var err error
+	var kty, use, kid string
+
+	switch sm.Alg() {
+	case "RS256":
+		kty = "RSA"
+		use = "sig"
+		kid = ksuid.New().String()
+		prvkey, err = rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			return fmt.Errorf("generating key error %#v", err)
+		}
+		pk = prvkey.PublicKey
+
+	default:
+		return ErrUnknownMethod
+	}
+
+	// TODO [dev]: fullfill the JWK with attributes including from the prvkey above
+	var newJWK = JWK{
+		Kty: kty,
+		Use: use,
+		Kid: kid,
+		N:   pk.N.String(),
+		E:   ExpToString(pk.E),
+	}
+
+	pks.Jwks.Keys = append(pks.Jwks.Keys, newJWK)
+
+	return nil
+}
+
 // NewPublicKeySet creates a new set of Public Key for each of the suported
 // Identity Vendors.
 func NewPublicKeySet(identityProvider string) *PublicKeySet {
+
 	jwk := JWK{Kty: ""}
 	jwks := JWKS{Keys: []JWK{jwk}}
 
@@ -229,4 +280,57 @@ type PublicKeySetRepository interface {
 	Store(pks *PublicKeySet) error
 	Find(IdentityProvider string) (*PublicKeySet, error)
 	FindAll() []*PublicKeySet
+}
+
+//Public key (JWK) exponent parameter (https://datatracker.ietf.org/doc/html/draft-ietf-jose-json-web-algorithms-31#section-6.3.1.2)
+//
+// The "e" (exponent) member contains the exponent value for the RSA
+// public key.  It is represented as the base64url encoding of the
+// value's unsigned big endian representation as an octet sequence.  The
+// octet sequence MUST utilize the minimum number of octets to represent
+// the value.  For instance, when representing the value 65537, the
+// octet sequence to be base64url encoded MUST consist of the three
+// octets [1, 0, 1].
+func ExpToString(pkE int) string {
+	var e uint64 = uint64(pkE)
+
+	var ebs []byte
+	var eBytes []byte
+	binary.BigEndian.PutUint64(ebs, e)
+	if len(ebs) < 8 {
+		eBytes = make([]byte, 8-len(ebs), 8)
+		eBytes = append(eBytes, ebs...)
+	} else {
+		eBytes = ebs
+	}
+
+	eStr := b64.URLEncoding.EncodeToString(eBytes)
+	return eStr
+}
+
+func ExpFromString(eStr string) int {
+	// eStr := "AQAB"
+	decE, err := b64.StdEncoding.DecodeString(eStr)
+	if err != nil {
+		fmt.Printf("%#v", err)
+		return 0
+	}
+
+	var eBytes []byte
+	if len(decE) < 8 {
+		eBytes = make([]byte, 8-len(decE), 8)
+		eBytes = append(eBytes, decE...)
+	} else {
+		eBytes = decE
+	}
+	eReader := bytes.NewReader(eBytes)
+	var e uint64
+
+	err = binary.Read(eReader, binary.BigEndian, &e)
+	if err != nil {
+		fmt.Printf("%#v", err)
+		return 0
+	}
+	//pKey := rsa.PublicKey{N: n, E: int(e)}
+	return int(e)
 }

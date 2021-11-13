@@ -25,6 +25,7 @@ api_gateway_svc:
   endpoints:
     - endpoint: "/pg/cb"
       method: "GET"
+
 # web application config
 web_app_svc:
   # Configuring the wep app service
