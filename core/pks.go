@@ -11,18 +11,25 @@ import (
 	"math/big"
 	"math/bits"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/golang-jwt/jwt"
 	"github.com/segmentio/ksuid"
 )
 
+// PublicKeySetRepository provides access a PKS store.
+type PublicKeySetRepository interface {
+	// Store will override a public key set if such already exists (identified by URL)
+	Store(pks *PublicKeySet) error
+	Find(IdentityProvider string) (*PublicKeySet, error)
+	FindAll() []*PublicKeySet
+}
+
 // PublicKeySet will be used to hold the public keys sets form the
 // different Identity Providers that supply authentication tokens
 type PublicKeySet struct {
 	IdentityProvider string
-	URL              *url.URL
+	URL              string
 	HTTPClient       *http.Client
 	Jwks             *JWKS
 	Expires          int64
@@ -249,8 +256,8 @@ func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod) error {
 		Use: use,
 		Kid: kid,
 		Alg: sm.Alg(),
-		N:   NToString(pk.N.String()),
-		E:   ExpToString(pk.E),
+		N:   nToString(pk.N),
+		E:   expToString(pk.E),
 	}
 
 	pks.Jwks.Keys = append(pks.Jwks.Keys, newJWK)
@@ -267,21 +274,13 @@ func NewPublicKeySet(identityProvider string) *PublicKeySet {
 
 	return &PublicKeySet{
 		IdentityProvider: identityProvider,
-		URL:              &url.URL{},
+		URL:              "",
 		HTTPClient: &http.Client{
 			Timeout: time.Second * 30,
 		},
 		Jwks:    &jwks,
 		Expires: 0,
 	}
-}
-
-// PublicKeySetRepository provides access a PKS store.
-type PublicKeySetRepository interface {
-	// Store will override a public key set if such already exists (identified by URL)
-	Store(pks *PublicKeySet) error
-	Find(IdentityProvider string) (*PublicKeySet, error)
-	FindAll() []*PublicKeySet
 }
 
 // Public key (JWK) exponent parameter (https://datatracker.ietf.org/doc/html/draft-ietf-jose-json-web-algorithms-31#section-6.3.1.2)
@@ -293,7 +292,7 @@ type PublicKeySetRepository interface {
 // the value.  For instance, when representing the value 65537, the
 // octet sequence to be base64url encoded MUST consist of the three
 // octets [1, 0, 1].
-func ExpToString(pkE int) string {
+func expToString(pkE int) string {
 
 	var ebs = encodeUint(uint64(pkE))
 	eStr := b64.URLEncoding.EncodeToString(ebs)
@@ -315,7 +314,8 @@ func encodeUint(x uint64) []byte {
 // value's unsigned big endian representation as an octet sequence.  The
 // octet sequence MUST utilize the minimum number of octets to represent
 // the value.
-func NToString(nStr string) string {
-	nb64 := b64.URLEncoding.EncodeToString([]byte(nStr))
+func nToString(n *big.Int) string {
+	nb := n.Bytes()
+	nb64 := b64.URLEncoding.WithPadding(b64.NoPadding).EncodeToString(nb)
 	return nb64
 }

@@ -69,10 +69,11 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	}
 
 	// Preliminary download JWKS for idToken validation if the x-token-type is not empty
-	var tt = r.Header.Get("x-token-type")
-	if tt != "" {
-		go h.pks.DownloadPKSinCache(tt)
-	}
+	// [ ] find a way how to get the PKS from the cache. It has been initiated at startup time by the method `InitOIDProviders``
+	// var tt = r.Header.Get("x-token-type")
+	// if tt != "" {
+	// 	go h.pks.DownloadPKSinCache(tt)
+	// }
 
 	// Validate auth request. Authenticated client's scope to consider
 	at, err := h.aus.Validate(&r.Header, reqbody, h.pks, &client)

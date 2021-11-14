@@ -136,3 +136,10 @@ func (s *Server) responseBadRequest(w http.ResponseWriter, method string, err er
 	_ = level.Error(s.Logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
 	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 }
+
+// responseBadRequest returns response status code 500 Internal Server Error
+func (s *Server) responseIntServerError(w http.ResponseWriter, method string, err error) {
+	w.Header().Set("Connection", "close")
+	_ = level.Error(s.Logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
+	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+}

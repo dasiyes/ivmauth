@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -31,9 +30,10 @@ type Service interface {
 	// GetPKSCache - finds and returns PKS from the cache, if available
 	GetPKSCache(identityProvider string) (*core.PublicKeySet, error)
 
+	// DEPRICATED - replaced by the InitOIDProviders
 	// DownloadPKSinCache - will check the cache for not expired PKS if not found will download it. Otherwise do nothing.
 	// This feature to be used as preliminary download feature
-	DownloadPKSinCache(identityProvider string)
+	// DownloadPKSinCache(identityProvider string) error
 
 	// Get the issuer value from the OpenIDProvider stored
 	GetIssuerVal(provider string) (string, error)
@@ -86,7 +86,8 @@ func (s *service) newPKS(ip string) error {
 		}
 
 		// fullfilling PKS
-		pks.URL, err = url.Parse(oidp.Oidc.JwksURI)
+		// pks.URL, err = url.Parse(oidp.Oidc.JwksURI)
+		pks.URL = oidp.Oidc.JwksURI
 		if err != nil {
 			return err
 		}
@@ -99,6 +100,8 @@ func (s *service) newPKS(ip string) error {
 		if err := pks.Init(jwks, exp); err != nil {
 			return err
 		}
+
+		// [!] Review the code below again! As of now the process does not require it!
 
 		err = pks.AddJWK(jwt.SigningMethodRS256)
 		if err != nil {
@@ -121,7 +124,8 @@ func (s *service) newPKS(ip string) error {
 		_ = s.providers.Store(oidp)
 
 		// fullfiling PKS
-		pks.URL, err = url.Parse(oidc.JwksURI)
+		// pks.URL, err = url.Parse(oidc.JwksURI)
+		pks.URL = oidp.Oidc.JwksURI
 		if err != nil {
 			return err
 		}
@@ -157,31 +161,43 @@ func (s *service) GetRSAPublicKey(identityProvider string, kid string) (n *big.I
 	return n, e, nil
 }
 
+// DEPRICATED - replaced by the InitOIDProviders
 // DownloadPKSinCache - will check the cache for not expired PKS if not found will download it. Otherwise do nothing.
 // This feature to be used as preliminary download feature
-func (s *service) DownloadPKSinCache(identityProvider string) {
-
-	// Check the cache for PKS
-	pks, err := s.keyset.Find(identityProvider)
-	if err != nil && err.Error() == "key not found" {
-		err = nil
-		// Not found - download it again from the providers url
-		err = s.newPKS(identityProvider)
-		if err != nil {
-			return
-		}
-	}
-
-	// Found in cache in the searches above - check if not expired
-	if pks.Expires < time.Now().Unix()+int64(time.Second*60) {
-		// has expired or will expire in the next minute - try to download it again
-		err = s.newPKS(identityProvider)
-		if err != nil {
-			// error when downloading it
-			return
-		}
-	}
-}
+// func (s *service) DownloadPKSinCache(identityProvider string) error {
+//
+// 	// Check the cache for PKS
+// 	pks, err := s.keyset.Find(identityProvider)
+// 	if err != nil && err.Error() == "key not found" {
+// 		err = nil
+// 		if identityProvider == "ivmanto" {
+// 			err = s.PKSRotator()
+// 			if err != nil {
+// 				return fmt.Errorf("error while rotating PKS %#v", err)
+// 			}
+// 		} else {
+// 			// Not found - download it again from the providers url
+// 			err = s.newPKS(identityProvider)
+// 			if err != nil {
+// 				return fmt.Errorf("error %#v while newPKS for provider %s ", err, identityProvider)
+// 			}
+//
+// 			// Found in cache in the searches above - check if not expired
+// 			// This is valid only for third party identityProvider. Ivmanto's pks will
+// 			// be managed by PKSRotator.
+// 			if pks.Expires < time.Now().Unix()+int64(time.Second*60) {
+// 				// has expired or will expire in the next minute - try to download it again
+// 				err = s.newPKS(identityProvider)
+// 				if err != nil {
+// 					// error when downloading it
+// 					return fmt.Errorf("error %#v when newPKS because expired, for provider %s ", err, identityProvider)
+// 				}
+// 			}
+// 		}
+// 	}
+//
+// 	return nil
+// }
 
 // GetPKSCache finds the PKS and returns it from the cache. If not found, calls NewPKS
 //  to download the keys from the URL
@@ -195,30 +211,32 @@ func (s *service) GetPKSCache(identityProvider string) (*core.PublicKeySet, erro
 		err = s.newPKS(identityProvider)
 		if err != nil {
 			// error when downloading it - return empty pks and error
-			return &core.PublicKeySet{}, errors.New("Error while creating a new PKS: " + err.Error())
+			return nil, fmt.Errorf("Error while creating a new PKS: %#v for IdentyProvider: %s", err, identityProvider)
 		}
 		// Try again to find it in cache - once the download has been called
 		pks, err = s.keyset.Find(identityProvider)
 		if err != nil {
 			// Not found again - return empty pks and error
-			return &core.PublicKeySet{}, err
+			return nil, fmt.Errorf("Error while Find (again) PKS in cache for IdentyProvider: %s", identityProvider)
 		}
+	} else if err != nil {
+		return nil, fmt.Errorf("Error %#v, searching PKS in cache for IdentyProvider: %s", err, identityProvider)
 	}
 	// Found in cache in the searches above - check if not expired
-	if pks.Expires < time.Now().Unix()+int64(time.Second*30) {
-		// has expired - try to download it again
-		err = s.newPKS("google")
-		if err != nil {
-			// error when downloading it - return empty pks and error
-			return &core.PublicKeySet{}, errors.New("Error while creating a new PKS: " + err.Error())
-		}
-		// Try to find it again after the new download
-		pks, err = s.keyset.Find(identityProvider)
-		if err != nil {
-			// Not found again - return empty pks and error
-			return &core.PublicKeySet{}, err
-		}
-	}
+	// if pks.Expires < time.Now().Unix()+int64(time.Second*30) {
+	// 	// has expired - try to download it again
+	// 	err = s.newPKS(identityProvider)
+	// 	if err != nil {
+	// 		// error when downloading it - return empty pks and error
+	// 		return &core.PublicKeySet{}, errors.New("Error while creating a new PKS: " + err.Error())
+	// 	}
+	// 	// Try to find it again after the new download
+	// 	pks, err = s.keyset.Find(identityProvider)
+	// 	if err != nil {
+	// 		// Not found again - return empty pks and error
+	// 		return &core.PublicKeySet{}, err
+	// 	}
+	// }
 
 	return pks, nil
 }
@@ -278,7 +296,8 @@ func NewService(
 // downloadJWKS - download jwks from the URL for the respective Identity provider
 func downloadJWKS(pks *core.PublicKeySet) ([]byte, int64, error) {
 
-	resp, err := pks.HTTPClient.Get(pks.URL.String())
+	// resp, err := pks.HTTPClient.Get(pks.URL.String())
+	resp, err := pks.HTTPClient.Get(pks.URL)
 	if err != nil {
 		return nil, 0, err
 	}

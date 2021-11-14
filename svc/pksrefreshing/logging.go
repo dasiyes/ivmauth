@@ -54,15 +54,17 @@ func (s *loggingService) GetPKSCache(identityProvider string) (pks *core.PublicK
 	return s.next.GetPKSCache(identityProvider)
 }
 
-func (s *loggingService) DownloadPKSinCache(identityProvider string) {
-	defer func(begin time.Time) {
-		_ = s.logger.Log(
-			"method", "DownloadPKSinCache",
-			"identityProvider", identityProvider,
-			"took", time.Since(begin),
-		)
-	}(time.Now())
-}
+// func (s *loggingService) DownloadPKSinCache(identityProvider string) (err error) {
+// 	defer func(begin time.Time) {
+// 		_ = s.logger.Log(
+// 			"method", "DownloadPKSinCache",
+// 			"identityProvider", identityProvider,
+// 			"took", time.Since(begin),
+// 			"error", err,
+// 		)
+// 	}(time.Now())
+// 	return s.next.DownloadPKSinCache(identityProvider)
+// }
 
 func (s *loggingService) GetIssuerVal(provider string) (iss string, err error) {
 	defer func(begin time.Time) {
