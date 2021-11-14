@@ -13,9 +13,9 @@ import (
 	"github.com/dasiyes/ivmsesman"
 	_ "github.com/dasiyes/ivmsesman/providers/firestore"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 
 	"github.com/dasiyes/ivmauth/core"
@@ -31,16 +31,18 @@ import (
 
 func main() {
 
+	fmt.Printf("Start loading ...\n")
 	// Set the run-time arguments as flags
 	var (
 		inmemory = flag.Bool("inmem", false, "use in-memory repositories")
-		// TODO:
-		env = flag.String("env", "dev", "The environment where the service will run. It will define the config file name to load by adding suffix '-$env' to 'config'. Accepted values: dev|staging|prod ")
-		cf  = flag.String("c", "config.yaml", "The configuration file name to use for oauth server config values and dependent services")
+		env      = flag.String("env", "dev", "The environment where the service will run. It will define the config file name to load by adding suffix '-$env' to 'config'. Accepted values: dev|staging|prod ")
+		cf       = flag.String("c", "config.yaml", "The configuration file name to use for oauth server config values and dependent services")
 	)
 
+	fmt.Printf("  ... parse run-time flags\n")
 	flag.Parse()
 
+	fmt.Printf("  ... seting up logger\n")
 	// Initiating the services logger
 	var logger log.Logger
 	{
@@ -49,6 +51,7 @@ func main() {
 		logger = log.With(logger, "ts", log.DefaultTimestamp)
 	}
 
+	fmt.Printf("  ... loading configuration\n")
 	// Initiate top level context and config vars
 	var (
 		ctx = context.Background()
@@ -66,6 +69,7 @@ func main() {
 		projectID        = cfg.GCPPID()
 	)
 
+	fmt.Printf("  ... setting up repositories\n")
 	// SETUP repositories
 	var (
 		authrequests core.RequestRepository
@@ -75,15 +79,13 @@ func main() {
 		users        core.UserRepository
 	)
 
-	// The Public Key Set is always in mem cache
-	pubkeys = inmem.NewPKSRepository()
-	oidprv = inmem.NewOIDProviderRepository()
-
 	type Cfgk string
 
 	if *inmemory {
 
 		authrequests = inmem.NewRequestRepository()
+		pubkeys = inmem.NewPKSRepository()
+		oidprv = inmem.NewOIDProviderRepository()
 		clients = inmem.NewClientRepository()
 		users = inmem.NewUserRepository()
 
@@ -92,29 +94,31 @@ func main() {
 		ctx := context.WithValue(ctx, Cfgk("ivm"), cfg)
 		client, err := firestore.NewClient(ctx, projectID)
 		if err != nil {
-			logger.Log("firestore client init error", err.Error(), "Exit", "Unable to proceed starting the server...")
+			_ = level.Error(logger).Log("firestore client init error", err.Error(), "Exit", "Unable to proceed starting the server...")
 			os.Exit(1)
 		}
 
 		defer client.Close()
 
+		// Collection naming convention:
+		//  * Must be valid UTF-8 characters
+		//  * Must be no longer than 1,500 bytes
+		//  * Cannot contain a forward slash (/)
+		//  * Cannot solely consist of a single period (.) or double periods (..)
+		//  * Cannot match the regular expression __.*__
+
 		authrequests, _ = firestoredb.NewRequestRepository(&ctx, "authrequests", client)
+		pubkeys = firestoredb.NewPKSRepository(&ctx, "pubkeys", client)
+		oidprv = firestoredb.NewOIDProviderRepository(&ctx, "openID-providers", client)
 		clients, _ = firestoredb.NewClientRepository(&ctx, "clients", client)
 		users, _ = firestoredb.NewUserRepository(&ctx, "users", client)
-		// TODO: add the rest of the repos
-
-	}
-
-	// Facilitate testing by adding some sample data
-	//TODO: initiate cis snd csc
-	if *env == "dev" {
-		storeTestData(clients, "", "")
 	}
 
 	fieldKeys := []string{"method"}
 
 	// Configure some questionable dependencies.
 
+	fmt.Printf("  ... setting up Session Manager\n")
 	// Create a Session Manager
 	sm, err := ivmsesman.NewSesman(ivmsesman.Firestore, (*ivmsesman.SesCfg)(cfg.GetSessManCfg()))
 	if err != nil {
@@ -122,6 +126,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Printf("  ... instantiate the tempalatesCache\n")
 	// Instantiate the tempalatesCache for the SSO ui pages
 	tc, err := ssoapp.NewTemplateCache("./ui/html/")
 	if err != nil {
@@ -131,6 +136,7 @@ func main() {
 	ssolgr := log.With(logger, "component", "ivmSSO")
 	ivmSSO := ssoapp.NewIvmSSO(tc, &ssolgr, users)
 
+	fmt.Printf("  ... initiating services\n")
 	// initiating services
 	var au authenticating.Service
 	{
@@ -155,7 +161,7 @@ func main() {
 
 	var pkr pksrefreshing.Service
 	{
-		pkr = pksrefreshing.NewService(pubkeys, oidprv)
+		pkr = pksrefreshing.NewService(pubkeys, oidprv, cfg.GetIvmantoOIDC())
 		pkr = pksrefreshing.NewLoggingService(log.With(logger, "component", "pksrefreshing"), pkr)
 		pkr = pksrefreshing.NewInstrumentingService(
 			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
@@ -174,6 +180,16 @@ func main() {
 		)
 	}
 
+	fmt.Printf("  ... initiating OpenID Connect Providers\n")
+	// Initiating OpenID Connect Providers
+	errors := pkr.InitOIDProviders(cfg.GetOIDPS())
+	if len(errors) > 0 {
+		for i, err := range errors {
+			fmt.Printf("error %d, when initiating OpenID Providers. error [%#v]\n", i+1, err)
+		}
+	}
+
+	fmt.Printf("  ... finalize config\n\n")
 	// creating a new http server to handle the requests
 	srv := server.New(au, pkr, log.With(logger, "component", "http"), sm, cfg, ivmSSO)
 
@@ -189,12 +205,4 @@ func main() {
 	}()
 
 	_ = logger.Log("terminated", <-errs)
-}
-
-func storeTestData(c core.ClientRepository, cid, csc string) {
-	client1 := core.NewClient(core.ClientID(cid), core.Active)
-	client1.ClientSecret = csc
-	if err := c.Store(client1); err != nil {
-		fmt.Printf("error saving test dataset 1: %#v;\n", err)
-	}
 }

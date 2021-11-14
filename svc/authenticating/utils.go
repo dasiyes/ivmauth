@@ -93,7 +93,7 @@ func getClientIDFromReqQueryPrm(r *http.Request) (cid string, err error) {
 	return cid, nil
 }
 
-// validateIDToken will provide validation of OpenIDConnect ID Tokens
+// validateIDToken will provide validation of a signed JWT that respects OpenIDConnect ID Token (https://openid.net/specs/openid-connect-core-1_0.html#IDToken)
 func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (*jwt.Token, *core.IDToken, error) {
 
 	var err error

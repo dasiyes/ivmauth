@@ -211,12 +211,15 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 	h.server.IvmSSO.Render(w, r, "login.page.tmpl", &td)
 }
 
-// issueToken will return an access token to the post request
+// issueToken will return an access token (Ivmanto's IDToken) to the post request
+// [ ] verify this is IDToken from provider Ivmanto taht follows the OpenIDConnect standard (https://openid.net/specs/openid-connect-core-1_0.html#IDToken)
 func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
 
 	// [x] perform a check for content type header - application/json
-	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
-		h.server.responseBadRequest(w, "issueTkon-check-content-type", errors.New("unsupported content type"))
+	ct := r.Header.Get("Content-Type")
+	if !strings.HasPrefix(ct, "application/json") {
+		h.server.responseBadRequest(w, "issueToken-check-content-type",
+			fmt.Errorf("unsupported content type [%#v] in the request", ct))
 		return
 	}
 
@@ -232,19 +235,19 @@ func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
 
 	b, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		h.server.responseBadRequest(w, "issueTkon-read-body", err)
+		h.server.responseBadRequest(w, "issueToken-read-body", err)
 		return
 	}
 
 	err = json.Unmarshal(b, &rb)
 	if err != nil {
-		h.server.responseBadRequest(w, "issueTkon-json-body-unmarshal", err)
+		h.server.responseBadRequest(w, "issueToken-json-body-unmarshal", err)
 		return
 	}
 
 	switch rb.GrantType {
 	case "authorization_code":
-		h.handleAuthCodeFllow(&rb, w, r)
+		h.handleAuthCodeFlow(&rb, w, r)
 		return
 	case "refresh_token":
 		h.handleRefTokenFllow(&rb, w, r)
@@ -256,7 +259,7 @@ func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
 }
 
 // handleAuthCodeFllow performs the checks and logic for Authorization_code grant_type flow
-func (h *oauthHandler) handleAuthCodeFllow(
+func (h *oauthHandler) handleAuthCodeFlow(
 	rb *core.AuthRequestBody,
 	w http.ResponseWriter,
 	r *http.Request) {

@@ -22,7 +22,9 @@ import (
 // [x] Supports proper session management (www.owasp.org/index.php/Session_Management_Cheat_Sheet).
 // [ ] Lets users opt in to two-factor authentication.
 // [x] In a browser-based environment, properly marks the session cookie as HTTPOnly (www.owasp.org/index.php/HttpOnly) and secure (www.owasp.org/index.php/SecureFlag).
-// [ ] Provides support for Cross-Site Request Forgery (CSRF; goo.gl/TwcSJX) protection/ defenses.
+// [x] Provides support for Cross-Site Request Forgery (CSRF; goo.gl/TwcSJX) protection/ defenses.
+//		 - nosurf package implemented for Login Form.
+//		 [ ] to implement nosurf or alternative method for any new methods that change the state!!!
 // [x] Supports token-based authentication mechanisms (such as OAuth2).
 // [x] Supports proper password storage (www.owasp.org/index.php/Password_Storage_Cheat_Sheet).
 //		 - bcrypt with cost (work factor) 12 is used

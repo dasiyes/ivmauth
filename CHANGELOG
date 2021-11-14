@@ -1,7 +1,12 @@
-
-v0.0.16
+v0.0.17
+        - rotating JWKS and private key issue journal
         - service tests
         - refactoring Authenticating Service method (AuthenticateClient etc)
+
+v0.0.16
+        - implementing `ivmanto` as OID Provider
+        - implementing initiation at startup of OIProviders and OID Config
+        - implementing Add a new JWK key
 
 v0.0.15
         

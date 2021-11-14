@@ -101,8 +101,8 @@ func newIvmATC(validity int, realm string, issval string) *ivmantoATClaims {
 	tn := time.Now().Unix()
 	tid := genTID(realm[:3])
 
-	// TODO: Move the iss and aud values into a configuration/db document for abstraction of the service
-	// TODO: consider to change the content of the AUD. The meaing should be the receiver of the token should identify itslef withing the value of AUD.
+	// [x]: Move the iss and aud values into a configuration/db document for abstraction of the service
+	// [x]: consider to change the content of the AUD. The meaing should be the receiver of the token should identify itslef withing the value of AUD.
 	return &ivmantoATClaims{
 		iss: issval,
 		sub: "",
@@ -116,11 +116,12 @@ func newIvmATC(validity int, realm string, issval string) *ivmantoATClaims {
 
 // to satisfy jwt-go package requirements for Claims object
 func (c *ivmantoATClaims) Valid() error {
-	// TODO: review if input claims needs to be validated
+	// TODO [dev]: review if input claims needs to be validated
 	return nil
 }
 
 // Issue a new JWT Token with respective Signing method and claims
+// [ ] Review this possible cache solution: https://github.com/ReneKroon/ttlcache
 func newJWToken(claims jwt.Claims, sm jwt.SigningMethod) (string, error) {
 
 	var token *jwt.Token
@@ -129,8 +130,8 @@ func newJWToken(claims jwt.Claims, sm jwt.SigningMethod) (string, error) {
 	switch sm.Alg() {
 	case "RS256":
 
-		// TODO: think about how to use this key and how to roate it !!!
-		// TODO: implement kid ?!
+		// TODO [dev]: take the public keys from the endpoint.
+		// TODO [dev]: find how to use the public key to sign the new JWT
 		key, err := rsa.GenerateKey(rand.Reader, 2048)
 
 		if err != nil {
@@ -141,7 +142,7 @@ func newJWToken(claims jwt.Claims, sm jwt.SigningMethod) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		// TODO: at this point implement method to store the key along side with the requestor (sub claim). This is to be used for further usage for signing for the same requestor?
+		// TODO [dev]: at this point implement method to store the key along side with the requestor (sub claim). This is to be used for further usage for signing for the same requestor?
 		return tkn, nil
 	default:
 		return "", ErrUnknownMethod

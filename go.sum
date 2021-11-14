@@ -132,8 +132,8 @@ github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7Do
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/dasiyes/ivmapi v0.0.18-dev2 h1:5RavKP1eaT6G5sglR3jDDJFB22SQshGMs6NyMa7W4H0=
 github.com/dasiyes/ivmapi v0.0.18-dev2/go.mod h1:i7J3uY1yKAI9CnplbcCrlF2nUCVAh839RN/lySkSiGg=
-github.com/dasiyes/ivmconfig v0.0.0-20211101133446-3eaa7d3739a8 h1:L+IJxotG2HvWpxmxnd0mns0XsSn12vd0rWyGDYKWfnM=
-github.com/dasiyes/ivmconfig v0.0.0-20211101133446-3eaa7d3739a8/go.mod h1:tiaa4eN+nZhPNZQI2WDr8ecdcY6mbGg/pJsrJwdnWis=
+github.com/dasiyes/ivmconfig v0.0.0-20211107153753-7c7d1d9e6c51 h1:kN5DF28bqh6v6EA7ma9rqs5X+ptqngkeOtkKYJaW93Q=
+github.com/dasiyes/ivmconfig v0.0.0-20211107153753-7c7d1d9e6c51/go.mod h1:tiaa4eN+nZhPNZQI2WDr8ecdcY6mbGg/pJsrJwdnWis=
 github.com/dasiyes/ivmsesman v0.4.8-dev8/go.mod h1:PEv2qIolzYwLa22w7RliVFDgcpOyZ8xWa69X7YRIQuQ=
 github.com/dasiyes/ivmsesman v0.4.9-dev11 h1:d0qieNijq45RBFMWiYNzVgbRapvX+Of77epHS7JODZ0=
 github.com/dasiyes/ivmsesman v0.4.9-dev11/go.mod h1:axJdmwau158jAsdb2ewP8LSfFbMgfDLNZ/KW+vwRYpo=

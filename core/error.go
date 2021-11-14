@@ -66,7 +66,7 @@ const (
 )
 
 // InvalidPubliKeySet is used when new key fails to update PublicKeySet.
-func InvalidPubliKeySet(err error) error {
+func InvalidPublicKeySet(err error) error {
 	if err != nil {
 		return errors.New("invalid public key set: " + err.Error())
 	}

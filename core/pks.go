@@ -1,20 +1,35 @@
 package core
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	b64 "encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
+	"math/bits"
 	"net/http"
-	"net/url"
 	"time"
+
+	"github.com/golang-jwt/jwt"
+	"github.com/segmentio/ksuid"
 )
+
+// PublicKeySetRepository provides access a PKS store.
+type PublicKeySetRepository interface {
+	// Store will override a public key set if such already exists (identified by URL)
+	Store(pks *PublicKeySet) error
+	Find(IdentityProvider string) (*PublicKeySet, error)
+	FindAll() []*PublicKeySet
+}
 
 // PublicKeySet will be used to hold the public keys sets form the
 // different Identity Providers that supply authentication tokens
 type PublicKeySet struct {
 	IdentityProvider string
-	URL              *url.URL
+	URL              string
 	HTTPClient       *http.Client
 	Jwks             *JWKS
 	Expires          int64
@@ -143,7 +158,7 @@ func (pks *PublicKeySet) Init(newKey []byte, exp int64) error {
 	pks.Expires = exp
 
 	if err := json.Unmarshal(newKey, pks.Jwks); err != nil {
-		return InvalidPubliKeySet(err)
+		return InvalidPublicKeySet(err)
 	}
 	return nil
 }
@@ -151,7 +166,7 @@ func (pks *PublicKeySet) Init(newKey []byte, exp int64) error {
 // GetKid - returns a JWK found by its kid
 func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 	if len(pks.Jwks.Keys) == 0 {
-		return JWK{}, InvalidPubliKeySet(errors.New("empty set of JWKs"))
+		return JWK{}, InvalidPublicKeySet(errors.New("empty set of JWKs"))
 	}
 	var n, e string
 	var jwk JWK
@@ -163,7 +178,7 @@ func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 		}
 	}
 	if n == "" && e == "" {
-		return JWK{}, InvalidPubliKeySet(errors.New("JWK not found by the provided kid"))
+		return JWK{}, InvalidPublicKeySet(errors.New("JWK not found by the provided kid"))
 	}
 	return jwk, nil
 }
@@ -171,7 +186,7 @@ func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 // GetKidNE - returns modulus N and pblic exponent E as big.Int and int respectively
 func (pks *PublicKeySet) GetKidNE(kid string) (*big.Int, int, error) {
 	if len(pks.Jwks.Keys) == 0 {
-		return nil, 0, InvalidPubliKeySet(errors.New("empty set of JWKs"))
+		return nil, 0, InvalidPublicKeySet(errors.New("empty set of JWKs"))
 	}
 	var n, e string
 	for _, jwk := range pks.Jwks.Keys {
@@ -182,13 +197,13 @@ func (pks *PublicKeySet) GetKidNE(kid string) (*big.Int, int, error) {
 		}
 	}
 	if n == "" && e == "" {
-		return nil, 0, InvalidPubliKeySet(errors.New("JWK not found by the provided kid"))
+		return nil, 0, InvalidPublicKeySet(errors.New("JWK not found by the provided kid"))
 	}
 
 	// nb, err := base64url.Decode(n)
 	nb, err := b64.URLEncoding.DecodeString(n)
 	if err != nil {
-		return nil, 0, InvalidPubliKeySet(errors.New("invalid JWK modulus"))
+		return nil, 0, InvalidPublicKeySet(errors.New("invalid JWK modulus"))
 	}
 	// TODO add a condition to check if the jwk.e is not
 	ei := 65537
@@ -206,15 +221,60 @@ func (pks *PublicKeySet) LenJWKS() int {
 	return len(pks.Jwks.Keys)
 }
 
+// AddJWK will generate new private key and from it will add a new JWK into JWKS
+func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod) error {
+
+	var jwks = pks.LenJWKS()
+	if jwks > 2 {
+		return fmt.Errorf("There are already %d JWKeys", jwks)
+	}
+
+	var prvkey *rsa.PrivateKey
+	var pk rsa.PublicKey
+
+	var err error
+	var kty, use, kid string
+
+	switch sm.Alg() {
+	case "RS256":
+		kty = "RSA"
+		use = "sig"
+		kid = ksuid.New().String()
+		prvkey, err = rsa.GenerateKey(rand.Reader, 2048)
+		if err != nil {
+			return fmt.Errorf("generating key error %#v", err)
+		}
+		pk = prvkey.PublicKey
+
+	default:
+		return ErrUnknownMethod
+	}
+
+	// TODO [dev]: fullfill the JWK with attributes including from the prvkey above
+	var newJWK = JWK{
+		Kty: kty,
+		Use: use,
+		Kid: kid,
+		Alg: sm.Alg(),
+		N:   nToString(pk.N),
+		E:   expToString(pk.E),
+	}
+
+	pks.Jwks.Keys = append(pks.Jwks.Keys, newJWK)
+
+	return nil
+}
+
 // NewPublicKeySet creates a new set of Public Key for each of the suported
 // Identity Vendors.
 func NewPublicKeySet(identityProvider string) *PublicKeySet {
+
 	jwk := JWK{Kty: ""}
 	jwks := JWKS{Keys: []JWK{jwk}}
 
 	return &PublicKeySet{
 		IdentityProvider: identityProvider,
-		URL:              &url.URL{},
+		URL:              "",
 		HTTPClient: &http.Client{
 			Timeout: time.Second * 30,
 		},
@@ -223,10 +283,39 @@ func NewPublicKeySet(identityProvider string) *PublicKeySet {
 	}
 }
 
-// PublicKeySetRepository provides access a PKS store.
-type PublicKeySetRepository interface {
-	// Store will override a public key set if such already exists (identified by URL)
-	Store(pks *PublicKeySet) error
-	Find(IdentityProvider string) (*PublicKeySet, error)
-	FindAll() []*PublicKeySet
+// Public key (JWK) exponent parameter (https://datatracker.ietf.org/doc/html/draft-ietf-jose-json-web-algorithms-31#section-6.3.1.2)
+//
+// The "e" (exponent) member contains the exponent value for the RSA
+// public key.  It is represented as the base64url encoding of the
+// value's unsigned big endian representation as an octet sequence.  The
+// octet sequence MUST utilize the minimum number of octets to represent
+// the value.  For instance, when representing the value 65537, the
+// octet sequence to be base64url encoded MUST consist of the three
+// octets [1, 0, 1].
+func expToString(pkE int) string {
+
+	var ebs = encodeUint(uint64(pkE))
+	eStr := b64.URLEncoding.EncodeToString(ebs)
+	return eStr
+}
+
+// Custom transform of uint to []byte
+// source: (https://stackoverflow.com/questions/16888357/convert-an-integer-to-a-byte-array)
+func encodeUint(x uint64) []byte {
+	buf := make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, x)
+	return buf[bits.LeadingZeros64(x)>>3:]
+}
+
+// Public Key (JWK) N (modulus) parameter (https://datatracker.ietf.org/doc/html/draft-ietf-jose-json-web-algorithms-31#section-6.3.1.1)
+//
+// The "n" (modulus) member contains the modulus value for the RSA
+// public key.  It is represented as the base64url encoding of the
+// value's unsigned big endian representation as an octet sequence.  The
+// octet sequence MUST utilize the minimum number of octets to represent
+// the value.
+func nToString(n *big.Int) string {
+	nb := n.Bytes()
+	nb64 := b64.URLEncoding.WithPadding(b64.NoPadding).EncodeToString(nb)
+	return nb64
 }

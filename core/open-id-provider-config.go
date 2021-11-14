@@ -14,7 +14,7 @@ type ProviderName string
 // OIDProvider represents an OpenID Identity Provider
 type OIDProvider struct {
 	ProviderName ProviderName
-	Oidc         config.OpenIDConfiguration
+	Oidc         *config.OpenIDConfiguration
 }
 
 // NewOIDProvider creates a new OpenID Provider object
@@ -24,7 +24,7 @@ func NewOIDProvider(identityProvider ProviderName) *OIDProvider {
 
 	return &OIDProvider{
 		ProviderName: identityProvider,
-		Oidc:         oidc,
+		Oidc:         &oidc,
 	}
 }
 

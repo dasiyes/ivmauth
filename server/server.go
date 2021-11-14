@@ -74,7 +74,14 @@ func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Log
 	// Attach instrumenting
 	r.Method("GET", "/oauth/metrics", promhttp.Handler())
 
-	// Route all authentication calls
+	// Route all calls
+	r.Route("/oauth2", func(r chi.Router) {
+		lgr := kitlog.With(s.Logger, "handler", "oauth2Handler")
+		h := oauth2Handler{server: s, logger: lgr}
+		r.Mount("/v1", h.router())
+	})
+
+	// Route all oauth calls
 	r.Route("/oauth", func(r chi.Router) {
 		lgr := kitlog.With(s.Logger, "handler", "oauthHandler")
 		h := oauthHandler{server: s, logger: lgr}
@@ -99,6 +106,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // OpenID Connect Configuration
+// [ ]: Refactor the method to a proper code style
 func (s *Server) oidcc() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var ivmoid *config.OpenIDConfiguration = s.Config.GetIvmantoOIDC()
@@ -107,11 +115,11 @@ func (s *Server) oidcc() http.Handler {
 		rsl, err := json.MarshalIndent(ivmoid, "", " ")
 		if err != nil {
 			w.WriteHeader(500)
-			w.Write([]byte(`smthg went wrong`))
+			_, _ = w.Write(nil)
 			return
 		}
 		w.WriteHeader(200)
-		w.Write(rsl)
+		_, _ = w.Write(rsl)
 	})
 }
 
@@ -127,4 +135,11 @@ func (s *Server) responseBadRequest(w http.ResponseWriter, method string, err er
 	w.Header().Set("Connection", "close")
 	_ = level.Error(s.Logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
 	http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+}
+
+// responseBadRequest returns response status code 500 Internal Server Error
+func (s *Server) responseIntServerError(w http.ResponseWriter, method string, err error) {
+	w.Header().Set("Connection", "close")
+	_ = level.Error(s.Logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
+	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }

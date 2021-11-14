@@ -33,7 +33,11 @@ func (a *IvmSSO) Render(w http.ResponseWriter, r *http.Request, name string, td 
 		return
 	}
 
-	buf.WriteTo(w)
+	_, err = buf.WriteTo(w)
+	if err != nil {
+		a.serverError(w, fmt.Errorf("while rendering template %s error raised [%#v]", name, err))
+		return
+	}
 }
 
 // addDefaultData set the dataset for the form to be rendered

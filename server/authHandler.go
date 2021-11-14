@@ -69,10 +69,11 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 	}
 
 	// Preliminary download JWKS for idToken validation if the x-token-type is not empty
-	var tt = r.Header.Get("x-token-type")
-	if tt != "" {
-		go h.pks.DownloadPKSinCache(tt)
-	}
+	// [ ] find a way how to get the PKS from the cache. It has been initiated at startup time by the method `InitOIDProviders``
+	// var tt = r.Header.Get("x-token-type")
+	// if tt != "" {
+	// 	go h.pks.DownloadPKSinCache(tt)
+	// }
 
 	// Validate auth request. Authenticated client's scope to consider
 	at, err := h.aus.Validate(&r.Header, reqbody, h.pks, &client)
@@ -165,7 +166,10 @@ func (h *authHandler) initAuthCode(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Location", ru)
 	w.WriteHeader(http.StatusSeeOther)
-	w.Write(nil)
+	_, err = w.Write(nil)
+	if err != nil {
+		w.WriteHeader(500)
+	}
 }
 
 // Response to "GET /" with the current version of the Ivmanto's auth service
