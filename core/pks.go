@@ -160,6 +160,7 @@ func (pks *PublicKeySet) Init(newKey []byte, exp int64) error {
 	pks.Expires = exp
 
 	if err := json.Unmarshal(newKey, pks.Jwks); err != nil {
+		fmt.Printf("pks.JWKS: %#v", pks.Jwks)
 		return InvalidPublicKeySet(err)
 	}
 	return nil
@@ -273,9 +274,10 @@ func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod, validity int64) error {
 		E:   expToString(pk.E),
 	}
 
-	// [x]: fill the KeyJournal
-	var key = map[string]interface{}{"deadline": time.Now().Unix() + validity, "private_key": prvkey}
-	pks.KeyJournal = map[string]interface{}{kid: key}
+	// [x]: fill the KeyJournal - as KEY will be the kid value and as VALUE will be the deadline value
+	var kj = pks.KeyJournal
+	kj[kid] = time.Now().Unix() + validity
+	pks.KeyJournal = kj
 
 	pks.Jwks.Keys = append(pks.Jwks.Keys, newJWK)
 
@@ -286,7 +288,7 @@ func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod, validity int64) error {
 // Identity Vendors.
 func NewPublicKeySet(identityProvider string) *PublicKeySet {
 
-	jwk := JWK{Kty: ""}
+	jwk := JWK{Kty: "RSA"}
 	jwks := JWKS{Keys: []JWK{jwk}}
 
 	return &PublicKeySet{
@@ -296,7 +298,7 @@ func NewPublicKeySet(identityProvider string) *PublicKeySet {
 			Timeout: time.Second * 30,
 		},
 		Jwks:       &jwks,
-		KeyJournal: make(map[string]interface{}),
+		KeyJournal: map[string]interface{}{"-": time.Now().Unix()},
 		Expires:    0,
 	}
 }

@@ -92,7 +92,22 @@ func (s *service) newPKS(ip string) error {
 
 		jwks, exp, err := downloadJWKS(pks)
 		if err != nil {
-			return err
+			err_dwn := err
+			if pks.LenJWKS() == 1 {
+
+				// expecting the PKS is not in the URL (means not in the db), so attempting to create it
+				err = s.createIvmantoPKS(pks)
+				if err != nil {
+					return fmt.Errorf("error while downloading: [%#v], and error create Ivmanto PKS: [%#v]", err_dwn, err)
+				}
+				jwks, exp, err = downloadJWKS(pks)
+				if err != nil {
+					return err
+				}
+				if exp == 0 {
+					exp = time.Now().Unix() + 14400
+				}
+			}
 		}
 
 		if err := pks.Init(jwks, exp); err != nil {
@@ -198,6 +213,10 @@ func (s *service) GetPKSCache(identityProvider string) (*core.PublicKeySet, erro
 	// Get the pks from the cache
 	pks, err := s.keyset.Find(identityProvider)
 	if err != nil && err.Error() == "key not found" {
+
+		pks = &core.PublicKeySet{}
+
+		_ = s.PKSRotator(pks)
 		err = nil
 		// Not found - download it again from the providers url
 		err = s.newPKS(identityProvider)
@@ -259,6 +278,7 @@ func (s *service) GetIssuerVal(provider string) (string, error) {
 func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 
 	var err error
+	// TODO [dev]: Implement the initial creation of the PKS in the cache (firestore db) for Ivmanto, when the db documentis empty.
 
 	// [x]: add time-based code that will TRIGGER the key rotation on regular (ie. 1 month) base.
 	var deadline int64
@@ -266,6 +286,9 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 	deadline, err = s.keyset.FindDeadline(current_kid)
 	if err != nil {
 		return err
+	}
+	if deadline == 0 {
+		deadline = time.Now().Unix() + s.cfg.Validity
 	}
 
 	// [x] Below code will create a new JWK in JWKS for OID provider `Ivmanto`, when:
@@ -287,17 +310,23 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 	return nil
 }
 
-// NewService creates a authenticating service with necessary dependencies.
-func NewService(
-	pksr core.PublicKeySetRepository,
-	oidpr core.OIDProviderRepository,
-	cfg *config.OpenIDConfiguration) Service {
+// createIvmantoPKS will run everytime when the PKS for Ivmanto is not found in the firestoreDB
+func (s *service) createIvmantoPKS(pks *core.PublicKeySet) error {
 
-	return &service{
-		keyset:    pksr,
-		providers: oidpr,
-		cfg:       cfg,
+	var err error
+	// The pks is freshly created with one empty JWK in the JWKS
+
+	var validity = s.cfg.Validity
+	err = pks.AddJWK(jwt.SigningMethodRS256, validity)
+	if err != nil {
+		return fmt.Errorf("[createIvmantoPKS] error while addJWK: %#v", err)
 	}
+
+	if err := s.keyset.Store(pks); err != nil {
+		return fmt.Errorf("[createIvmantoPKS] error while store PKS: %#v", err)
+	}
+
+	return nil
 }
 
 // downloadJWKS - download jwks from the URL for the respective Identity provider
@@ -363,6 +392,19 @@ func getGooglesOIC(pks *core.PublicKeySet) (cfg *config.OpenIDConfiguration, err
 	}
 
 	return &oidconfig, nil
+}
+
+// NewService creates a authenticating service with necessary dependencies.
+func NewService(
+	pksr core.PublicKeySetRepository,
+	oidpr core.OIDProviderRepository,
+	cfg *config.OpenIDConfiguration) Service {
+
+	return &service{
+		keyset:    pksr,
+		providers: oidpr,
+		cfg:       cfg,
+	}
 }
 
 // ErrInvalidArgument is returned when one or more arguments are invalid.
