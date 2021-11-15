@@ -22,6 +22,7 @@ type PublicKeySetRepository interface {
 	// Store will override a public key set if such already exists (identified by URL)
 	Store(pks *PublicKeySet) error
 	Find(IdentityProvider string) (*PublicKeySet, error)
+	FindDeadline(kid string) (int64, error)
 	FindAll() []*PublicKeySet
 }
 
@@ -32,6 +33,7 @@ type PublicKeySet struct {
 	URL              string
 	HTTPClient       *http.Client
 	Jwks             *JWKS
+	KeyJournal       map[string]interface{}
 	Expires          int64
 }
 
@@ -183,6 +185,17 @@ func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 	return jwk, nil
 }
 
+// GetCurrentKid - will return the kid as string for the key at index 1 of the Jwks
+func (pks *PublicKeySet) GetCurrentKid() string {
+	var current_kid string
+	for i, jwk := range pks.Jwks.Keys {
+		if i == 1 {
+			current_kid = jwk.Kid
+		}
+	}
+	return current_kid
+}
+
 // GetKidNE - returns modulus N and pblic exponent E as big.Int and int respectively
 func (pks *PublicKeySet) GetKidNE(kid string) (*big.Int, int, error) {
 	if len(pks.Jwks.Keys) == 0 {
@@ -222,7 +235,7 @@ func (pks *PublicKeySet) LenJWKS() int {
 }
 
 // AddJWK will generate new private key and from it will add a new JWK into JWKS
-func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod) error {
+func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod, validity int64) error {
 
 	var jwks = pks.LenJWKS()
 	if jwks > 2 {
@@ -250,7 +263,7 @@ func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod) error {
 		return ErrUnknownMethod
 	}
 
-	// TODO [dev]: fullfill the JWK with attributes including from the prvkey above
+	// [x]: fullfill the JWK with attributes including from the prvkey above
 	var newJWK = JWK{
 		Kty: kty,
 		Use: use,
@@ -259,6 +272,10 @@ func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod) error {
 		N:   nToString(pk.N),
 		E:   expToString(pk.E),
 	}
+
+	// [x]: fill the KeyJournal
+	var key = map[string]interface{}{"deadline": time.Now().Unix() + validity, "private_key": prvkey}
+	pks.KeyJournal = map[string]interface{}{kid: key}
 
 	pks.Jwks.Keys = append(pks.Jwks.Keys, newJWK)
 
@@ -278,8 +295,9 @@ func NewPublicKeySet(identityProvider string) *PublicKeySet {
 		HTTPClient: &http.Client{
 			Timeout: time.Second * 30,
 		},
-		Jwks:    &jwks,
-		Expires: 0,
+		Jwks:       &jwks,
+		KeyJournal: make(map[string]interface{}),
+		Expires:    0,
 	}
 }
 

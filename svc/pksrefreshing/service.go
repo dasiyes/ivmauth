@@ -2,8 +2,6 @@
 package pksrefreshing
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -39,7 +37,7 @@ type Service interface {
 	GetIssuerVal(provider string) (string, error)
 
 	// PKSRotetor will take care for rotating PKS for OIDProvider Ivmanto
-	PKSRotator() error
+	PKSRotator(pks *core.PublicKeySet) error
 }
 
 type service struct {
@@ -101,14 +99,8 @@ func (s *service) newPKS(ip string) error {
 			return err
 		}
 
-		// [!] Review the code below again! As of now the process does not require it!
-
-		err = pks.AddJWK(jwt.SigningMethodRS256)
+		err = s.PKSRotator(pks)
 		if err != nil {
-			return err
-		}
-
-		if err := s.keyset.Store(pks); err != nil {
 			return err
 		}
 
@@ -264,18 +256,33 @@ func (s *service) GetIssuerVal(provider string) (string, error) {
 // [ ] 6. Retire the old key material when it is not used anymore.
 // [ ] 7. All clients and APIs will “forget” the old key next time they update their local copy of the discovery document.
 // This requires that clients and APIs use the discovery document, and also have a feature to periodically refresh their configuration.
-func (s *service) PKSRotator() error {
+func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 
-	// TODO [dev]: add time-based code that will TRIGGER the key rotation on regular (ie. 1 month) base.
+	var err error
 
-	// TODO [dev]: generate Public key from the private key below.
-	// TODO [dev]: implement kid ?!
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
-
+	// [x]: add time-based code that will TRIGGER the key rotation on regular (ie. 1 month) base.
+	var deadline int64
+	var current_kid = pks.GetCurrentKid()
+	deadline, err = s.keyset.FindDeadline(current_kid)
 	if err != nil {
 		return err
 	}
-	_ = key
+
+	// [x] Below code will create a new JWK in JWKS for OID provider `Ivmanto`, when:
+	//     [x] 1) the deadline is in the past (now + 24h [86400 s])- this is calculated from connfig attribute at the time of adding the new key in JWKS.
+	//     [x] 2) the JWKS is having only two keys - the old (index 0) and the current (index 1)
+
+	if deadline < (time.Now().Unix()+int64(86400)) && pks.LenJWKS() < 3 {
+		var validity = s.cfg.Validity
+		err = pks.AddJWK(jwt.SigningMethodRS256, validity)
+		if err != nil {
+			return err
+		}
+
+		if err := s.keyset.Store(pks); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

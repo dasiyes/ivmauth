@@ -136,6 +136,12 @@ func (ip *oidProviderRepository) Find(pr core.ProviderName) (*core.OIDProvider, 
 	return nil, errors.New("provider not found")
 }
 
+// FindDeadline - only valid for Ivmanto's provider. The dealine defines the PublicKey rotation period.
+func (pksr *publicKeySetRepository) FindDeadline(kid string) (dl int64, err error) {
+	// TODO [dev]: implement the same logic as it is in pks_repo.go
+	return dl, nil
+}
+
 // FindAll - find and returns all authentication request
 func (ip *oidProviderRepository) FindAll() []*core.OIDProvider {
 	// TODO: implement FindAll

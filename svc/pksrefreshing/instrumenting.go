@@ -71,11 +71,11 @@ func (s *instrumentingService) GetIssuerVal(provider string) (string, error) {
 	return s.next.GetIssuerVal(provider)
 }
 
-func (s *instrumentingService) PKSRotator() error {
+func (s *instrumentingService) PKSRotator(pks *core.PublicKeySet) error {
 	defer func(begin time.Time) {
 		s.requestCount.With("method", "PKSRotator").Add(1)
 		s.requestLatency.With("method", "PKSRotator").Observe(time.Since(begin).Seconds())
 	}(time.Now())
 
-	return s.next.PKSRotator()
+	return s.next.PKSRotator(pks)
 }
