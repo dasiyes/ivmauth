@@ -24,6 +24,7 @@ func (pksr *publicKeySetRepository) Store(pk *core.PublicKeySet) error {
 	pks["IdentityProvider"] = pk.IdentityProvider
 	pks["URL"] = pk.URL
 	pks["Jwks"] = pk.Jwks
+	pks["KeyJournal"] = pk.KeyJournal
 
 	_, err := pksr.client.Collection(pksr.collection).Doc(pk.IdentityProvider).Set(context.TODO(), pks)
 	if err != nil {
@@ -120,10 +121,12 @@ func (pksr *publicKeySetRepository) FindDeadline(kid string) (dl int64, err erro
 			}
 
 			var kj = pks.KeyJournal
+			if kj == nil {
+				return 0, errors.New("key journal not found")
+			}
 			for k, v := range kj {
 				if k == kid {
-					var key = v.(map[string]interface{})
-					dl = int64(key["deadline"].(float64))
+					dl = int64(v.(int64))
 					break
 				}
 			}

@@ -189,6 +189,8 @@ func main() {
 		}
 	}
 
+	// [ ] Implement timer function to run the PKSRotator methods
+
 	fmt.Printf("  ... finalize config\n\n")
 	// creating a new http server to handle the requests
 	srv := server.New(au, pkr, log.With(logger, "component", "http"), sm, cfg, ivmSSO)

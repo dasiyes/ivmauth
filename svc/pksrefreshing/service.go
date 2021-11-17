@@ -110,12 +110,12 @@ func (s *service) newPKS(ip string) error {
 			}
 		}
 
-		if err := pks.Init(jwks, exp); err != nil {
+		err = s.PKSRotator(pks)
+		if err != nil {
 			return err
 		}
 
-		err = s.PKSRotator(pks)
-		if err != nil {
+		if err := pks.Init(jwks, exp); err != nil {
 			return err
 		}
 
@@ -267,20 +267,21 @@ func (s *service) GetIssuerVal(provider string) (string, error) {
 
 // PKSRotetor will take care for rotating PKS for OIDProvider Ivmanto
 //
-// [ ] 1. We request/create new key material.
-// [ ] 2. Then we publish the new validation key in addition to the current one.
-// [ ] 3. All clients and APIs now have a chance to learn about the new key the next time they update their local copy of the discovery document.
-// [ ] 4. After a certain amount of time (e.g. 24h) all clients and APIs should now accept both the old and the new key material.
-// [ ] 5. Keep the old key material around for as long as you like, maybe you have long-lived tokens that need validation.
-// [ ] 6. Retire the old key material when it is not used anymore.
-// [ ] 7. All clients and APIs will “forget” the old key next time they update their local copy of the discovery document.
+// [x] 1. We request/create new key material.
+// [x] 2. Then we publish the new validation key in addition to the current one.
+// [x] 3. All clients and APIs now have a chance to learn about the new key the next time they update their local copy of the discovery document.
+// [x] 4. After a certain amount of time (e.g. 24h) all clients and APIs should now accept both the old and the new key material.
+// [x] 5. Keep the old key material around for as long as you like, maybe you have long-lived tokens that need validation.
+// [x] 6. Retire the old key material when it is not used anymore.
+// [x] 7. All clients and APIs will “forget” the old key next time they update their local copy of the discovery document.
 // This requires that clients and APIs use the discovery document, and also have a feature to periodically refresh their configuration.
 func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 
 	var err error
-	// TODO [dev]: Implement the initial creation of the PKS in the cache (firestore db) for Ivmanto, when the db documentis empty.
 
-	// [x]: add time-based code that will TRIGGER the key rotation on regular (ie. 1 month) base.
+	// [x]: Implement the initial creation of the PKS in the cache (firestore db) for Ivmanto, when the db documentis empty.
+
+	// [x]: add time-based code that will do the key rotation on regular (ie. 1 month) base.
 	var deadline int64
 	var current_kid = pks.GetCurrentKid()
 	deadline, err = s.keyset.FindDeadline(current_kid)
@@ -295,16 +296,25 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 	//     [x] 1) the deadline is in the past (now + 24h [86400 s])- this is calculated from connfig attribute at the time of adding the new key in JWKS.
 	//     [x] 2) the JWKS is having only two keys - the old (index 0) and the current (index 1)
 
-	if deadline < (time.Now().Unix()+int64(86400)) && pks.LenJWKS() < 3 {
+	if deadline < (time.Now().Unix()+int64(86400)) && pks.LenJWKS() == 2 {
+
 		var validity = s.cfg.Validity
 		err = pks.AddJWK(jwt.SigningMethodRS256, validity)
 		if err != nil {
 			return err
 		}
 
-		if err := s.keyset.Store(pks); err != nil {
-			return err
-		}
+	} else if deadline < time.Now().Unix() && pks.LenJWKS() == 3 {
+
+		// [x]: Rotate the key at index 1 to become a key at index 0 and remove the first key.
+		// slice pop example:
+		// x, a = a[len(a)-1], a[:len(a)-1]
+		pks.Jwks.Keys = pks.Jwks.Keys[1:]
+
+	}
+
+	if err := s.keyset.Store(pks); err != nil {
+		return err
 	}
 
 	return nil

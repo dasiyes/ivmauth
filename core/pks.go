@@ -275,9 +275,7 @@ func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod, validity int64) error {
 	}
 
 	// [x]: fill the KeyJournal - as KEY will be the kid value and as VALUE will be the deadline value
-	var kj = pks.KeyJournal
-	kj[kid] = time.Now().Unix() + validity
-	pks.KeyJournal = kj
+	pks.KeyJournal[kid] = time.Now().Unix() + validity
 
 	pks.Jwks.Keys = append(pks.Jwks.Keys, newJWK)
 
@@ -298,7 +296,7 @@ func NewPublicKeySet(identityProvider string) *PublicKeySet {
 			Timeout: time.Second * 30,
 		},
 		Jwks:       &jwks,
-		KeyJournal: map[string]interface{}{"-": time.Now().Unix()},
+		KeyJournal: map[string]interface{}{"n.a.": time.Now().Unix()},
 		Expires:    0,
 	}
 }
