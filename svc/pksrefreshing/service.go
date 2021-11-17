@@ -327,9 +327,13 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 // RotatorRunner will run the PKSRotator in continues cycle
 func (s *service) rotatorRunner(pks *core.PublicKeySet) error {
 
-	fmt.Printf("another run of rotatorRunner...")
+	fmt.Printf("another run of rotatorRunner...\n")
 	err := s.PKSRotator(pks)
-	time.AfterFunc(time.Duration(int64(60)), func() { _ = s.rotatorRunner(pks) })
+
+	// [ ] replace the value in duration with some config value (validity - ???)
+	td := time.Duration(180 * 1000000000)
+
+	time.AfterFunc(td, func() { _ = s.rotatorRunner(pks) })
 	return err
 }
 

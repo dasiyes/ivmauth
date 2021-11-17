@@ -57,13 +57,13 @@ func (pksr *publicKeySetRepository) Find(ip string) (*core.PublicKeySet, error) 
 			if strings.Contains(err.Error(), "Missing or insufficient permissions") {
 				return nil, ErrInsufficientPermissions
 			} else {
-				fmt.Printf("err while iterate firestoreDB: %#v", err)
+				fmt.Printf("err while iterate firestoreDB: %#v\n", err)
 			}
 			continue
 		}
 
 		var docid = strings.ToLower(strings.TrimSpace(doc.Ref.ID))
-		fmt.Printf("document id normalized value [%s], doc.IP value [%s]\n", docid, pks.IdentityProvider)
+		fmt.Printf("[Find] document id normalized value [%s], doc.IP value [%s]\n", docid, pks.IdentityProvider)
 
 		if docid == ip {
 
@@ -111,7 +111,7 @@ func (pksr *publicKeySetRepository) FindDeadline(kid string) (dl int64, err erro
 		}
 
 		var docid = strings.ToLower(strings.TrimSpace(doc.Ref.ID))
-		fmt.Printf("document id normalized value [%s], doc.IP value [%s]\n", docid, pks.IdentityProvider)
+		fmt.Printf("[FindDeadline] document id normalized value [%s], doc.IP value [%s]\n", docid, pks.IdentityProvider)
 
 		if docid == ip {
 
