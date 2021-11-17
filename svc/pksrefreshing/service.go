@@ -46,6 +46,8 @@ type service struct {
 	cfg       *config.OpenIDConfiguration
 }
 
+var errs = make(chan error, 2)
+
 // Initiating OpenID Providers
 func (s *service) InitOIDProviders(oidps []string) []error {
 	var err error
@@ -57,6 +59,7 @@ func (s *service) InitOIDProviders(oidps []string) []error {
 			continue
 		}
 	}
+
 	return errs
 }
 
@@ -110,10 +113,11 @@ func (s *service) newPKS(ip string) error {
 			}
 		}
 
-		err = s.PKSRotator(pks)
-		if err != nil {
-			return err
-		}
+		go func(p *core.PublicKeySet) {
+			fmt.Printf("go routine started ...")
+			errs <- s.rotatorRunner(pks)
+			fmt.Printf("error from rotatorRunner %s", <-errs)
+		}(pks)
 
 		if err := pks.Init(jwks, exp); err != nil {
 			return err
@@ -318,6 +322,15 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 	}
 
 	return nil
+}
+
+// RotatorRunner will run the PKSRotator in continues cycle
+func (s *service) rotatorRunner(pks *core.PublicKeySet) error {
+
+	fmt.Printf("another run of rotatorRunner...")
+	err := s.PKSRotator(pks)
+	time.AfterFunc(time.Duration(15), func() { _ = s.rotatorRunner(pks) })
+	return err
 }
 
 // createIvmantoPKS will run everytime when the PKS for Ivmanto is not found in the firestoreDB
