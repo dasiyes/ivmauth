@@ -46,7 +46,7 @@ type service struct {
 	cfg       *config.OpenIDConfiguration
 }
 
-var errs = make(chan error, 2)
+// var errs = make(chan error, 2)
 
 // Initiating OpenID Providers
 func (s *service) InitOIDProviders(oidps []string) []error {
@@ -113,12 +113,12 @@ func (s *service) newPKS(ip string) error {
 			}
 		}
 
-		// go s.rotatorRunner(pks)
-		go func(p *core.PublicKeySet) {
-			fmt.Printf("go routine started ...\n")
-			errs <- s.rotatorRunner(p)
-			fmt.Printf("error from rotatorRunner %s\n", <-errs)
-		}(pks)
+		go s.rotatorRunner(pks)
+		// go func(p *core.PublicKeySet) {
+		// 	fmt.Printf("go routine started ...\n")
+		// 	errs <- s.rotatorRunner(p)
+		// 	fmt.Printf("error from rotatorRunner %s\n", <-errs)
+		// }(pks)
 
 		if err := pks.Init(jwks, exp); err != nil {
 			return err
@@ -326,15 +326,18 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 }
 
 // RotatorRunner will run the PKSRotator in continues cycle
-func (s *service) rotatorRunner(pks *core.PublicKeySet) error {
+func (s *service) rotatorRunner(pks *core.PublicKeySet) {
 
 	fmt.Printf("another run of rotatorRunner...\n")
 	err := s.PKSRotator(pks)
+	if err != nil {
+		fmt.Printf("error at PKSRotator %#v", err)
+	}
 
 	// [ ] replace the value in duration with some config value (validity - ???)
 	interval := time.Duration(3600) * time.Second
-	time.AfterFunc(interval, func() { _ = s.rotatorRunner(pks) })
-	return err
+	time.AfterFunc(interval, func() { s.rotatorRunner(pks) })
+
 }
 
 // createIvmantoPKS will run everytime when the PKS for Ivmanto is not found in the firestoreDB
