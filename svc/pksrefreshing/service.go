@@ -113,11 +113,12 @@ func (s *service) newPKS(ip string) error {
 			}
 		}
 
-		go func(p *core.PublicKeySet) {
-			fmt.Printf("go routine started ...\n")
-			errs <- s.rotatorRunner(p)
-			fmt.Printf("error from rotatorRunner %s\n", <-errs)
-		}(pks)
+		go s.rotatorRunner(pks)
+		// go func(p *core.PublicKeySet) {
+		// 	fmt.Printf("go routine started ...\n")
+		// 	errs <- s.rotatorRunner(p)
+		// 	fmt.Printf("error from rotatorRunner %s\n", <-errs)
+		// }(pks)
 
 		if err := pks.Init(jwks, exp); err != nil {
 			return err
