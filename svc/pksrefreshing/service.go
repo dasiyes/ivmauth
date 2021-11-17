@@ -329,7 +329,7 @@ func (s *service) rotatorRunner(pks *core.PublicKeySet) error {
 
 	fmt.Printf("another run of rotatorRunner...")
 	err := s.PKSRotator(pks)
-	time.AfterFunc(time.Duration(15), func() { _ = s.rotatorRunner(pks) })
+	time.AfterFunc(time.Duration(int64(60)), func() { _ = s.rotatorRunner(pks) })
 	return err
 }
 
