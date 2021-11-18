@@ -192,6 +192,7 @@ func (pks *PublicKeySet) GetCurrentKid() string {
 	for i, jwk := range pks.Jwks.Keys {
 		if i == 1 {
 			current_kid = jwk.Kid
+			break
 		}
 	}
 	return current_kid
@@ -288,6 +289,7 @@ func NewPublicKeySet(identityProvider string) *PublicKeySet {
 
 	jwk := JWK{Kty: "RSA"}
 	jwks := JWKS{Keys: []JWK{jwk}}
+	kj := map[string]interface{}{"n.a.": time.Now().Unix()}
 
 	return &PublicKeySet{
 		IdentityProvider: identityProvider,
@@ -296,7 +298,7 @@ func NewPublicKeySet(identityProvider string) *PublicKeySet {
 			Timeout: time.Second * 30,
 		},
 		Jwks:       &jwks,
-		KeyJournal: map[string]interface{}{"n.a.": time.Now().Unix()},
+		KeyJournal: kj,
 		Expires:    0,
 	}
 }

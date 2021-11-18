@@ -271,6 +271,9 @@ func (s *service) GetIssuerVal(provider string) (string, error) {
 
 // PKSRotetor will take care for rotating PKS for OIDProvider Ivmanto
 //
+// [x]: Implement the initial creation of the PKS in the cache (firestore db) for Ivmanto, when the db document is empty.
+// [x]: Add time-based code that will do the key rotation on regular (ie. 1 month) base.
+// --------------
 // [x] 1. We request/create new key material.
 // [x] 2. Then we publish the new validation key in addition to the current one.
 // [x] 3. All clients and APIs now have a chance to learn about the new key the next time they update their local copy of the discovery document.
@@ -282,39 +285,54 @@ func (s *service) GetIssuerVal(provider string) (string, error) {
 func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 
 	var err error
-
-	// [x]: Implement the initial creation of the PKS in the cache (firestore db) for Ivmanto, when the db documentis empty.
-
-	// [x]: add time-based code that will do the key rotation on regular (ie. 1 month) base.
 	var deadline int64
-	var current_kid = pks.GetCurrentKid()
-	deadline, err = s.keyset.FindDeadline(current_kid)
-	if err != nil {
-		return err
-	}
-	if deadline == 0 {
-		deadline = time.Now().Unix() + s.cfg.Validity
-	}
 
-	// [x] Below code will create a new JWK in JWKS for OID provider `Ivmanto`, when:
-	//     [x] 1) the deadline is in the past (now + 24h [86400 s])- this is calculated from connfig attribute at the time of adding the new key in JWKS.
-	//     [x] 2) the JWKS is having only two keys - the old (index 0) and the current (index 1)
+	var nk = pks.LenJWKS()
+	switch nk {
+	case 0:
+		fmt.Printf("invalid pks - empty keyset")
+		pks = core.NewPublicKeySet("ivmanto")
 
-	if deadline < (time.Now().Unix()+int64(86400)) && pks.LenJWKS() == 2 {
+	case 1:
+		// expecting the PKS is not in the URL (means not in the db), so attempting to create it
+		err = s.createIvmantoPKS(pks)
+		if err != nil {
+			return fmt.Errorf("[PKSRotator] error re-create Ivmanto PKS: [%#v]", err)
+		}
 
-		var validity = s.cfg.Validity
-		err = pks.AddJWK(jwt.SigningMethodRS256, validity)
+	case 2:
+
+		var current_kid = pks.GetCurrentKid()
+		deadline, err = s.keyset.FindDeadline(current_kid)
 		if err != nil {
 			return err
 		}
+		if deadline == 0 {
+			deadline = time.Now().Unix() + s.cfg.Validity
+		}
 
-	} else if deadline < time.Now().Unix() && pks.LenJWKS() == 3 {
+		// [x] Below code will create a new JWK in JWKS for OID provider `Ivmanto`, when:
+		//     [x] 1) the deadline is in the past (now + 24h [86400 s])- this is calculated from connfig attribute at the time of adding the new key in JWKS.
+		//     [x] 2) the JWKS is having only two keys - the old (index 0) and the current (index 1)
+		if deadline < (time.Now().Unix() + int64(86400)) {
 
-		// [x]: Rotate the key at index 1 to become a key at index 0 and remove the first key.
-		// slice pop example:
-		// x, a = a[len(a)-1], a[:len(a)-1]
-		pks.Jwks.Keys = pks.Jwks.Keys[1:]
+			var validity = s.cfg.Validity
+			err = pks.AddJWK(jwt.SigningMethodRS256, validity)
+			if err != nil {
+				return err
+			}
+		}
+	case 3:
 
+		if deadline < time.Now().Unix() {
+			// [x]: Rotate the key at index 1 to become a key at index 0 and remove the first key.
+			// slice pop example:
+			// x, a = a[len(a)-1], a[:len(a)-1]
+			pks.Jwks.Keys = pks.Jwks.Keys[1:]
+		}
+
+	default:
+		return fmt.Errorf("[PKSRotator] invalid number of [%d] PKs dedected", nk)
 	}
 
 	if err := s.keyset.Store(pks); err != nil {
@@ -327,10 +345,10 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 // RotatorRunner will run the PKSRotator in continues cycle
 func (s *service) rotatorRunner(pks *core.PublicKeySet) {
 
-	fmt.Printf("another run of rotatorRunner...\n")
+	fmt.Printf("another run of rotatorRunner... pks-value: [%#v]\n", pks)
 	err := s.PKSRotator(pks)
 	if err != nil {
-		fmt.Printf("error at PKSRotator %#v", err)
+		fmt.Printf("error at PKSRotator %#v\n", err)
 	}
 
 	// [ ] replace the value in duration with some config value (validity - ???)
