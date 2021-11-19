@@ -368,7 +368,7 @@ func (s *service) rotatorRunner(pks *core.PublicKeySet) {
 	}
 
 	// [ ] replace the value in duration with some config value (validity - ???)
-	interval := time.Duration(60) * time.Second
+	interval := time.Duration(14400) * time.Second
 	time.AfterFunc(interval, func() { s.rotatorRunner(pks) })
 
 }
