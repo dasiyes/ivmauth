@@ -77,6 +77,7 @@ func main() {
 		oidprv       core.OIDProviderRepository
 		clients      core.ClientRepository
 		users        core.UserRepository
+		keyJournal   core.KJR
 	)
 
 	type Cfgk string
@@ -112,6 +113,7 @@ func main() {
 		oidprv = firestoredb.NewOIDProviderRepository(&ctx, "openID-providers", client)
 		clients, _ = firestoredb.NewClientRepository(&ctx, "clients", client)
 		users, _ = firestoredb.NewUserRepository(&ctx, "users", client)
+		keyJournal = firestoredb.NewKeysJournalRepo(&ctx, "keys-journal", client)
 	}
 
 	fieldKeys := []string{"method"}
@@ -161,7 +163,7 @@ func main() {
 
 	var pkr pksrefreshing.Service
 	{
-		pkr = pksrefreshing.NewService(pubkeys, oidprv, cfg.GetIvmantoOIDC())
+		pkr = pksrefreshing.NewService(pubkeys, keyJournal, oidprv, cfg.GetIvmantoOIDC())
 		pkr = pksrefreshing.NewLoggingService(log.With(logger, "component", "pksrefreshing"), pkr)
 		pkr = pksrefreshing.NewInstrumentingService(
 			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{

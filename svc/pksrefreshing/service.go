@@ -41,12 +41,11 @@ type Service interface {
 }
 
 type service struct {
-	keyset    core.PublicKeySetRepository
-	providers core.OIDProviderRepository
-	cfg       *config.OpenIDConfiguration
+	keyset     core.PublicKeySetRepository
+	keyJournal core.KJR
+	providers  core.OIDProviderRepository
+	cfg        *config.OpenIDConfiguration
 }
-
-// var errs = make(chan error, 2)
 
 // Initiating OpenID Providers
 func (s *service) InitOIDProviders(oidps []string) []error {
@@ -113,15 +112,16 @@ func (s *service) newPKS(ip string) error {
 			}
 		}
 
+		// Initiate pks
+		if err := pks.Init(jwks, exp); err != nil {
+			return err
+		}
+
 		//go s.rotatorRunner(pks)
 		go func(p *core.PublicKeySet) {
 			fmt.Printf("go routine started ...\n")
 			s.rotatorRunner(p)
 		}(pks)
-
-		if err := pks.Init(jwks, exp); err != nil {
-			return err
-		}
 
 	case "google":
 		// getting Google's OpenID Configuration
@@ -147,7 +147,7 @@ func (s *service) newPKS(ip string) error {
 		if err := pks.Init(jwks, exp); err != nil {
 			return err
 		}
-		if err := s.keyset.Store(pks); err != nil {
+		if err := s.keyset.Store(pks, nil); err != nil {
 			return err
 		}
 
@@ -286,6 +286,8 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 
 	var err error
 	var deadline int64
+	var kj *core.KeyJournal
+	var kr *core.KeyRecord
 
 	var nk = pks.LenJWKS()
 	switch nk {
@@ -317,10 +319,14 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 		if deadline < (time.Now().Unix() + int64(86400)) {
 
 			var validity = s.cfg.Validity
-			err = pks.AddJWK(jwt.SigningMethodRS256, validity)
+			if len(kj.Records) > 0 {
+				kr = &kj.Records[len(kj.Records)-1]
+			}
+			kj, err = pks.AddJWK(jwt.SigningMethodRS256, validity)
 			if err != nil {
 				return err
 			}
+			_ = kj // to eliminate warrning
 		}
 	case 3:
 
@@ -335,7 +341,7 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 		return fmt.Errorf("[PKSRotator] invalid number of [%d] PKs dedected", nk)
 	}
 
-	if err := s.keyset.Store(pks); err != nil {
+	if err := s.keyset.Store(pks, kr); err != nil {
 		return err
 	}
 
@@ -345,14 +351,14 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 // RotatorRunner will run the PKSRotator in continues cycle
 func (s *service) rotatorRunner(pks *core.PublicKeySet) {
 
-	fmt.Printf("another run of rotatorRunner... pks-value: [%#v]\n", pks)
+	fmt.Printf("[%v] another run of rotatorRunner... pks-value: [%#v]\n", time.Now(), pks)
 	err := s.PKSRotator(pks)
 	if err != nil {
 		fmt.Printf("error at PKSRotator %#v\n", err)
 	}
 
 	// [ ] replace the value in duration with some config value (validity - ???)
-	interval := time.Duration(3600) * time.Second
+	interval := time.Duration(60) * time.Second
 	time.AfterFunc(interval, func() { s.rotatorRunner(pks) })
 
 }
@@ -361,15 +367,22 @@ func (s *service) rotatorRunner(pks *core.PublicKeySet) {
 func (s *service) createIvmantoPKS(pks *core.PublicKeySet) error {
 
 	var err error
-	// The pks is freshly created with one empty JWK in the JWKS
+	var kj *core.KeyJournal
+	var kr *core.KeyRecord
 
+	// The pks is freshly created with one empty JWK in the JWKS
 	var validity = s.cfg.Validity
-	err = pks.AddJWK(jwt.SigningMethodRS256, validity)
+	kj, err = pks.AddJWK(jwt.SigningMethodRS256, validity)
 	if err != nil {
 		return fmt.Errorf("[createIvmantoPKS] error while addJWK: %#v", err)
 	}
 
-	if err := s.keyset.Store(pks); err != nil {
+	if len(kj.Records) > 0 {
+		kr = &kj.Records[len(kj.Records)-1]
+		//s.keyJournal.AddKey()
+	}
+
+	if err := s.keyset.Store(pks, kr); err != nil {
 		return fmt.Errorf("[createIvmantoPKS] error while store PKS: %#v", err)
 	}
 
@@ -444,13 +457,15 @@ func getGooglesOIC(pks *core.PublicKeySet) (cfg *config.OpenIDConfiguration, err
 // NewService creates a authenticating service with necessary dependencies.
 func NewService(
 	pksr core.PublicKeySetRepository,
+	kj core.KJR,
 	oidpr core.OIDProviderRepository,
 	cfg *config.OpenIDConfiguration) Service {
 
 	return &service{
-		keyset:    pksr,
-		providers: oidpr,
-		cfg:       cfg,
+		keyset:     pksr,
+		keyJournal: kj,
+		providers:  oidpr,
+		cfg:        cfg,
 	}
 }
 

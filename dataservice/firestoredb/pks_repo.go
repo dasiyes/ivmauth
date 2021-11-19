@@ -18,17 +18,20 @@ type publicKeySetRepository struct {
 }
 
 // Store - stores the public key set in the firestore DB
-func (pksr *publicKeySetRepository) Store(pk *core.PublicKeySet) error {
+func (pksr *publicKeySetRepository) Store(pk *core.PublicKeySet, k *core.KeyRecord) error {
 
 	pks := make(map[string]interface{})
 	pks["IdentityProvider"] = pk.IdentityProvider
 	pks["URL"] = pk.URL
 	pks["Jwks"] = pk.Jwks
-	pks["KeyJournal"] = pk.KeyJournal
 
-	_, err := pksr.client.Collection(pksr.collection).Doc(pk.IdentityProvider).Set(context.TODO(), pks)
+	_, err := pksr.client.Collection(pksr.collection).Doc(pk.IdentityProvider).Set(*pksr.ctx, pks)
 	if err != nil {
 		return fmt.Errorf("unable to save in session repository - error: %v", err)
+	}
+
+	if k != nil {
+		_, err = pksr.client.Collection("keys-journal").Doc(k.Kid).Set(*pksr.ctx, k)
 	}
 
 	return nil
@@ -120,16 +123,16 @@ func (pksr *publicKeySetRepository) FindDeadline(kid string) (dl int64, err erro
 				return 0, fmt.Errorf("error %#v, while convert DataTo pks object for %s", err, doc.Ref.ID)
 			}
 
-			var kj = pks.KeyJournal
-			if kj == nil {
-				return 0, errors.New("key journal not found")
-			}
-			for k, v := range kj {
-				if k == kid {
-					dl = int64(v.(int64))
-					break
-				}
-			}
+			// var kj = pks.KeyJournal
+			// if kj == nil {
+			// 	return 0, errors.New("key journal not found")
+			// }
+			// for k, v := range kj {
+			// 	if k == kid {
+			// 		dl = int64(v.(int64))
+			// 		break
+			// 	}
+			// }
 
 			break
 		}

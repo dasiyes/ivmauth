@@ -45,7 +45,7 @@ type publicKeySetRepository struct {
 }
 
 // Store - stores the public key set for the cache-time allowed in Cache-Control Header
-func (pksr *publicKeySetRepository) Store(pk *core.PublicKeySet) error {
+func (pksr *publicKeySetRepository) Store(pk *core.PublicKeySet, k *core.KeyRecord) error {
 	pksr.mtx.Lock()
 	defer pksr.mtx.Unlock()
 	pksr.pks[pk.IdentityProvider] = pk

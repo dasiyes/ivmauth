@@ -20,7 +20,7 @@ import (
 // PublicKeySetRepository provides access a PKS store.
 type PublicKeySetRepository interface {
 	// Store will override a public key set if such already exists (identified by URL)
-	Store(pks *PublicKeySet) error
+	Store(pks *PublicKeySet, k *KeyRecord) error
 	Find(IdentityProvider string) (*PublicKeySet, error)
 	FindDeadline(kid string) (int64, error)
 	FindAll() []*PublicKeySet
@@ -33,7 +33,6 @@ type PublicKeySet struct {
 	URL              string
 	HTTPClient       *http.Client
 	Jwks             *JWKS
-	KeyJournal       map[string]interface{}
 	Expires          int64
 }
 
@@ -237,17 +236,16 @@ func (pks *PublicKeySet) LenJWKS() int {
 }
 
 // AddJWK will generate new private key and from it will add a new JWK into JWKS
-func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod, validity int64) error {
+func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod, validity int64) (kj *KeyJournal, err error) {
 
 	var jwks = pks.LenJWKS()
 	if jwks > 2 {
-		return fmt.Errorf("There are already %d JWKeys", jwks)
+		return nil, fmt.Errorf("There are already %d JWKeys", jwks)
 	}
 
 	var prvkey *rsa.PrivateKey
 	var pk rsa.PublicKey
 
-	var err error
 	var kty, use, kid string
 
 	switch sm.Alg() {
@@ -257,12 +255,12 @@ func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod, validity int64) error {
 		kid = ksuid.New().String()
 		prvkey, err = rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
-			return fmt.Errorf("generating key error %#v", err)
+			return nil, fmt.Errorf("generating key error %#v", err)
 		}
 		pk = prvkey.PublicKey
 
 	default:
-		return ErrUnknownMethod
+		return nil, ErrUnknownMethod
 	}
 
 	// [x]: fullfill the JWK with attributes including from the prvkey above
@@ -275,13 +273,19 @@ func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod, validity int64) error {
 		E:   expToString(pk.E),
 	}
 
-	// [x]: fill the KeyJournal - as KEY will be the kid value and as VALUE will be the deadline value
-	var ckj = pks.KeyJournal
-	ckj[kid] = time.Now().Unix() + validity
+	// Get the new Key in the journal object
+	var kr = KeyRecord{
+		Kid:        kid,
+		Deadline:   time.Now().Unix() + validity,
+		PublicKey:  pk,
+		PrivateKey: *prvkey,
+	}
+	kj.Records = append(kj.Records, kr)
 
+	// Get the key in the JWKS keyset
 	pks.Jwks.Keys = append(pks.Jwks.Keys, newJWK)
 
-	return nil
+	return kj, nil
 }
 
 // NewPublicKeySet creates a new set of Public Key for each of the suported
@@ -290,7 +294,6 @@ func NewPublicKeySet(identityProvider string) *PublicKeySet {
 
 	jwk := JWK{Kty: "RSA"}
 	jwks := JWKS{Keys: []JWK{jwk}}
-	kj := map[string]interface{}{"n.a.": time.Now().Unix()}
 
 	return &PublicKeySet{
 		IdentityProvider: identityProvider,
@@ -298,9 +301,8 @@ func NewPublicKeySet(identityProvider string) *PublicKeySet {
 		HTTPClient: &http.Client{
 			Timeout: time.Second * 30,
 		},
-		Jwks:       &jwks,
-		KeyJournal: kj,
-		Expires:    0,
+		Jwks:    &jwks,
+		Expires: 0,
 	}
 }
 
