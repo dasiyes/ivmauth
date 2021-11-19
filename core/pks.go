@@ -274,6 +274,7 @@ func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod, validity int64) (kj *KeyJo
 	}
 
 	// Get the new Key in the journal object
+	kj = &KeyJournal{Records: []KeyRecord{}}
 	var kr = KeyRecord{
 		Kid:        kid,
 		Deadline:   time.Now().Unix() + validity,

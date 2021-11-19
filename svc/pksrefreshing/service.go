@@ -52,9 +52,13 @@ func (s *service) InitOIDProviders(oidps []string) []error {
 	var err error
 	var errs []error
 
+	if len(oidps) == 0 {
+		errs = append(errs, errors.New("empty array of OpenID providers. Check the configuration file"))
+	}
+
 	for _, ip := range oidps {
 		if err = s.newPKS(ip); err != nil {
-			errs = append(errs, fmt.Errorf("while init provider [%s], raised [%#v]", ip, err))
+			errs = append(errs, fmt.Errorf("while init provider [%s], raised [%+v]", ip, err.Error()))
 			continue
 		}
 	}
@@ -80,6 +84,9 @@ func (s *service) newPKS(ip string) error {
 		// cfg passed to pkr service will hold defacto Ivmanto's configuration loaded from the config file.
 		oidp = core.NewOIDProvider(prvn)
 		oidp.Oidc = s.cfg
+		if oidp.Oidc == nil {
+			return fmt.Errorf("missing openID configuration")
+		}
 
 		if err = s.providers.Store(oidp); err != nil {
 			return err
@@ -90,6 +97,9 @@ func (s *service) newPKS(ip string) error {
 		pks.URL = oidp.Oidc.JwksURI
 		if err != nil {
 			return err
+		}
+		if pks.URL == "" {
+			return fmt.Errorf("missing openID configuration URL for JWKS")
 		}
 
 		jwks, exp, err := downloadJWKS(pks)
