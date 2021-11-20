@@ -315,7 +315,7 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 	case 2:
 
 		var current_kid = pks.GetCurrentKid()
-		deadline, err = s.keyset.FindDeadline(current_kid)
+		deadline, err = s.keyJournal.FindDeadline(current_kid)
 		if err != nil {
 			return err
 		}
@@ -368,7 +368,7 @@ func (s *service) rotatorRunner(pks *core.PublicKeySet) {
 	}
 
 	// [ ] replace the value in duration with some config value (validity - ???)
-	interval := time.Duration(14400) * time.Second
+	interval := time.Duration(180) * time.Second
 	time.AfterFunc(interval, func() { s.rotatorRunner(pks) })
 
 }

@@ -22,7 +22,7 @@ type PublicKeySetRepository interface {
 	// Store will override a public key set if such already exists (identified by URL)
 	Store(pks *PublicKeySet, k *KeyRecord) error
 	Find(IdentityProvider string) (*PublicKeySet, error)
-	FindDeadline(kid string) (int64, error)
+	// FindDeadline(kid string) (int64, error)
 	FindAll() []*PublicKeySet
 }
 

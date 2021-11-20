@@ -85,63 +85,63 @@ func (pksr *publicKeySetRepository) Find(ip string) (*core.PublicKeySet, error) 
 }
 
 // FindDeadline - only valid for Ivmanto's provider. The dealine defines the PublicKey rotation period.
-func (pksr *publicKeySetRepository) FindDeadline(kid string) (dl int64, err error) {
-
-	if kid == "" {
-		return 0, fmt.Errorf("invalid parameter kid value [%s]", kid)
-	}
-
-	var ip = "ivmanto"
-
-	iter := pksr.client.Collection(pksr.collection).Documents(*pksr.ctx)
-
-	var pks core.PublicKeySet
-
-	for {
-		doc, err := iter.Next()
-
-		if err == iterator.Done {
-			return 0, errors.New("key not found")
-		}
-
-		if err != nil {
-			if strings.Contains(err.Error(), "Missing or insufficient permissions") {
-				return 0, ErrInsufficientPermissions
-			} else {
-				fmt.Printf("err while iterate firestoreDB: %#v", err)
-			}
-			continue
-		}
-
-		var docid = strings.ToLower(strings.TrimSpace(doc.Ref.ID))
-		fmt.Printf("[FindDeadline] document id normalized value [%s], doc.IP value [%s]\n", docid, pks.IdentityProvider)
-
-		if docid == ip {
-
-			err = doc.DataTo(&pks)
-			if err != nil {
-				return 0, fmt.Errorf("error %#v, while convert DataTo pks object for %s", err, doc.Ref.ID)
-			}
-
-			// var kj = pks.KeyJournal
-			// if kj == nil {
-			// 	return 0, errors.New("key journal not found")
-			// }
-			// for k, v := range kj {
-			// 	if k == kid {
-			// 		dl = int64(v.(int64))
-			// 		break
-			// 	}
-			// }
-
-			break
-		}
-
-		pks = core.PublicKeySet{}
-	}
-
-	return dl, nil
-}
+// func (pksr *publicKeySetRepository) FindDeadline(kid string) (dl int64, err error) {
+//
+// 	if kid == "" {
+// 		return 0, fmt.Errorf("invalid parameter kid value [%s]", kid)
+// 	}
+//
+// 	var ip = "ivmanto"
+//
+// 	iter := pksr.client.Collection(pksr.collection).Documents(*pksr.ctx)
+//
+// 	var pks core.PublicKeySet
+//
+// 	for {
+// 		doc, err := iter.Next()
+//
+// 		if err == iterator.Done {
+// 			return 0, errors.New("key not found")
+// 		}
+//
+// 		if err != nil {
+// 			if strings.Contains(err.Error(), "Missing or insufficient permissions") {
+// 				return 0, ErrInsufficientPermissions
+// 			} else {
+// 				fmt.Printf("err while iterate firestoreDB: %#v", err)
+// 			}
+// 			continue
+// 		}
+//
+// 		var docid = strings.ToLower(strings.TrimSpace(doc.Ref.ID))
+// 		fmt.Printf("[FindDeadline] document id normalized value [%s], doc.IP value [%s]\n", docid, pks.IdentityProvider)
+//
+// 		if docid == ip {
+//
+// 			err = doc.DataTo(&pks)
+// 			if err != nil {
+// 				return 0, fmt.Errorf("error %#v, while convert DataTo pks object for %s", err, doc.Ref.ID)
+// 			}
+//
+// 			// var kj = pks.KeyJournal
+// 			// if kj == nil {
+// 			// 	return 0, errors.New("key journal not found")
+// 			// }
+// 			// for k, v := range kj {
+// 			// 	if k == kid {
+// 			// 		dl = int64(v.(int64))
+// 			// 		break
+// 			// 	}
+// 			// }
+//
+// 			break
+// 		}
+//
+// 		pks = core.PublicKeySet{}
+// 	}
+//
+// 	return dl, nil
+// }
 
 // FindAll - find and returns all stored Public Key Sets
 func (pksr *publicKeySetRepository) FindAll() []*core.PublicKeySet {
