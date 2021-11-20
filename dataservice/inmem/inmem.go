@@ -62,6 +62,11 @@ func (pksr *publicKeySetRepository) Find(ip string) (*core.PublicKeySet, error) 
 	return nil, errors.New("key not found")
 }
 
+func (pksr *publicKeySetRepository) Find2(ip string) (*core.PublicKeySet, error) {
+	// TODO: implement ...
+	return nil, nil
+}
+
 // FindAll - find and returns all stored Public Key Sets
 func (pksr *publicKeySetRepository) FindAll() []*core.PublicKeySet {
 	// TODO: implement FindAll

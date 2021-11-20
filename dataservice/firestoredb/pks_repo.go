@@ -37,7 +37,7 @@ func (pksr *publicKeySetRepository) Store(pk *core.PublicKeySet, k *core.KeyReco
 	return nil
 }
 
-// Find - finds a Public Key Set in the repository
+// Find - finds a Public Key Set in the repository by provided identity provider name
 func (pksr *publicKeySetRepository) Find(ip string) (*core.PublicKeySet, error) {
 
 	if ip == "" {
@@ -82,6 +82,24 @@ func (pksr *publicKeySetRepository) Find(ip string) (*core.PublicKeySet, error) 
 	}
 
 	return &pks, nil
+}
+
+//Find2 - ... alternative methods
+func (pksr *publicKeySetRepository) Find2(ip string) (*core.PublicKeySet, error) {
+
+	dsnap, err := pksr.client.Collection(pksr.collection).Doc(ip).Get(*pksr.ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving documentId %s - error: %#v", ip, err)
+	}
+	var pk = core.PublicKeySet{}
+	err = dsnap.DataTo(&pk)
+	if err != nil {
+		return nil, fmt.Errorf("error transforming documentId %s - error: %v", ip, err)
+	}
+
+	fmt.Printf("Document data: %#v\n", pk)
+
+	return &pk, nil
 }
 
 // FindDeadline - only valid for Ivmanto's provider. The dealine defines the PublicKey rotation period.

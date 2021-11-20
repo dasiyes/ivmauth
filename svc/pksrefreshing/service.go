@@ -170,7 +170,7 @@ func (s *service) newPKS(ip string) error {
 // GetRSAPublicKey converts the jwks into rsaPublicKey and returns it back
 func (s *service) GetRSAPublicKey(identityProvider string, kid string) (n *big.Int, e int, err error) {
 
-	pks, err := s.keyset.Find(identityProvider)
+	pks, err := s.keyset.Find2(identityProvider)
 	if err != nil {
 		return &big.Int{}, 0, errors.New("Error while searching for PK: " + err.Error())
 	}
@@ -225,7 +225,7 @@ func (s *service) GetRSAPublicKey(identityProvider string, kid string) (n *big.I
 func (s *service) GetPKSCache(identityProvider string) (*core.PublicKeySet, error) {
 
 	// Get the pks from the cache
-	pks, err := s.keyset.Find(identityProvider)
+	pks, err := s.keyset.Find2(identityProvider)
 	if err != nil && err.Error() == "key not found" {
 
 		pks = &core.PublicKeySet{}
@@ -239,7 +239,7 @@ func (s *service) GetPKSCache(identityProvider string) (*core.PublicKeySet, erro
 			return nil, fmt.Errorf("Error while creating a new PKS: %#v for IdentyProvider: %s", err, identityProvider)
 		}
 		// Try again to find it in cache - once the download has been called
-		pks, err = s.keyset.Find(identityProvider)
+		pks, err = s.keyset.Find2(identityProvider)
 		if err != nil {
 			// Not found again - return empty pks and error
 			return nil, fmt.Errorf("Error while Find (again) PKS in cache for IdentyProvider: %s", identityProvider)
