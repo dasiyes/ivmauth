@@ -62,7 +62,6 @@ func (s *service) InitOIDProviders(oidps []string) []error {
 			continue
 		}
 	}
-
 	return errs
 }
 
@@ -105,20 +104,14 @@ func (s *service) newPKS(ip string) error {
 		jwks, exp, err := downloadJWKS(pks)
 		if err != nil {
 			err_dwn := err
-			if pks.LenJWKS() == 1 {
-
-				// expecting the PKS is not in the URL (means not in the db), so attempting to create it
-				err = s.createIvmantoPKS(pks)
-				if err != nil {
-					return fmt.Errorf("error while downloading: [%#v], and error create Ivmanto PKS: [%#v]", err_dwn, err)
-				}
-				jwks, exp, err = downloadJWKS(pks)
-				if err != nil {
-					return err
-				}
-				if exp == 0 {
-					exp = time.Now().Unix() + 14400
-				}
+			fmt.Printf("error downloading Ivmanto's PKS: %#v", err_dwn)
+			err = s.PKSRotator(pks)
+			if err != nil {
+				return err
+			}
+			jwks, exp, err = downloadJWKS(pks)
+			if err != nil {
+				return err
 			}
 		}
 
@@ -127,7 +120,7 @@ func (s *service) newPKS(ip string) error {
 			return err
 		}
 
-		//go s.rotatorRunner(pks)
+		// schedule Public keys rotation
 		go func(p *core.PublicKeySet) {
 			fmt.Printf("go routine started ...\n")
 			s.rotatorRunner(p)
@@ -313,14 +306,11 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 		}
 
 	case 2:
-
-		var current_kid = pks.GetCurrentKid()
+		// Get the kye KID for the current jwk
+		var current_kid = pks.GetKidByIdx(1)
 		deadline, err = s.keyJournal.FindDeadline(current_kid)
 		if err != nil {
 			return err
-		}
-		if deadline == 0 {
-			deadline = time.Now().Unix() + s.cfg.Validity
 		}
 
 		// [x] Below code will create a new JWK in JWKS for OID provider `Ivmanto`, when:
@@ -332,6 +322,8 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 			if len(kj.Records) > 0 {
 				kr = &kj.Records[len(kj.Records)-1]
 			}
+			// create a new Public key taht will become active once the current key will be
+			// retired [from index 1 -> to index 0]
 			kj, err = pks.AddJWK(jwt.SigningMethodRS256, validity)
 			if err != nil {
 				return err
@@ -339,8 +331,14 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 			_ = kj // to eliminate warrning
 		}
 	case 3:
+		// Get the kye KID for the previous_kid jwk. Check if has expired and delete it if yes.
+		var previous_kid = pks.GetKidByIdx(0)
+		deadline, err = s.keyJournal.FindDeadline(previous_kid)
+		if err != nil {
+			return err
+		}
 
-		if deadline < time.Now().Unix() {
+		if deadline < time.Now().Unix() || previous_kid == "" {
 			// [x]: Rotate the key at index 1 to become a key at index 0 and remove the first key.
 			// slice pop example:
 			// x, a = a[len(a)-1], a[:len(a)-1]
@@ -361,14 +359,14 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 // RotatorRunner will run the PKSRotator in continues cycle
 func (s *service) rotatorRunner(pks *core.PublicKeySet) {
 
-	fmt.Printf("[%v] another run of rotatorRunner... pks-value: [%#v]\n", time.Now(), pks)
+	fmt.Printf("[%+v] another run of rotatorRunner... \n", time.Now())
 	err := s.PKSRotator(pks)
 	if err != nil {
 		fmt.Printf("error at PKSRotator %#v\n", err)
 	}
 
 	// [ ] replace the value in duration with some config value (validity - ???)
-	interval := time.Duration(180) * time.Second
+	interval := time.Duration(7200) * time.Second
 	time.AfterFunc(interval, func() { s.rotatorRunner(pks) })
 
 }
@@ -389,7 +387,6 @@ func (s *service) createIvmantoPKS(pks *core.PublicKeySet) error {
 
 	if len(kj.Records) > 0 {
 		kr = &kj.Records[len(kj.Records)-1]
-		//s.keyJournal.AddKey()
 	}
 
 	if err := s.keyset.Store(pks, kr); err != nil {

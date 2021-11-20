@@ -185,16 +185,16 @@ func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 	return jwk, nil
 }
 
-// GetCurrentKid - will return the kid as string for the key at index 1 of the Jwks
-func (pks *PublicKeySet) GetCurrentKid() string {
-	var current_kid string
+// GetKidByIdx - will return the kid as string for the key at index 1 of the Jwks
+func (pks *PublicKeySet) GetKidByIdx(idx int) string {
+	var kid string
 	for i, jwk := range pks.Jwks.Keys {
-		if i == 1 {
-			current_kid = jwk.Kid
+		if i == idx {
+			kid = jwk.Kid
 			break
 		}
 	}
-	return current_kid
+	return kid
 }
 
 // GetKidNE - returns modulus N and pblic exponent E as big.Int and int respectively

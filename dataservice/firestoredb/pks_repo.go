@@ -32,6 +32,9 @@ func (pksr *publicKeySetRepository) Store(pk *core.PublicKeySet, k *core.KeyReco
 
 	if k != nil {
 		_, err = pksr.client.Collection("keys-journal").Doc(k.Kid).Set(*pksr.ctx, k)
+		if err != nil {
+			return fmt.Errorf("unable to save the key in the key-journal")
+		}
 	}
 
 	return nil
@@ -97,69 +100,8 @@ func (pksr *publicKeySetRepository) Find2(ip string) (*core.PublicKeySet, error)
 		return nil, fmt.Errorf("error transforming documentId %s - error: %v", ip, err)
 	}
 
-	fmt.Printf("Document data: %#v\n", pk)
-
 	return &pk, nil
 }
-
-// FindDeadline - only valid for Ivmanto's provider. The dealine defines the PublicKey rotation period.
-// func (pksr *publicKeySetRepository) FindDeadline(kid string) (dl int64, err error) {
-//
-// 	if kid == "" {
-// 		return 0, fmt.Errorf("invalid parameter kid value [%s]", kid)
-// 	}
-//
-// 	var ip = "ivmanto"
-//
-// 	iter := pksr.client.Collection(pksr.collection).Documents(*pksr.ctx)
-//
-// 	var pks core.PublicKeySet
-//
-// 	for {
-// 		doc, err := iter.Next()
-//
-// 		if err == iterator.Done {
-// 			return 0, errors.New("key not found")
-// 		}
-//
-// 		if err != nil {
-// 			if strings.Contains(err.Error(), "Missing or insufficient permissions") {
-// 				return 0, ErrInsufficientPermissions
-// 			} else {
-// 				fmt.Printf("err while iterate firestoreDB: %#v", err)
-// 			}
-// 			continue
-// 		}
-//
-// 		var docid = strings.ToLower(strings.TrimSpace(doc.Ref.ID))
-// 		fmt.Printf("[FindDeadline] document id normalized value [%s], doc.IP value [%s]\n", docid, pks.IdentityProvider)
-//
-// 		if docid == ip {
-//
-// 			err = doc.DataTo(&pks)
-// 			if err != nil {
-// 				return 0, fmt.Errorf("error %#v, while convert DataTo pks object for %s", err, doc.Ref.ID)
-// 			}
-//
-// 			// var kj = pks.KeyJournal
-// 			// if kj == nil {
-// 			// 	return 0, errors.New("key journal not found")
-// 			// }
-// 			// for k, v := range kj {
-// 			// 	if k == kid {
-// 			// 		dl = int64(v.(int64))
-// 			// 		break
-// 			// 	}
-// 			// }
-//
-// 			break
-// 		}
-//
-// 		pks = core.PublicKeySet{}
-// 	}
-//
-// 	return dl, nil
-// }
 
 // FindAll - find and returns all stored Public Key Sets
 func (pksr *publicKeySetRepository) FindAll() []*core.PublicKeySet {

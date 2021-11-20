@@ -42,7 +42,6 @@ func (kj *keysJournalRepo) FindDeadline(kid string) (dl int64, err error) {
 		return 0, fmt.Errorf("error transforming documentId %s - error: %v", kid, err)
 	}
 
-	fmt.Printf("Document data: %#v\n", kr)
 	dl = kr.Deadline
 
 	return dl, nil
