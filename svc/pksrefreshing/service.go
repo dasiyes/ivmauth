@@ -16,6 +16,8 @@ import (
 	"github.com/golang-jwt/jwt"
 )
 
+var n int
+
 // Service is the interface that provides the service's methods.
 type Service interface {
 
@@ -101,24 +103,8 @@ func (s *service) newPKS(ip string) error {
 			return fmt.Errorf("missing openID configuration URL for JWKS")
 		}
 
-		jwks, exp, err := downloadJWKS(pks)
-		if err != nil {
-			err_dwn := err
-			fmt.Printf("error downloading Ivmanto's PKS: %#v", err_dwn)
-			err = s.PKSRotator(pks)
-			if err != nil {
-				return err
-			}
-			jwks, exp, err = downloadJWKS(pks)
-			if err != nil {
-				return err
-			}
-		}
-
-		// Initiate pks
-		if err := pks.Init(jwks, exp); err != nil {
-			return err
-		}
+		// Run downloading the PKS from the URL until gets it without error
+		go s.getJWKSfromUrl(pks)
 
 		// schedule Public keys rotation
 		go func(p *core.PublicKeySet) {
@@ -368,7 +354,6 @@ func (s *service) rotatorRunner(pks *core.PublicKeySet) {
 	// [ ] replace the value in duration with some config value (validity - ???)
 	interval := time.Duration(7200) * time.Second
 	time.AfterFunc(interval, func() { s.rotatorRunner(pks) })
-
 }
 
 // createIvmantoPKS will run everytime when the PKS for Ivmanto is not found in the firestoreDB
@@ -394,6 +379,30 @@ func (s *service) createIvmantoPKS(pks *core.PublicKeySet) error {
 	}
 
 	return nil
+}
+
+// getJWKSfromUrl will recursivelly try to download from the URL
+func (s *service) getJWKSfromUrl(pks *core.PublicKeySet) {
+
+	jwks, exp, err := downloadJWKS(pks)
+	if err != nil {
+		fmt.Printf("running cycle %d | error downloading Ivmanto's PKS: %#v", n, err)
+		n = n + 1
+		err = s.PKSRotator(pks)
+		if err != nil {
+			fmt.Printf("running cycle %d | error rotating keys PKS: %#v", n, err)
+		}
+		interval := time.Duration(10*int64(n)) * time.Second
+		time.Sleep(interval)
+		s.getJWKSfromUrl(pks)
+	}
+
+	// Initiate pks
+	if err := pks.Init(jwks, exp); err != nil {
+		fmt.Printf("error initiating PKS: %#v", err)
+	}
+	// reset service level variable
+	n = 0
 }
 
 // downloadJWKS - download jwks from the URL for the respective Identity provider
