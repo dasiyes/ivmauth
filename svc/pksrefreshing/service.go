@@ -392,7 +392,7 @@ func (s *service) getJWKSfromUrl(pks *core.PublicKeySet) {
 		if err != nil {
 			fmt.Printf("running cycle %d | error rotating keys PKS: %#v", n, err)
 		}
-		interval := time.Duration(10*int64(n)) * time.Second
+		interval := time.Duration(30*int64(n)) * time.Second
 		time.Sleep(interval)
 		s.getJWKSfromUrl(pks)
 	}
