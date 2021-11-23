@@ -140,8 +140,9 @@ func (s *service) newPKS(ip string) error {
 			return err
 		}
 
+	// TODO: Add more Identity providers below
 	default:
-		// TODO: Add more Identity providers below
+		return fmt.Errorf("unknown provider")
 	}
 	return nil
 }
@@ -274,7 +275,12 @@ func (s *service) GetIssuerVal(provider string) (string, error) {
 func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 
 	var err error
-	var deadline int64
+	// deadline - the time when the current key expires
+	// ltri - lead-time rotation interval
+	// [ ] replace ltri with config value
+	var deadline, ltri int64
+	ltri = int64(86400)
+
 	var kj *core.KeyJournal
 	var kr *core.KeyRecord
 
@@ -302,7 +308,8 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 		// [x] Below code will create a new JWK in JWKS for OID provider `Ivmanto`, when:
 		//     [x] 1) the deadline is in the past (now + 24h [86400 s])- this is calculated from connfig attribute at the time of adding the new key in JWKS.
 		//     [x] 2) the JWKS is having only two keys - the old (index 0) and the current (index 1)
-		if deadline < (time.Now().Unix() + int64(86400)) {
+		now := time.Now().Unix()
+		if (deadline-ltri) < now && now < deadline {
 
 			var validity = s.cfg.Validity
 			if len(kj.Records) > 0 {
@@ -324,7 +331,7 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 			return err
 		}
 
-		if deadline < time.Now().Unix() || previous_kid == "" {
+		if deadline < time.Now().Unix() {
 			// [x]: Rotate the key at index 1 to become a key at index 0 and remove the first key.
 			// slice pop example:
 			// x, a = a[len(a)-1], a[:len(a)-1]
@@ -345,15 +352,17 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 // RotatorRunner will run the PKSRotator in continues cycle
 func (s *service) rotatorRunner(pks *core.PublicKeySet) {
 
+	// rri - rotator runner interval
+	// [ ] replace the value of rri with some config value
+	var rri = int64(10800)
+
 	fmt.Printf("[%+v] another run of rotatorRunner... \n", time.Now())
 	err := s.PKSRotator(pks)
 	if err != nil {
 		fmt.Printf("error at PKSRotator %#v\n", err)
 	}
 
-	// [ ] replace the value in duration with some config value (validity - ???)
-	interval := time.Duration(7200) * time.Second
-	time.AfterFunc(interval, func() { s.rotatorRunner(pks) })
+	time.AfterFunc(time.Duration(rri)*time.Second, func() { s.rotatorRunner(pks) })
 }
 
 // createIvmantoPKS will run everytime when the PKS for Ivmanto is not found in the firestoreDB
