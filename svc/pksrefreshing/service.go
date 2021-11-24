@@ -285,6 +285,8 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 	var kr *core.KeyRecord
 
 	var nk = pks.LenJWKS()
+	fmt.Printf("*** number of keys %d\n", nk)
+
 	switch {
 	case nk <= 1:
 		if pks == nil {
@@ -297,6 +299,8 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 		if err != nil {
 			return fmt.Errorf("[PKSRotator] error re-create Ivmanto PKS: [%#v]", err)
 		}
+
+		fmt.Printf("[case nk <=1] number of keys %d - now: %d\n", nk, time.Now().Unix())
 
 	case nk == 2:
 		// Get the kye KID for the current jwk
@@ -324,6 +328,9 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 			}
 			_ = kj // to eliminate warrning
 		}
+
+		fmt.Printf("[case nk == 2] number of keys %d - now: %d - deadline: %d - (deadline-ltri): %d\n", nk, now, deadline, deadline-ltri)
+
 	case nk == 3:
 		// Get the kye KID for the previous_kid jwk. Check if has expired and delete it if yes.
 		var previous_kid = pks.GetKidByIdx(0)
@@ -339,7 +346,10 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 			pks.Jwks.Keys = pks.Jwks.Keys[1:]
 		}
 
+		fmt.Printf("[case nk == 3] number of keys %d - now: %d - deadline: %d\n", nk, time.Now().Unix(), deadline)
+
 	default:
+
 		return fmt.Errorf("[PKSRotator] invalid number of [%d] PKs dedected", nk)
 	}
 
