@@ -334,6 +334,10 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 	case nk == 3:
 		// Get the kye KID for the previous_kid jwk. Check if has expired and delete it if yes.
 		var previous_kid = pks.GetKidByIdx(0)
+		if previous_kid == "" {
+			pks.Jwks.Keys = pks.Jwks.Keys[1:]
+			break
+		}
 		deadline, err = s.keyJournal.FindDeadline(previous_kid)
 		if err != nil {
 			return err
