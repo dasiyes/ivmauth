@@ -279,25 +279,26 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 	// ltri - lead-time rotation interval
 	// [ ] replace ltri with config value
 	var deadline, ltri int64
-	ltri = int64(86400)
+	ltri = int64(5400)
 
 	var kj *core.KeyJournal
 	var kr *core.KeyRecord
 
 	var nk = pks.LenJWKS()
-	switch nk {
-	case 0:
-		fmt.Printf("invalid pks - empty keyset")
-		pks = core.NewPublicKeySet("ivmanto")
+	switch {
+	case nk <= 1:
+		if pks == nil {
+			fmt.Printf("invalid pks - empty keyset")
+			pks = core.NewPublicKeySet("ivmanto")
+		}
 
-	case 1:
 		// expecting the PKS is not in the URL (means not in the db), so attempting to create it
-		err = s.createIvmantoPKS(pks)
+		err = s.creatIvmantoJWK(pks)
 		if err != nil {
 			return fmt.Errorf("[PKSRotator] error re-create Ivmanto PKS: [%#v]", err)
 		}
 
-	case 2:
+	case nk == 2:
 		// Get the kye KID for the current jwk
 		var current_kid = pks.GetKidByIdx(1)
 		deadline, err = s.keyJournal.FindDeadline(current_kid)
@@ -323,7 +324,7 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 			}
 			_ = kj // to eliminate warrning
 		}
-	case 3:
+	case nk == 3:
 		// Get the kye KID for the previous_kid jwk. Check if has expired and delete it if yes.
 		var previous_kid = pks.GetKidByIdx(0)
 		deadline, err = s.keyJournal.FindDeadline(previous_kid)
@@ -354,7 +355,7 @@ func (s *service) rotatorRunner(pks *core.PublicKeySet) {
 
 	// rri - rotator runner interval
 	// [ ] replace the value of rri with some config value
-	var rri = int64(10800)
+	var rri = int64(900)
 
 	fmt.Printf("[%+v] another run of rotatorRunner... \n", time.Now())
 	err := s.PKSRotator(pks)
@@ -365,18 +366,24 @@ func (s *service) rotatorRunner(pks *core.PublicKeySet) {
 	time.AfterFunc(time.Duration(rri)*time.Second, func() { s.rotatorRunner(pks) })
 }
 
-// createIvmantoPKS will run everytime when the PKS for Ivmanto is not found in the firestoreDB
-func (s *service) createIvmantoPKS(pks *core.PublicKeySet) error {
+// creatIvmantoJWK will run everytime when the PKS for Ivmanto is not found in the firestoreDB
+func (s *service) creatIvmantoJWK(pks *core.PublicKeySet) error {
 
 	var err error
 	var kj *core.KeyJournal
 	var kr *core.KeyRecord
 
+	if pks.LenJWKS() == 0 {
+		jwk := core.JWK{Kty: "RSA"}
+		jwks := core.JWKS{Keys: []core.JWK{jwk}}
+		pks.Jwks = &jwks
+	}
+
 	// The pks is freshly created with one empty JWK in the JWKS
 	var validity = s.cfg.Validity
 	kj, err = pks.AddJWK(jwt.SigningMethodRS256, validity)
 	if err != nil {
-		return fmt.Errorf("[createIvmantoPKS] error while addJWK: %#v", err)
+		return fmt.Errorf("[creatIvmantoJWK] error while addJWK: %#v", err)
 	}
 
 	if len(kj.Records) > 0 {
@@ -384,7 +391,7 @@ func (s *service) createIvmantoPKS(pks *core.PublicKeySet) error {
 	}
 
 	if err := s.keyset.Store(pks, kr); err != nil {
-		return fmt.Errorf("[createIvmantoPKS] error while store PKS: %#v", err)
+		return fmt.Errorf("[creatIvmantoJWK] error while store PKS: %#v", err)
 	}
 
 	return nil
