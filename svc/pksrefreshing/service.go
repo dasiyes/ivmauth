@@ -281,7 +281,7 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 	var deadline, ltri int64
 	ltri = int64(5400)
 
-	var kj *core.KeyJournal
+	var kj *core.KeyJournal = &core.KeyJournal{Records: []core.KeyRecord{}}
 	var kr *core.KeyRecord
 
 	var nk = pks.LenJWKS()
@@ -317,16 +317,15 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 		if (deadline-ltri) < now && now < deadline {
 
 			var validity = s.cfg.Validity
-			if len(kj.Records) > 0 {
-				kr = &kj.Records[len(kj.Records)-1]
-			}
-			// create a new Public key taht will become active once the current key will be
+			// create a new Public key that will become active once the current key will be
 			// retired [from index 1 -> to index 0]
 			kj, err = pks.AddJWK(jwt.SigningMethodRS256, validity)
 			if err != nil {
 				return err
 			}
-			_ = kj // to eliminate warrning
+			if len(kj.Records) > 0 {
+				kr = &kj.Records[len(kj.Records)-1]
+			}
 		}
 
 		fmt.Printf("[case nk == 2] number of keys %d - now: %d - deadline: %d - (deadline-ltri): %d\n", nk, now, deadline, deadline-ltri)
