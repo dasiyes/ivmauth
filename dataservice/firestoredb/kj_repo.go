@@ -32,6 +32,11 @@ func (kj *keysJournalRepo) AddKey(k *core.KeyRecord) error {
 // FindDeadline is browse the repo for a given key id and return its deadline (expire date)
 func (kj *keysJournalRepo) FindDeadline(kid string) (dl int64, err error) {
 
+	fmt.Printf("arg kid %s\n", kid)
+	if kid == "" {
+		return 0, fmt.Errorf("missing mandatory argument kid %s", kid)
+	}
+
 	dsnap, err := kj.client.Collection(kj.collection).Doc(kid).Get(*kj.ctx)
 	if err != nil {
 		return 0, fmt.Errorf("[FindDeadline] error retrieving documentId %s - error: %v", kid, err)

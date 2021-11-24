@@ -334,6 +334,9 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 	case nk == 3:
 		// Get the kye KID for the previous_kid jwk. Check if has expired and delete it if yes.
 		var previous_kid = pks.GetKidByIdx(0)
+
+		fmt.Printf("previous key kid value is [%s]", previous_kid)
+
 		if previous_kid == "" {
 			pks.Jwks.Keys = pks.Jwks.Keys[1:]
 			break
