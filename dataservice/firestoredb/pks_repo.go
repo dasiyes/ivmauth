@@ -92,7 +92,7 @@ func (pksr *publicKeySetRepository) Find2(ip string) (*core.PublicKeySet, error)
 
 	dsnap, err := pksr.client.Collection(pksr.collection).Doc(ip).Get(*pksr.ctx)
 	if err != nil {
-		return nil, fmt.Errorf("error retrieving documentId %s - error: %#v", ip, err)
+		return nil, fmt.Errorf("[Find2] error retrieving documentId %s - error: %#v", ip, err)
 	}
 	var pk = core.PublicKeySet{}
 	err = dsnap.DataTo(&pk)

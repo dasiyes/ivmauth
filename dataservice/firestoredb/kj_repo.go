@@ -34,7 +34,7 @@ func (kj *keysJournalRepo) FindDeadline(kid string) (dl int64, err error) {
 
 	dsnap, err := kj.client.Collection(kj.collection).Doc(kid).Get(*kj.ctx)
 	if err != nil {
-		return 0, fmt.Errorf("error retrieving documentId %s - error: %v", kid, err)
+		return 0, fmt.Errorf("[FindDeadline] error retrieving documentId %s - error: %v", kid, err)
 	}
 	var kr = core.KeyRecord{}
 	err = dsnap.DataTo(&kr)

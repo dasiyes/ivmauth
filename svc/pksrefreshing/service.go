@@ -348,6 +348,10 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 
 		fmt.Printf("[case nk == 3] number of keys %d - now: %d - deadline: %d\n", nk, time.Now().Unix(), deadline)
 
+	case nk > 3:
+		// remove the extra keys (if by chance more were created)
+		pks.Jwks.Keys = pks.Jwks.Keys[:3]
+
 	default:
 
 		return fmt.Errorf("[PKSRotator] invalid number of [%d] PKs dedected", nk)
@@ -387,6 +391,9 @@ func (s *service) creatIvmantoJWK(pks *core.PublicKeySet) error {
 		jwk := core.JWK{Kty: "RSA"}
 		jwks := core.JWKS{Keys: []core.JWK{jwk}}
 		pks.Jwks = &jwks
+	} else if pks.LenJWKS() >= 3 {
+		fmt.Printf("there is no free slots for a new key")
+		return nil
 	}
 
 	// The pks is freshly created with one empty JWK in the JWKS
