@@ -51,7 +51,9 @@ oidps:
 
 # ivmanto openID config
 ivmanto_oidc:
-  validity: 7200
+  validity: 2592000
+  lead_time: 86400
+  rr_period: 28800
   issuer: "https://accounts.ivmanto.dev"
   authorization_endpoint: "https://accounts.ivmanto.dev/oauth/v1/authorize"
   token_endpoint: "https://accounts.ivmanto.dev/oauth/v1/token"

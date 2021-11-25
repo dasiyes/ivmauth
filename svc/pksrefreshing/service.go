@@ -277,9 +277,8 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 	var err error
 	// deadline - the time when the current key expires
 	// ltri - lead-time rotation interval
-	// [ ] replace ltri with config value
 	var deadline, ltri int64
-	ltri = int64(5400)
+	ltri = int64(s.cfg.LeadTime)
 
 	var kj *core.KeyJournal = &core.KeyJournal{Records: []core.KeyRecord{}}
 	var kr *core.KeyRecord
@@ -374,8 +373,7 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 func (s *service) rotatorRunner(pks *core.PublicKeySet) {
 
 	// rri - rotator runner interval
-	// [ ] replace the value of rri with some config value
-	var rri = int64(900)
+	var rri = int64(s.cfg.RRPeriod)
 
 	fmt.Printf("[%+v] another run of rotatorRunner... \n", time.Now())
 	err := s.PKSRotator(pks)
