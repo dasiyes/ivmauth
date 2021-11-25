@@ -2,8 +2,6 @@
 package pksrefreshing
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +15,8 @@ import (
 	"github.com/dasiyes/ivmconfig/src/pkg/config"
 	"github.com/golang-jwt/jwt"
 )
+
+var n int
 
 // Service is the interface that provides the service's methods.
 type Service interface {
@@ -39,13 +39,14 @@ type Service interface {
 	GetIssuerVal(provider string) (string, error)
 
 	// PKSRotetor will take care for rotating PKS for OIDProvider Ivmanto
-	PKSRotator() error
+	PKSRotator(pks *core.PublicKeySet) error
 }
 
 type service struct {
-	keyset    core.PublicKeySetRepository
-	providers core.OIDProviderRepository
-	cfg       *config.OpenIDConfiguration
+	keyset     core.PublicKeySetRepository
+	keyJournal core.KJR
+	providers  core.OIDProviderRepository
+	cfg        *config.OpenIDConfiguration
 }
 
 // Initiating OpenID Providers
@@ -53,9 +54,13 @@ func (s *service) InitOIDProviders(oidps []string) []error {
 	var err error
 	var errs []error
 
+	if len(oidps) == 0 {
+		errs = append(errs, errors.New("empty array of OpenID providers. Check the configuration file"))
+	}
+
 	for _, ip := range oidps {
 		if err = s.newPKS(ip); err != nil {
-			errs = append(errs, fmt.Errorf("while init provider [%s], raised [%#v]", ip, err))
+			errs = append(errs, fmt.Errorf("while init provider [%s], raised [%+v]", ip, err.Error()))
 			continue
 		}
 	}
@@ -80,6 +85,9 @@ func (s *service) newPKS(ip string) error {
 		// cfg passed to pkr service will hold defacto Ivmanto's configuration loaded from the config file.
 		oidp = core.NewOIDProvider(prvn)
 		oidp.Oidc = s.cfg
+		if oidp.Oidc == nil {
+			return fmt.Errorf("missing openID configuration")
+		}
 
 		if err = s.providers.Store(oidp); err != nil {
 			return err
@@ -91,26 +99,18 @@ func (s *service) newPKS(ip string) error {
 		if err != nil {
 			return err
 		}
-
-		jwks, exp, err := downloadJWKS(pks)
-		if err != nil {
-			return err
+		if pks.URL == "" {
+			return fmt.Errorf("missing openID configuration URL for JWKS")
 		}
 
-		if err := pks.Init(jwks, exp); err != nil {
-			return err
-		}
+		// Run downloading the PKS from the URL until gets it without error
+		go s.getJWKSfromUrl(pks)
 
-		// [!] Review the code below again! As of now the process does not require it!
-
-		err = pks.AddJWK(jwt.SigningMethodRS256)
-		if err != nil {
-			return err
-		}
-
-		if err := s.keyset.Store(pks); err != nil {
-			return err
-		}
+		// schedule Public keys rotation
+		go func(p *core.PublicKeySet) {
+			fmt.Printf("go routine started ...\n")
+			s.rotatorRunner(p)
+		}(pks)
 
 	case "google":
 		// getting Google's OpenID Configuration
@@ -136,12 +136,13 @@ func (s *service) newPKS(ip string) error {
 		if err := pks.Init(jwks, exp); err != nil {
 			return err
 		}
-		if err := s.keyset.Store(pks); err != nil {
+		if err := s.keyset.Store(pks, nil); err != nil {
 			return err
 		}
 
+	// TODO: Add more Identity providers below
 	default:
-		// TODO: Add more Identity providers below
+		return fmt.Errorf("unknown provider")
 	}
 	return nil
 }
@@ -149,7 +150,7 @@ func (s *service) newPKS(ip string) error {
 // GetRSAPublicKey converts the jwks into rsaPublicKey and returns it back
 func (s *service) GetRSAPublicKey(identityProvider string, kid string) (n *big.Int, e int, err error) {
 
-	pks, err := s.keyset.Find(identityProvider)
+	pks, err := s.keyset.Find2(identityProvider)
 	if err != nil {
 		return &big.Int{}, 0, errors.New("Error while searching for PK: " + err.Error())
 	}
@@ -204,8 +205,12 @@ func (s *service) GetRSAPublicKey(identityProvider string, kid string) (n *big.I
 func (s *service) GetPKSCache(identityProvider string) (*core.PublicKeySet, error) {
 
 	// Get the pks from the cache
-	pks, err := s.keyset.Find(identityProvider)
+	pks, err := s.keyset.Find2(identityProvider)
 	if err != nil && err.Error() == "key not found" {
+
+		pks = &core.PublicKeySet{}
+
+		_ = s.PKSRotator(pks)
 		err = nil
 		// Not found - download it again from the providers url
 		err = s.newPKS(identityProvider)
@@ -214,7 +219,7 @@ func (s *service) GetPKSCache(identityProvider string) (*core.PublicKeySet, erro
 			return nil, fmt.Errorf("Error while creating a new PKS: %#v for IdentyProvider: %s", err, identityProvider)
 		}
 		// Try again to find it in cache - once the download has been called
-		pks, err = s.keyset.Find(identityProvider)
+		pks, err = s.keyset.Find2(identityProvider)
 		if err != nil {
 			// Not found again - return empty pks and error
 			return nil, fmt.Errorf("Error while Find (again) PKS in cache for IdentyProvider: %s", identityProvider)
@@ -256,41 +261,185 @@ func (s *service) GetIssuerVal(provider string) (string, error) {
 
 // PKSRotetor will take care for rotating PKS for OIDProvider Ivmanto
 //
-// [ ] 1. We request/create new key material.
-// [ ] 2. Then we publish the new validation key in addition to the current one.
-// [ ] 3. All clients and APIs now have a chance to learn about the new key the next time they update their local copy of the discovery document.
-// [ ] 4. After a certain amount of time (e.g. 24h) all clients and APIs should now accept both the old and the new key material.
-// [ ] 5. Keep the old key material around for as long as you like, maybe you have long-lived tokens that need validation.
-// [ ] 6. Retire the old key material when it is not used anymore.
-// [ ] 7. All clients and APIs will “forget” the old key next time they update their local copy of the discovery document.
+// [x]: Implement the initial creation of the PKS in the cache (firestore db) for Ivmanto, when the db document is empty.
+// [x]: Add time-based code that will do the key rotation on regular (ie. 1 month) base.
+// --------------
+// [x] 1. We request/create new key material.
+// [x] 2. Then we publish the new validation key in addition to the current one.
+// [x] 3. All clients and APIs now have a chance to learn about the new key the next time they update their local copy of the discovery document.
+// [x] 4. After a certain amount of time (e.g. 24h) all clients and APIs should now accept both the old and the new key material.
+// [x] 5. Keep the old key material around for as long as you like, maybe you have long-lived tokens that need validation.
+// [x] 6. Retire the old key material when it is not used anymore.
+// [x] 7. All clients and APIs will “forget” the old key next time they update their local copy of the discovery document.
 // This requires that clients and APIs use the discovery document, and also have a feature to periodically refresh their configuration.
-func (s *service) PKSRotator() error {
+func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 
-	// TODO [dev]: add time-based code that will TRIGGER the key rotation on regular (ie. 1 month) base.
+	var err error
+	// deadline - the time when the current key expires
+	// ltri - lead-time rotation interval
+	var deadline, ltri int64
+	ltri = int64(s.cfg.LeadTime)
 
-	// TODO [dev]: generate Public key from the private key below.
-	// TODO [dev]: implement kid ?!
-	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	var kj *core.KeyJournal = &core.KeyJournal{Records: []core.KeyRecord{}}
+	var kr *core.KeyRecord
 
-	if err != nil {
+	var nk = pks.LenJWKS()
+	fmt.Printf("*** number of keys %d\n", nk)
+
+	switch {
+	case nk <= 1:
+		if pks == nil {
+			fmt.Printf("invalid pks - empty keyset")
+			pks = core.NewPublicKeySet("ivmanto")
+		}
+
+		// expecting the PKS is not in the URL (means not in the db), so attempting to create it
+		err = s.createIvmantoJWK(pks)
+		if err != nil {
+			return fmt.Errorf("[PKSRotator] error re-create Ivmanto PKS: [%#v]", err)
+		}
+
+		fmt.Printf("[case nk <=1] number of keys %d - now: %d\n", nk, time.Now().Unix())
+
+	case nk == 2:
+		// Get the kye KID for the current jwk
+		var current_kid = pks.GetKidByIdx(1)
+		deadline, err = s.keyJournal.FindDeadline(current_kid)
+		if err != nil {
+			return err
+		}
+
+		// [x] Below code will create a new JWK in JWKS for OID provider `Ivmanto`, when:
+		//     [x] 1) the deadline is in the past (now + 24h [86400 s])- this is calculated from connfig attribute at the time of adding the new key in JWKS.
+		//     [x] 2) the JWKS is having only two keys - the old (index 0) and the current (index 1)
+		now := time.Now().Unix()
+		if (deadline-ltri) < now && now < deadline {
+
+			var validity = s.cfg.Validity
+			// create a new Public key that will become active once the current key will be
+			// retired [from index 1 -> to index 0]
+			kj, err = pks.AddJWK(jwt.SigningMethodRS256, validity)
+			if err != nil {
+				return err
+			}
+			if len(kj.Records) > 0 {
+				kr = &kj.Records[len(kj.Records)-1]
+			}
+		}
+
+		fmt.Printf("[case nk == 2] number of keys %d - now: %d - deadline: %d - (deadline-ltri): %d\n", nk, now, deadline, deadline-ltri)
+
+	case nk == 3:
+		// Get the kye KID for the previous_kid jwk. Check if has expired and delete it if yes.
+		var previous_kid = pks.GetKidByIdx(0)
+
+		fmt.Printf("previous key kid value is [%s]", previous_kid)
+
+		if previous_kid == "" {
+			pks.Jwks.Keys = pks.Jwks.Keys[1:]
+			break
+		}
+		deadline, err = s.keyJournal.FindDeadline(previous_kid)
+		if err != nil {
+			return err
+		}
+
+		if deadline < time.Now().Unix() {
+			// [x]: Rotate the key at index 1 to become a key at index 0 and remove the first key.
+			// slice pop example:
+			// x, a = a[len(a)-1], a[:len(a)-1]
+			pks.Jwks.Keys = pks.Jwks.Keys[1:]
+		}
+
+		fmt.Printf("[case nk == 3] number of keys %d - now: %d - deadline: %d\n", nk, time.Now().Unix(), deadline)
+
+	case nk > 3:
+		// remove the extra keys (if by chance more were created)
+		pks.Jwks.Keys = pks.Jwks.Keys[:3]
+
+	default:
+
+		return fmt.Errorf("[PKSRotator] invalid number of [%d] PKs dedected", nk)
+	}
+
+	if err := s.keyset.Store(pks, kr); err != nil {
 		return err
 	}
-	_ = key
 
 	return nil
 }
 
-// NewService creates a authenticating service with necessary dependencies.
-func NewService(
-	pksr core.PublicKeySetRepository,
-	oidpr core.OIDProviderRepository,
-	cfg *config.OpenIDConfiguration) Service {
+// RotatorRunner will run the PKSRotator in continues cycle
+func (s *service) rotatorRunner(pks *core.PublicKeySet) {
 
-	return &service{
-		keyset:    pksr,
-		providers: oidpr,
-		cfg:       cfg,
+	// rri - rotator runner interval
+	var rri = int64(s.cfg.RRPeriod)
+
+	fmt.Printf("[%+v] another run of rotatorRunner... \n", time.Now())
+	err := s.PKSRotator(pks)
+	if err != nil {
+		fmt.Printf("error at PKSRotator %#v\n", err)
 	}
+
+	time.AfterFunc(time.Duration(rri)*time.Second, func() { s.rotatorRunner(pks) })
+}
+
+// createIvmantoJWK will run everytime when the PKS for Ivmanto is not found in the firestoreDB
+func (s *service) createIvmantoJWK(pks *core.PublicKeySet) error {
+
+	var err error
+	var kj *core.KeyJournal
+	var kr *core.KeyRecord
+
+	if pks.LenJWKS() == 0 {
+		jwk := core.JWK{Kty: "RSA"}
+		jwks := core.JWKS{Keys: []core.JWK{jwk}}
+		pks.Jwks = &jwks
+	} else if pks.LenJWKS() >= 3 {
+		fmt.Printf("there is no free slots for a new key")
+		return nil
+	}
+
+	// The pks is freshly created with one empty JWK in the JWKS
+	var validity = s.cfg.Validity
+	kj, err = pks.AddJWK(jwt.SigningMethodRS256, validity)
+	if err != nil {
+		return fmt.Errorf("[createIvmantoJWK] error while addJWK: %#v", err)
+	}
+
+	if len(kj.Records) > 0 {
+		kr = &kj.Records[len(kj.Records)-1]
+	}
+
+	if err := s.keyset.Store(pks, kr); err != nil {
+		return fmt.Errorf("[createIvmantoJWK] error while store PKS: %#v", err)
+	}
+
+	return nil
+}
+
+// getJWKSfromUrl will recursivelly try to download from the URL
+func (s *service) getJWKSfromUrl(pks *core.PublicKeySet) {
+
+	jwks, exp, err := downloadJWKS(pks)
+	if err != nil {
+		fmt.Printf("running cycle %d | error downloading Ivmanto's PKS: %#v", n, err)
+		n = n + 1
+		err = s.PKSRotator(pks)
+		if err != nil {
+			fmt.Printf("running cycle %d | error rotating keys PKS: %#v", n, err)
+		}
+		interval := time.Duration(30*int64(n)) * time.Second
+		time.Sleep(interval)
+		s.getJWKSfromUrl(pks)
+	}
+
+	// Initiate pks
+	if err := pks.Init(jwks, exp); err != nil {
+		fmt.Printf("error initiating PKS: %#v", err)
+	}
+	// reset service level variable
+	n = 0
 }
 
 // downloadJWKS - download jwks from the URL for the respective Identity provider
@@ -356,6 +505,21 @@ func getGooglesOIC(pks *core.PublicKeySet) (cfg *config.OpenIDConfiguration, err
 	}
 
 	return &oidconfig, nil
+}
+
+// NewService creates a authenticating service with necessary dependencies.
+func NewService(
+	pksr core.PublicKeySetRepository,
+	kj core.KJR,
+	oidpr core.OIDProviderRepository,
+	cfg *config.OpenIDConfiguration) Service {
+
+	return &service{
+		keyset:     pksr,
+		keyJournal: kj,
+		providers:  oidpr,
+		cfg:        cfg,
+	}
 }
 
 // ErrInvalidArgument is returned when one or more arguments are invalid.

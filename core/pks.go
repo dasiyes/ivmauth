@@ -20,8 +20,9 @@ import (
 // PublicKeySetRepository provides access a PKS store.
 type PublicKeySetRepository interface {
 	// Store will override a public key set if such already exists (identified by URL)
-	Store(pks *PublicKeySet) error
+	Store(pks *PublicKeySet, k *KeyRecord) error
 	Find(IdentityProvider string) (*PublicKeySet, error)
+	Find2(IdentityProvider string) (*PublicKeySet, error)
 	FindAll() []*PublicKeySet
 }
 
@@ -158,6 +159,7 @@ func (pks *PublicKeySet) Init(newKey []byte, exp int64) error {
 	pks.Expires = exp
 
 	if err := json.Unmarshal(newKey, pks.Jwks); err != nil {
+		fmt.Printf("pks.JWKS: %#v", pks.Jwks)
 		return InvalidPublicKeySet(err)
 	}
 	return nil
@@ -181,6 +183,18 @@ func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 		return JWK{}, InvalidPublicKeySet(errors.New("JWK not found by the provided kid"))
 	}
 	return jwk, nil
+}
+
+// GetKidByIdx - will return the kid as string for the key at index 1 of the Jwks
+func (pks *PublicKeySet) GetKidByIdx(idx int) string {
+	var kid string
+	for i, jwk := range pks.Jwks.Keys {
+		if i == idx {
+			kid = jwk.Kid
+			break
+		}
+	}
+	return kid
 }
 
 // GetKidNE - returns modulus N and pblic exponent E as big.Int and int respectively
@@ -222,17 +236,16 @@ func (pks *PublicKeySet) LenJWKS() int {
 }
 
 // AddJWK will generate new private key and from it will add a new JWK into JWKS
-func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod) error {
+func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod, validity int64) (kj *KeyJournal, err error) {
 
 	var jwks = pks.LenJWKS()
 	if jwks > 2 {
-		return fmt.Errorf("There are already %d JWKeys", jwks)
+		return nil, fmt.Errorf("There are already %d JWKeys", jwks)
 	}
 
 	var prvkey *rsa.PrivateKey
 	var pk rsa.PublicKey
 
-	var err error
 	var kty, use, kid string
 
 	switch sm.Alg() {
@@ -242,15 +255,15 @@ func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod) error {
 		kid = ksuid.New().String()
 		prvkey, err = rsa.GenerateKey(rand.Reader, 2048)
 		if err != nil {
-			return fmt.Errorf("generating key error %#v", err)
+			return nil, fmt.Errorf("generating key error %#v", err)
 		}
 		pk = prvkey.PublicKey
 
 	default:
-		return ErrUnknownMethod
+		return nil, ErrUnknownMethod
 	}
 
-	// TODO [dev]: fullfill the JWK with attributes including from the prvkey above
+	// [x]: fullfill the JWK with attributes including from the prvkey above
 	var newJWK = JWK{
 		Kty: kty,
 		Use: use,
@@ -260,16 +273,27 @@ func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod) error {
 		E:   expToString(pk.E),
 	}
 
+	// Get the new Key in the journal object
+	kj = &KeyJournal{Records: []KeyRecord{}}
+	var kr = KeyRecord{
+		Kid:        kid,
+		Deadline:   time.Now().Unix() + validity,
+		PublicKeyN: nToString(pk.N),
+		PublicKeyE: expToString(pk.E),
+	}
+	kj.Records = append(kj.Records, kr)
+
+	// Get the key in the JWKS keyset
 	pks.Jwks.Keys = append(pks.Jwks.Keys, newJWK)
 
-	return nil
+	return kj, nil
 }
 
 // NewPublicKeySet creates a new set of Public Key for each of the suported
 // Identity Vendors.
 func NewPublicKeySet(identityProvider string) *PublicKeySet {
 
-	jwk := JWK{Kty: ""}
+	jwk := JWK{Kty: "RSA"}
 	jwks := JWKS{Keys: []JWK{jwk}}
 
 	return &PublicKeySet{

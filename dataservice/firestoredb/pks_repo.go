@@ -18,22 +18,29 @@ type publicKeySetRepository struct {
 }
 
 // Store - stores the public key set in the firestore DB
-func (pksr *publicKeySetRepository) Store(pk *core.PublicKeySet) error {
+func (pksr *publicKeySetRepository) Store(pk *core.PublicKeySet, k *core.KeyRecord) error {
 
 	pks := make(map[string]interface{})
 	pks["IdentityProvider"] = pk.IdentityProvider
 	pks["URL"] = pk.URL
 	pks["Jwks"] = pk.Jwks
 
-	_, err := pksr.client.Collection(pksr.collection).Doc(pk.IdentityProvider).Set(context.TODO(), pks)
+	_, err := pksr.client.Collection(pksr.collection).Doc(pk.IdentityProvider).Set(*pksr.ctx, pks)
 	if err != nil {
 		return fmt.Errorf("unable to save in session repository - error: %v", err)
+	}
+
+	if k != nil {
+		_, err = pksr.client.Collection("keys-journal").Doc(k.Kid).Set(*pksr.ctx, k)
+		if err != nil {
+			return fmt.Errorf("unable to save the key in the key-journal")
+		}
 	}
 
 	return nil
 }
 
-// Find - finds a Public Key Set in the repository
+// Find - finds a Public Key Set in the repository by provided identity provider name
 func (pksr *publicKeySetRepository) Find(ip string) (*core.PublicKeySet, error) {
 
 	if ip == "" {
@@ -56,13 +63,13 @@ func (pksr *publicKeySetRepository) Find(ip string) (*core.PublicKeySet, error) 
 			if strings.Contains(err.Error(), "Missing or insufficient permissions") {
 				return nil, ErrInsufficientPermissions
 			} else {
-				fmt.Printf("err while iterate firestoreDB: %#v", err)
+				fmt.Printf("err while iterate firestoreDB: %#v\n", err)
 			}
 			continue
 		}
 
 		var docid = strings.ToLower(strings.TrimSpace(doc.Ref.ID))
-		fmt.Printf("document id normalized value [%s], doc.IP value [%s]\n", docid, pks.IdentityProvider)
+		fmt.Printf("[Find] document id normalized value [%s], doc.IP value [%s]\n", docid, pks.IdentityProvider)
 
 		if docid == ip {
 
@@ -78,6 +85,22 @@ func (pksr *publicKeySetRepository) Find(ip string) (*core.PublicKeySet, error) 
 	}
 
 	return &pks, nil
+}
+
+//Find2 - ... alternative methods
+func (pksr *publicKeySetRepository) Find2(ip string) (*core.PublicKeySet, error) {
+
+	dsnap, err := pksr.client.Collection(pksr.collection).Doc(ip).Get(*pksr.ctx)
+	if err != nil {
+		return nil, fmt.Errorf("[Find2] error retrieving documentId %s - error: %#v", ip, err)
+	}
+	var pk = core.PublicKeySet{}
+	err = dsnap.DataTo(&pk)
+	if err != nil {
+		return nil, fmt.Errorf("error transforming documentId %s - error: %v", ip, err)
+	}
+
+	return &pk, nil
 }
 
 // FindAll - find and returns all stored Public Key Sets

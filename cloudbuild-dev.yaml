@@ -17,7 +17,7 @@ steps:
     # '--no-use-http2', 
     '--no-allow-unauthenticated', 
     '--service-account', 'ivmauth-staging@${PROJECT_ID}.iam.gserviceaccount.com', 
-    '--min-instances', '0', '--max-instances', '2',
+    '--min-instances', '1', '--max-instances', '4',
     '--set-env-vars','FIRESTORE_PROJECT_ID=${_FIRESTORE_PROJECT_ID}']
 images:
 - eu.gcr.io/${PROJECT_ID}/ivmauth-staging
