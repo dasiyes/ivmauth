@@ -12,6 +12,7 @@ type KeyRecord struct {
 	Deadline   int64  `firestore:"deadline"`
 	PublicKeyN string `firestore:"public_key_n"`
 	PublicKeyE string `firestore:"public_key_e"`
+	PrivateKey string `firestore:"private_key"`
 }
 
 // kj := map[string]interface{}{"n.a.": time.Now().Unix()}

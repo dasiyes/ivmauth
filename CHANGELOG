@@ -1,3 +1,6 @@
+v0.0.18
+        - rsa to pem conversion implemented for saving private key to the db
+        
 v0.0.17
         - rotating JWKS and public keys issue journal
         - service tests
