@@ -1,5 +1,5 @@
 v0.0.17
-        - rotating JWKS and private key issue journal
+        - rotating JWKS and public keys issue journal
         - service tests
         - refactoring Authenticating Service method (AuthenticateClient etc)
 
