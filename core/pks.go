@@ -278,8 +278,8 @@ func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod, validity int64) (kj *KeyJo
 	var kr = KeyRecord{
 		Kid:        kid,
 		Deadline:   time.Now().Unix() + validity,
-		PublicKey:  pk,
-		PrivateKey: *prvkey,
+		PublicKeyN: nToString(pk.N),
+		PublicKeyE: expToString(pk.E),
 	}
 	kj.Records = append(kj.Records, kr)
 

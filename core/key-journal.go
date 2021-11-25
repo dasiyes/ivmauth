@@ -1,7 +1,5 @@
 package core
 
-import "crypto/rsa"
-
 // KeyJournal is repository of generated asymetric key pairs
 // and all there attributes
 type KeyJournal struct {
@@ -10,10 +8,10 @@ type KeyJournal struct {
 
 // KeyRecord holds the key pairs and all their attributes.
 type KeyRecord struct {
-	Kid        string         `firestore:"kid"`
-	Deadline   int64          `firestore:"deadline"`
-	PublicKey  rsa.PublicKey  `firestore:"public_key"`
-	PrivateKey rsa.PrivateKey `firestore:"private_key"`
+	Kid        string `firestore:"kid"`
+	Deadline   int64  `firestore:"deadline"`
+	PublicKeyN string `firestore:"public_key_n"`
+	PublicKeyE string `firestore:"public_key_e"`
 }
 
 // kj := map[string]interface{}{"n.a.": time.Now().Unix()}

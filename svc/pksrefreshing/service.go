@@ -295,7 +295,7 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 		}
 
 		// expecting the PKS is not in the URL (means not in the db), so attempting to create it
-		err = s.creatIvmantoJWK(pks)
+		err = s.createIvmantoJWK(pks)
 		if err != nil {
 			return fmt.Errorf("[PKSRotator] error re-create Ivmanto PKS: [%#v]", err)
 		}
@@ -386,8 +386,8 @@ func (s *service) rotatorRunner(pks *core.PublicKeySet) {
 	time.AfterFunc(time.Duration(rri)*time.Second, func() { s.rotatorRunner(pks) })
 }
 
-// creatIvmantoJWK will run everytime when the PKS for Ivmanto is not found in the firestoreDB
-func (s *service) creatIvmantoJWK(pks *core.PublicKeySet) error {
+// createIvmantoJWK will run everytime when the PKS for Ivmanto is not found in the firestoreDB
+func (s *service) createIvmantoJWK(pks *core.PublicKeySet) error {
 
 	var err error
 	var kj *core.KeyJournal
@@ -406,7 +406,7 @@ func (s *service) creatIvmantoJWK(pks *core.PublicKeySet) error {
 	var validity = s.cfg.Validity
 	kj, err = pks.AddJWK(jwt.SigningMethodRS256, validity)
 	if err != nil {
-		return fmt.Errorf("[creatIvmantoJWK] error while addJWK: %#v", err)
+		return fmt.Errorf("[createIvmantoJWK] error while addJWK: %#v", err)
 	}
 
 	if len(kj.Records) > 0 {
@@ -414,7 +414,7 @@ func (s *service) creatIvmantoJWK(pks *core.PublicKeySet) error {
 	}
 
 	if err := s.keyset.Store(pks, kr); err != nil {
-		return fmt.Errorf("[creatIvmantoJWK] error while store PKS: %#v", err)
+		return fmt.Errorf("[createIvmantoJWK] error while store PKS: %#v", err)
 	}
 
 	return nil
