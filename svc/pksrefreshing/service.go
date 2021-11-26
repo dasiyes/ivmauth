@@ -227,21 +227,6 @@ func (s *service) GetPKSCache(identityProvider string) (*core.PublicKeySet, erro
 	} else if err != nil {
 		return nil, fmt.Errorf("Error %#v, searching PKS in cache for IdentyProvider: %s", err, identityProvider)
 	}
-	// Found in cache in the searches above - check if not expired
-	// if pks.Expires < time.Now().Unix()+int64(time.Second*30) {
-	// 	// has expired - try to download it again
-	// 	err = s.newPKS(identityProvider)
-	// 	if err != nil {
-	// 		// error when downloading it - return empty pks and error
-	// 		return &core.PublicKeySet{}, errors.New("Error while creating a new PKS: " + err.Error())
-	// 	}
-	// 	// Try to find it again after the new download
-	// 	pks, err = s.keyset.Find(identityProvider)
-	// 	if err != nil {
-	// 		// Not found again - return empty pks and error
-	// 		return &core.PublicKeySet{}, err
-	// 	}
-	// }
 
 	return pks, nil
 }

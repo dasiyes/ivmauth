@@ -140,26 +140,6 @@ func main() {
 
 	fmt.Printf("  ... initiating services\n")
 	// initiating services
-	var au authenticating.Service
-	{
-		au = authenticating.NewService(authrequests, clients, users, cfg)
-		au = authenticating.NewLoggingService(log.With(logger, "component", "authenticating"), au)
-		au = authenticating.NewInstrumentingService(
-			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
-				Namespace: "ivmauth",
-				Subsystem: "authenticating_service",
-				Name:      "request_count",
-				Help:      "Number of requests received.",
-			}, fieldKeys),
-			kitprometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
-				Namespace: "ivmauth",
-				Subsystem: "authenticating_service",
-				Name:      "request_latency_microseconds",
-				Help:      "Total duration of requests in microseconds.",
-			}, fieldKeys),
-			au,
-		)
-	}
 
 	var pkr pksrefreshing.Service
 	{
@@ -182,6 +162,27 @@ func main() {
 		)
 	}
 
+	var au authenticating.Service
+	{
+		au = authenticating.NewService(pkr, authrequests, keyJournal, clients, users, cfg)
+		au = authenticating.NewLoggingService(log.With(logger, "component", "authenticating"), au)
+		au = authenticating.NewInstrumentingService(
+			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
+				Namespace: "ivmauth",
+				Subsystem: "authenticating_service",
+				Name:      "request_count",
+				Help:      "Number of requests received.",
+			}, fieldKeys),
+			kitprometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
+				Namespace: "ivmauth",
+				Subsystem: "authenticating_service",
+				Name:      "request_latency_microseconds",
+				Help:      "Total duration of requests in microseconds.",
+			}, fieldKeys),
+			au,
+		)
+	}
+
 	fmt.Printf("  ... initiating OpenID Connect Providers\n")
 	// Initiating OpenID Connect Providers
 	errors := pkr.InitOIDProviders(cfg.GetOIDPS())
@@ -190,8 +191,6 @@ func main() {
 			fmt.Printf("error %d, when initiating OpenID Providers. error [%#v]\n", i+1, err)
 		}
 	}
-
-	// [ ] Implement timer function to run the PKSRotator methods
 
 	fmt.Printf("  ... finalize config\n\n")
 	// creating a new http server to handle the requests

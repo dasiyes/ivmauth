@@ -1,6 +1,7 @@
 package authenticating
 
 import (
+	"crypto"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/dataservice/firestoredb"
+	rph "github.com/dasiyes/ivmauth/pkg/rsapemhelps"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 	"github.com/dasiyes/ivmconfig/src/pkg/config"
 	"github.com/golang-jwt/jwt"
@@ -73,7 +75,9 @@ type Service interface {
 }
 
 type service struct {
+	pkr      pksrefreshing.Service
 	requests core.RequestRepository
+	kj       core.KJR
 	clients  core.ClientRepository
 	users    core.UserRepository
 	config   config.IvmCfg
@@ -405,11 +409,64 @@ func (s *service) GetRequestBody(r *http.Request) (*core.AuthRequestBody, error)
 // IssueAccessToken for the successfully authenticated and authorized requests [realm IVMANTO]
 func (s *service) IssueAccessToken(oidt *core.IDToken, client *core.Client) (*core.AccessToken, error) {
 
+	// NewIvmantoAccessToken creates a new response to a successful authentication request.
+	// @realm could be comma-separated list of application that accept this AT.\
+	// default signing method alg is RS256; default realm if missing is ivm;
+
 	atcfg := s.config.GetATC()
 	scopes := client.Scopes
 
-	iat := core.NewIvmantoAccessToken(&scopes, atcfg)
-	return iat, nil
+	var realm = atcfg.Realm
+	var validity = atcfg.Validity
+	var alg = atcfg.Alg
+	var issval = atcfg.Issuer
+	var oidpn = atcfg.OIDProviderName
+	var sm jwt.SigningMethodRSA
+
+	if len(realm) < 3 {
+		realm = "ivm"
+	}
+	if issval == "" {
+		issval = "https://accounts.ivmanto.com"
+	}
+	if oidpn == "" {
+		oidpn = "ivmanto"
+	}
+
+	clm := newIvmATC(validity, realm, issval)
+	rtclm := newIvmATC(0, realm, issval)
+
+	switch alg {
+	case "RS256":
+		sm = jwt.SigningMethodRSA{
+			Name: "RS256",
+			Hash: crypto.SHA256,
+		}
+	default:
+		sm = jwt.SigningMethodRSA{
+			Name: "RS256",
+			Hash: crypto.SHA256,
+		}
+	}
+
+	at, err := s.newJWToken(clm, &sm, oidpn)
+	if err != nil {
+		return nil, fmt.Errorf("error on create newJWToken [at]: %v", err)
+	}
+	rtkn, err := s.newJWToken(rtclm, &sm, oidpn)
+	if err != nil {
+		return nil, fmt.Errorf("error on create newJWToken [rtkn]: %v", err)
+	}
+
+	ato := core.AccessToken{
+		AccessToken:  at,
+		TokenType:    "Bearer",
+		ExpiresIn:    validity,
+		RefreshToken: rtkn,
+		Scope:        scopes,
+	}
+
+	return &ato, nil
 }
 
 // Registration of new user on Ivmanto realm
@@ -531,16 +588,91 @@ func (s *service) IssueIvmIDToken(uid core.UserID, cid core.ClientID) *core.IDTo
 	return &idt
 }
 
+// Issue a new JWT Token with respective Signing method and claims
+// [ ] Review this possible cache solution: https://github.com/ReneKroon/ttlcache
+func (s *service) newJWToken(claims jwt.Claims, sm jwt.SigningMethod, oidpn string) (string, error) {
+
+	var token *jwt.Token
+	var tkn string
+	var pks *core.PublicKeySet
+	var err error
+	var kid string
+
+	// TODO [dev]: take the private key for sign the token.
+	pks, err = s.pkr.GetPKSCache(oidpn)
+	if err != nil {
+		return "", fmt.Errorf("error retrieving PKS for oidpn %s err: %v", oidpn, err)
+	}
+
+	// Check if the key rotator process has created a new key, third key (at index 2), if not take the current active key (at index 1)
+	avk := pks.LenJWKS()
+	if avk > 2 {
+		// Get the key id for the new key and retrive the private key from the key journal
+		kid = pks.GetKidByIdx(2)
+	} else if avk == 2 {
+		// Get the key id for the current active key and retrive the private key from the key journal
+		kid = pks.GetKidByIdx(2)
+	} else {
+		return "", fmt.Errorf("error identifing the active signing key for oidpn %s. error: JWKS has less than 2 keys", oidpn)
+	}
+
+	switch sm.Alg() {
+	case "RS256":
+
+		// retrieve the private key to use for signing the token
+		pkstr, err := s.kj.GetSigningKey(kid)
+		if err != nil {
+			return "", fmt.Errorf("error retrieving signing key id %s, error: %v", kid, err)
+		}
+
+		key, err := rph.ParseRSAPrivateKeyFromPEM(pkstr)
+		if err != nil {
+			return "", fmt.Errorf("error parsing signing key id %s from PEM, error: %v", kid, err)
+		}
+		token = jwt.NewWithClaims(sm, claims)
+		tkn, err = token.SignedString(key)
+		if err != nil {
+			return "", fmt.Errorf("error while signing the token with key id %s, error: %v", kid, err)
+		}
+		return tkn, nil
+	default:
+		return "", core.ErrUnknownMethod
+	}
+}
+
 // NewService creates a authenticating service with necessary dependencies.
-func NewService(requests core.RequestRepository,
+func NewService(pkr pksrefreshing.Service,
+	requests core.RequestRepository,
+	kj core.KJR,
 	clients core.ClientRepository,
 	users core.UserRepository,
 	config config.IvmCfg) Service {
 
 	return &service{
+		pkr:      pkr,
 		requests: requests,
+		kj:       kj,
 		clients:  clients,
 		users:    users,
 		config:   config,
+	}
+}
+
+// newIvmATC generates a new ivmantoATClaims set. @validity in seconds
+func newIvmATC(validity int, realm string, issval string) *core.IvmantoATClaims {
+
+	tn := time.Now().Unix()
+	tid := core.GenTID(realm[:3])
+
+	// [x]: Move the iss and aud values into a configuration/db document for abstraction of the service
+	// [x]: consider to change the content of the AUD. The meaing should be the receiver of the token should identify itslef withing the value of AUD.
+	return &core.IvmantoATClaims{
+		Iss: issval,
+		Sub: "",
+		Aud: "realm:[" + realm + "]",
+		Exp: tn + int64(validity),
+		Iat: tn,
+		Nbf: tn,
+		Jti: tid,
 	}
 }

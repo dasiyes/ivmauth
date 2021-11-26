@@ -72,7 +72,7 @@ func GetSize(v interface{}) int {
 }
 
 // Generate a new token ID
-func genTID(realm string) string {
+func GenTID(realm string) string {
 
 	newS := realm
 	// ns is generated at package initiation time

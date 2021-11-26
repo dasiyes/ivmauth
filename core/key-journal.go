@@ -22,4 +22,7 @@ type KJR interface {
 
 	// FindDeadline is browse the repo for a given key id and return its deadline (expire date)
 	FindDeadline(kid string) (dl int64, err error)
+
+	// GetSigningKey will return the private key required for signing operations
+	GetSigningKey(kid string) (pk string, err error)
 }

@@ -183,6 +183,7 @@ func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 	if n == "" && e == "" {
 		return JWK{}, InvalidPublicKeySet(errors.New("JWK not found by the provided kid"))
 	}
+
 	return jwk, nil
 }
 
