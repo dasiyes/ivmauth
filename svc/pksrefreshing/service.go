@@ -110,7 +110,7 @@ func (s *service) newPKS(ip string) error {
 		}
 
 		// Run downloading the PKS from the URL until gets it without error
-		s.getJWKSfromUrl(pks)
+		go s.getJWKSfromUrl(pks)
 
 		// schedule Public keys rotation
 		go func(p *core.PublicKeySet) {
@@ -439,7 +439,7 @@ func (s *service) getJWKSfromUrl(pks *core.PublicKeySet) {
 
 	jwks, exp, err := downloadJWKS(pks)
 	if err != nil {
-		fmt.Printf("running cycle %d | error downloading Ivmanto's PKS: %#v", n, err)
+		fmt.Printf("running cycle %d | error downloading Ivmanto's PKS: %+v\n", n, err)
 		n = n + 1
 		err = s.PKSRotator(pks)
 		if err != nil {
