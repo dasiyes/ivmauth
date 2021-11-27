@@ -79,3 +79,21 @@ func (s *instrumentingService) PKSRotator(pks *core.PublicKeySet) error {
 
 	return s.next.PKSRotator(pks)
 }
+
+func (s *instrumentingService) OIDPExists(provider string) (bool, error) {
+	defer func(begin time.Time) {
+		s.requestCount.With("method", "OIDPExists").Add(1)
+		s.requestLatency.With("method", "OIDPExists").Observe(time.Since(begin).Seconds())
+	}(time.Now())
+
+	return s.next.OIDPExists(provider)
+}
+
+func (s *instrumentingService) GetOIDProvider(provider string) (*core.OIDProvider, error) {
+	defer func(begin time.Time) {
+		s.requestCount.With("method", "GetOIDProvider").Add(1)
+		s.requestLatency.With("method", "GetOIDProvider").Observe(time.Since(begin).Seconds())
+	}(time.Now())
+
+	return s.next.GetOIDProvider(provider)
+}

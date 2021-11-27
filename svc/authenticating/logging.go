@@ -1,6 +1,7 @@
 package authenticating
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -139,4 +140,16 @@ func (s *loggingService) IssueIvmIDToken(uid core.UserID, cid core.ClientID) *co
 		)
 	}(time.Now())
 	return s.next.IssueIvmIDToken(uid, cid)
+}
+
+func (s *loggingService) ValidateAccessToken(at, oidpn string) (err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "ValidateAT",
+			"openIDPrvName", oidpn,
+			"error", fmt.Sprintf("%v", err),
+			"took", time.Since(begin),
+		)
+	}(time.Now())
+	return s.next.ValidateAccessToken(at, oidpn)
 }

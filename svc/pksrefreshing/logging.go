@@ -89,3 +89,25 @@ func (s *loggingService) PKSRotator(pks *core.PublicKeySet) (err error) {
 	}(time.Now())
 	return s.next.PKSRotator(pks)
 }
+
+func (s *loggingService) OIDPExists(provider string) (ok bool, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "OIDPExists",
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.next.OIDPExists(provider)
+}
+
+func (s *loggingService) GetOIDProvider(provider string) (prv *core.OIDProvider, err error) {
+	defer func(begin time.Time) {
+		_ = s.logger.Log(
+			"method", "GetOIDProvider",
+			"took", time.Since(begin),
+			"err", err,
+		)
+	}(time.Now())
+	return s.next.GetOIDProvider(provider)
+}

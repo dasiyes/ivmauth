@@ -40,6 +40,12 @@ type Service interface {
 
 	// PKSRotetor will take care for rotating PKS for OIDProvider Ivmanto
 	PKSRotator(pks *core.PublicKeySet) error
+
+	// OIDPExists - will check the cache for registred provider by its name
+	OIDPExists(provider string) (bool, error)
+
+	// Get a provider from the cache of registred OpenIDProviders
+	GetOIDProvider(provider string) (*core.OIDProvider, error)
 }
 
 type service struct {
@@ -104,7 +110,7 @@ func (s *service) newPKS(ip string) error {
 		}
 
 		// Run downloading the PKS from the URL until gets it without error
-		go s.getJWKSfromUrl(pks)
+		s.getJWKSfromUrl(pks)
 
 		// schedule Public keys rotation
 		go func(p *core.PublicKeySet) {
@@ -121,7 +127,9 @@ func (s *service) newPKS(ip string) error {
 		oidp = core.NewOIDProvider(prvn)
 		oidp.Oidc = oidc
 
-		_ = s.providers.Store(oidp)
+		if err = s.providers.Store(oidp); err != nil {
+			return err
+		}
 
 		// fullfiling PKS
 		// pks.URL, err = url.Parse(oidc.JwksURI)
@@ -229,6 +237,29 @@ func (s *service) GetPKSCache(identityProvider string) (*core.PublicKeySet, erro
 	}
 
 	return pks, nil
+}
+
+// OIDPExists - will check the cache for registred provider by its name
+func (s *service) OIDPExists(provider string) (bool, error) {
+
+	_, err := s.providers.Find(core.ProviderName(provider))
+	if err != nil {
+		return false, fmt.Errorf("search by the provided name [%s] does not find any OID provider, error: %v", provider, err)
+	}
+	return true, nil
+}
+
+// Get a provider from the cache of registred OpenIDProviders
+func (s *service) GetOIDProvider(provider string) (*core.OIDProvider, error) {
+
+	var prv *core.OIDProvider
+	var err error
+
+	prv, err = s.providers.Find(core.ProviderName(provider))
+	if err != nil {
+		return nil, fmt.Errorf("search for OpenID provider by name [%s] raised an error: %v", provider, err)
+	}
+	return prv, nil
 }
 
 // Get the issuer value from the OpenIDProvider stored

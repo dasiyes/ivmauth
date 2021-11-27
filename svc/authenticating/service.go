@@ -45,6 +45,9 @@ type Service interface {
 	// DEPRICATED Validate the auth request according to OAuth2 sepcification (see the notes at the top of of this file)
 	Validate(rh *http.Header, body *core.AuthRequestBody, pks pksrefreshing.Service, client *core.Client) (*core.AccessToken, error)
 
+	// ValidateAccessToken - will validate the provided Access Token. OpenID Connect IDTokens will bealso supported only from listed /configured OIDC providers.
+	ValidateAccessToken(at, oidpn string) error
+
 	// AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
 	// request Header Authorization: Basic XXX
 	AuthenticateClient(r *http.Request) (*core.Client, error)
@@ -469,6 +472,33 @@ func (s *service) IssueAccessToken(oidt *core.IDToken, client *core.Client) (*co
 	return &ato, nil
 }
 
+// ValidateAccessToken - will validate the provided Access Token. OpenID Connect IDTokens will be also supported only from listed / configured OIDC providers.
+// @at - Access Token. Can be also openID Connect IDToken.
+// @oidpn - openID provider name
+func (s *service) ValidateAccessToken(at, oidpn string) error {
+
+	// [x] step-1: If the provider is registred
+	if ok, err := s.pkr.OIDPExists(oidpn); !ok && err != nil {
+		return fmt.Errorf("while checking if the oidpn [%s] is a registered provider, raised error: %v", oidpn, err)
+	}
+
+	tkn, oidtoken, err := validateIDToken(at, oidpn, s.pkr)
+	if err != nil {
+		return fmt.Errorf("[ValidateAccessToken] token %#v, idtoken: %#v, error while validating access token %v", tkn, oidtoken, err)
+	}
+
+	if tkn.Valid {
+		if err := oidtoken.Valid(); err != nil {
+			fmt.Printf("error validating idToken %+v", oidtoken)
+		}
+	} else {
+		// the tkn is NOT valid - return error
+		return fmt.Errorf("invalid access token for provider %s", oidpn)
+	}
+
+	return nil
+}
+
 // Registration of new user on Ivmanto realm
 func (s *service) RegisterUser(names, email, password string) (*core.User, error) {
 
@@ -658,7 +688,8 @@ func NewService(pkr pksrefreshing.Service,
 	}
 }
 
-// newIvmATC generates a new ivmantoATClaims set. @validity in seconds
+// newIvmATC generates a new ivmantoATClaims set.
+// @validity in seconds
 func newIvmATC(validity int, realm string, issval string) *core.IvmantoATClaims {
 
 	tn := time.Now().Unix()
@@ -669,6 +700,7 @@ func newIvmATC(validity int, realm string, issval string) *core.IvmantoATClaims 
 	return &core.IvmantoATClaims{
 		Iss: issval,
 		Sub: "",
+		// [ ] Check if the value of `Aud` must be replaced by clienID?!?
 		Aud: "realm:[" + realm + "]",
 		Exp: tn + int64(validity),
 		Iat: tn,

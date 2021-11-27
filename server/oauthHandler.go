@@ -35,6 +35,7 @@ func (h *oauthHandler) router() chi.Router {
 		r.Get("/authorize", h.processAuthCode)
 		r.Post("/login", h.authLogin)
 		r.Post("/token", h.issueToken)
+		r.Get("/token", h.validateToken)
 		r.Route("/ui", func(r chi.Router) {
 			r.Use(noSurf)
 			r.Get("/login", h.userLoginForm)
@@ -347,4 +348,25 @@ func (h *oauthHandler) handleRefTokenFllow(
 	r *http.Request) {
 
 	fmt.Fprintf(w, "post body is %v", rb)
+}
+
+func (h *oauthHandler) validateToken(w http.ResponseWriter, r *http.Request) {
+
+	oidpn := r.Header.Get("X-Token-Type")
+	if oidpn == "" {
+		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("empty openID provider name"))
+		return
+	}
+	auh := strings.Split(r.Header.Get("Authorization"), " ")
+	if len(auh) != 2 || auh[0] != "Bearer" {
+		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("invalid request"))
+		return
+	}
+
+	if err := h.server.Auth.ValidateAccessToken(auh[1], oidpn); err != nil {
+		h.server.responseUnauth(w, "validateToken", fmt.Errorf("failed validation error %v", err))
+		return
+	}
+	w.WriteHeader(202)
+	_, _ = w.Write([]byte(`welcome-realm-ivmanto`))
 }

@@ -125,7 +125,7 @@ func (s *Server) oidcc() http.Handler {
 
 // responseUnauth returns response status code 401 Unauthorized
 func (s *Server) responseUnauth(w http.ResponseWriter, method string, err error) {
-	w.Header().Set("Connection", "close")
+	w.Header().Set("WWW-Authenticate", "Newauth realm\"ivmanto\"")
 	_ = level.Error(s.Logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
 	http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 }

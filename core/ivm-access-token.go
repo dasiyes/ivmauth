@@ -24,8 +24,9 @@ type IvmantoATClaims struct {
 	Jti string `json:"jti"`
 }
 
-// to satisfy jwt-go package requirements for Claims object
+// TODO [dev]: review if this method is required?
+// Validate the access token issued by
 func (c *IvmantoATClaims) Valid() error {
-	// TODO [dev]: review if input claims needs to be validated
+
 	return nil
 }
