@@ -659,7 +659,13 @@ func (s *service) newJWToken(claims jwt.Claims, sm jwt.SigningMethod, oidpn stri
 		if err != nil {
 			return "", fmt.Errorf("error parsing signing key id %s from PEM, error: %v", kid, err)
 		}
+
+		// Create the new token with claims
 		token = jwt.NewWithClaims(sm, claims)
+
+		// adding the key ID to the token header
+		token.Header["kid"] = kid
+
 		tkn, err = token.SignedString(key)
 		if err != nil {
 			return "", fmt.Errorf("error while signing the token with key id %s, error: %v", kid, err)
