@@ -135,8 +135,7 @@ func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (
 	})
 
 	if errprs != nil {
-		fmt.Printf("*** value of tkn: %#v", tkn)
-		return nil, nil, fmt.Errorf("[validateIDToken] on jwt.ParseWithClaims returned error:%v", errprs)
+		return nil, nil, fmt.Errorf("[validateIDToken] tkn: %#v, on jwt.ParseWithClaims returned error:%v", tkn, errprs)
 	}
 
 	return tkn, &oidt, nil
@@ -178,25 +177,25 @@ func validateOpenIDClaims(
 
 	issval, err = pks.GetIssuerVal(idP)
 	if err != nil {
-		return fmt.Errorf("%v inner %v", core.ErrInvalidIDToken, err)
+		return fmt.Errorf("[validateOpenIDClaims] on GetIssuerVal for provider %s, error: %v", idP, err)
 	}
 	if oidt.Iss != issval {
-		return core.ErrInvalidIDToken
+		return fmt.Errorf("[validateOpenIDClaims] for provider %s, error: %s", idP, "invalid issuer value")
 	}
 
 	if oidt.Azp != "" && body.ClientID != "" {
 		if oidt.Azp != body.ClientID {
-			return fmt.Errorf("%v inner %v", core.ErrInvalidIDToken, "authorized party not verified")
+			return fmt.Errorf("[validateOpenIDClaims] for provider %s, error: %s", idP, "authorized party not verified")
 		}
 	}
 
 	if oidt.Aud != body.ClientID {
-		return core.ErrInvalidIDToken
+		return fmt.Errorf("[validateOpenIDClaims] for provider %s, error: %s", idP, "unexpected audience")
 	}
 
 	// TODO: Check if this key is available in the OpenID spec for other Identity Providers
 	if !oidt.EmailVerified {
-		return core.ErrInvalidIDToken
+		return fmt.Errorf("[validateOpenIDClaims] for provider %s, error: %s", idP, "user`s email address not verified")
 	}
 
 	return nil
