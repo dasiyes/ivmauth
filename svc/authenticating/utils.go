@@ -97,7 +97,7 @@ func getClientIDFromReqQueryPrm(r *http.Request) (cid string, err error) {
 // validateIDToken will provide validation of a signed JWT that respects OpenIDConnect ID Token (https://openid.net/specs/openid-connect-core-1_0.html#IDToken)
 func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (*jwt.Token, *core.IDToken, error) {
 
-	var err error
+	var err, errprs error
 	var tkn *jwt.Token
 	var oidt = core.IDToken{}
 	var pkset *core.PublicKeySet
@@ -108,7 +108,7 @@ func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (
 	}
 
 	// validate idToken
-	tkn, err = jwt.ParseWithClaims(rawIDToken, &oidt, func(token *jwt.Token) (interface{}, error) {
+	tkn, errprs = jwt.ParseWithClaims(rawIDToken, &oidt, func(token *jwt.Token) (interface{}, error) {
 
 		tKid := token.Header["kid"].(string)
 		alg := token.Method.Alg()
@@ -134,8 +134,9 @@ func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (
 		}
 	})
 
-	if err != nil {
-		return nil, nil, fmt.Errorf("[validateIDToken] on jwt.ParseWithClaims returned error:%v", err)
+	if errprs != nil {
+		fmt.Printf("*** value of tkn: %#v", tkn)
+		return nil, nil, fmt.Errorf("[validateIDToken] on jwt.ParseWithClaims returned error:%v", errprs)
 	}
 
 	return tkn, &oidt, nil

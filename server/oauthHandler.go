@@ -364,7 +364,7 @@ func (h *oauthHandler) validateToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.server.Auth.ValidateAccessToken(auh[1], oidpn); err != nil {
-		h.server.responseUnauth(w, "validateToken", fmt.Errorf("failed validation error %v", err))
+		h.server.responseUnauth(w, "validateToken", fmt.Errorf("failed validation error: %v", err))
 		return
 	}
 	w.WriteHeader(202)
