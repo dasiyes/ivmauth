@@ -254,7 +254,7 @@ func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
 		h.handleRefTokenFllow(&rb, w, r)
 		return
 	default:
-		h.server.responseBadRequest(w, "issueTkon-grant-type", fmt.Errorf("unsupported grant_type fllow [%s]", rb.GrantType))
+		h.server.responseBadRequest(w, "issueTkon-grant-type", fmt.Errorf("unsupported grant_type flow [%s]", rb.GrantType))
 		return
 	}
 }
@@ -318,10 +318,15 @@ func (h *oauthHandler) handleAuthCodeFlow(
 
 	// [x] 1. Call issue Access Token Method
 	cid := core.ClientID(rb.ClientID)
-	uid := core.UserID("") // [!]
+	uid := core.UserID(rb.Email) // [!]
+	usr, err := h.server.IvmSSO.Users.Find(uid)
+	if err != nil {
+		h.server.responseBadRequest(w, "handleAuthCodeFllow-getting-user-data", fmt.Errorf("while find user by uid %v, error: %v", uid, err))
+		return
+	}
 	c := core.Client{ClientID: core.ClientID(rb.ClientID)}
 
-	oidt := h.server.Auth.IssueIvmIDToken(uid, cid)
+	oidt := h.server.Auth.IssueIvmIDToken(string(usr.SubCode), cid)
 	at, err := h.server.Auth.IssueAccessToken(oidt, &c)
 	if err != nil {
 		h.server.responseUnauth(w, "handleAuthCodeFllow-issue-accessToken", fmt.Errorf("error issue access token %s", err.Error()))

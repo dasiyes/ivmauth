@@ -130,16 +130,16 @@ func (s *loggingService) GetClientsRedirectURI(cid string) (uri []string, err er
 	return s.next.GetClientsRedirectURI(cid)
 }
 
-func (s *loggingService) IssueIvmIDToken(uid core.UserID, cid core.ClientID) *core.IDToken {
+func (s *loggingService) IssueIvmIDToken(subCode string, cid core.ClientID) *core.IDToken {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "IssueIvmIDToken",
-			"userID", uid,
+			"userID", subCode,
 			"clientID", cid,
 			"took", time.Since(begin),
 		)
 	}(time.Now())
-	return s.next.IssueIvmIDToken(uid, cid)
+	return s.next.IssueIvmIDToken(subCode, cid)
 }
 
 func (s *loggingService) ValidateAccessToken(at, oidpn string) (err error) {
