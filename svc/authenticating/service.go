@@ -641,7 +641,7 @@ func (s *service) newJWToken(claims jwt.Claims, sm jwt.SigningMethod, oidpn stri
 		kid = pks.GetKidByIdx(2)
 	} else if avk == 2 {
 		// Get the key id for the current active key and retrive the private key from the key journal
-		kid = pks.GetKidByIdx(2)
+		kid = pks.GetKidByIdx(1)
 	} else {
 		return "", fmt.Errorf("error identifing the active signing key for oidpn %s. error: JWKS has less than 2 keys", oidpn)
 	}
