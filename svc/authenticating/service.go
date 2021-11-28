@@ -484,7 +484,7 @@ func (s *service) ValidateAccessToken(at, oidpn string) error {
 
 	tkn, oidtoken, err := validateIDToken(at, oidpn, s.pkr)
 	if err != nil {
-		return fmt.Errorf("[ValidateAccessToken] token %#v, idtoken: %#v, error while validating access token %v", tkn, oidtoken, err)
+		return fmt.Errorf("[ValidateAccessToken] token: %#v, idtoken: %#v, error while validating access token: %#v", tkn, oidtoken, err)
 	}
 
 	if tkn.Valid {

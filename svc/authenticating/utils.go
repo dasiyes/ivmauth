@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rsa"
 	b64 "encoding/base64"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -99,10 +100,11 @@ func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (
 	var err error
 	var tkn *jwt.Token
 	var oidt = core.IDToken{}
+	var pkset *core.PublicKeySet
 
-	_, err = pks.GetPKSCache(idP)
+	pkset, err = pks.GetPKSCache(idP)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[validateIDToken] on GetPKSCache for provider name:%s, error:%v", idP, err)
 	}
 
 	// validate idToken
@@ -113,11 +115,13 @@ func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (
 		if strings.ToUpper(token.Header["typ"].(string)) != "JWT" {
 			return "", core.ErrAuthenticating
 		}
+
 		switch alg {
 		case "RS256":
-			n, e, err := pks.GetRSAPublicKey(idP, tKid)
+			// n, e, err := pks.GetRSAPublicKey(idP, tKid)
+			n, e, err := pkset.GetKidNE(tKid)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("[validateIDToken] on GetKidNE for tKid:%s, error:%v", tKid, err)
 			}
 
 			return &rsa.PublicKey{
@@ -125,12 +129,13 @@ func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (
 				E: e,
 			}, nil
 		default:
-			return "", nil
+			// Unsupported alg value
+			return "", fmt.Errorf("[validateIDToken] on switch alg:%s, error:%v", alg, errors.New("unsupported algorithm"))
 		}
 	})
 
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[validateIDToken] on jwt.ParseWithClaims returned error:%v", err)
 	}
 
 	return tkn, &oidt, nil

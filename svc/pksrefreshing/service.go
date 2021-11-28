@@ -27,7 +27,7 @@ type Service interface {
 	// GetRSAPublicKey gets the jwks, finds the JWK by kid and returns it as rsa.PublicKey format
 	GetRSAPublicKey(identityProvider string, kid string) (*big.Int, int, error)
 
-	// GetPKSCache - finds and returns PKS from the cache, if available
+	// GetPKSCache - finds and returns PubKeysSet from the cache, if available
 	GetPKSCache(identityProvider string) (*core.PublicKeySet, error)
 
 	// DEPRICATED - replaced by the InitOIDProviders
