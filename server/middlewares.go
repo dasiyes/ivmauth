@@ -98,6 +98,8 @@ func isReqWhitelisted(r *http.Request) bool {
 	fmt.Printf("request path: %#v;\n", mr)
 
 	switch {
+	case strings.HasPrefix(mr, "GET /.well-known/openid-configuration"):
+		return true
 	case strings.HasPrefix(mr, "GET /auth/version"):
 		return true
 	case strings.HasPrefix(mr, "GET /auth/metrics"):
@@ -107,8 +109,6 @@ func isReqWhitelisted(r *http.Request) bool {
 	case strings.HasPrefix(mr, "GET /oauth/token"):
 		return true
 	case strings.HasPrefix(mr, "GET /oauth/ui"):
-		return true
-	case strings.HasPrefix(mr, "GET /.well-known/openid-configuration"):
 		return true
 	case strings.HasPrefix(mr, "GET /oauth2/v1/certs"):
 		return true
