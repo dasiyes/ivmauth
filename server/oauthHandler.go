@@ -327,15 +327,11 @@ func (h *oauthHandler) handleAuthCodeFlow(
 
 	// [x] 1. Call issue Access Token Method
 	cid := core.ClientID(rb.ClientID)
-	uid := core.UserID(rb.SubCode) // [!]
-	usr, err := h.server.IvmSSO.Users.Find(uid)
-	if err != nil {
-		h.server.responseBadRequest(w, "handleAuthCodeFllow-getting-user-data", fmt.Errorf("while find user by uid %v, error: %v", uid, err))
-		return
-	}
+	// TODO: check if at all the uid will be required - after using subCode...
+	// uid := core.UserID("") // [!]
 	c := core.Client{ClientID: core.ClientID(rb.ClientID)}
 
-	oidt := h.server.Auth.IssueIvmIDToken(string(usr.SubCode), cid)
+	oidt := h.server.Auth.IssueIvmIDToken(rb.SubCode, cid)
 	at, err := h.server.Auth.IssueAccessToken(oidt, &c)
 	if err != nil {
 		h.server.responseUnauth(w, "handleAuthCodeFllow-issue-accessToken", fmt.Errorf("error issue access token %s", err.Error()))
