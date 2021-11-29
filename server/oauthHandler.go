@@ -327,7 +327,7 @@ func (h *oauthHandler) handleAuthCodeFlow(
 
 	// [x] 1. Call issue Access Token Method
 	cid := core.ClientID(rb.ClientID)
-	uid := core.UserID(rb.Email) // [!]
+	uid := core.UserID(rb.SubCode) // [!]
 	usr, err := h.server.IvmSSO.Users.Find(uid)
 	if err != nil {
 		h.server.responseBadRequest(w, "handleAuthCodeFllow-getting-user-data", fmt.Errorf("while find user by uid %v, error: %v", uid, err))
