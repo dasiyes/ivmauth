@@ -175,7 +175,7 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 
 	valid, err := h.server.Auth.ValidateUsersCredentials(email, password)
 	if err != nil || !valid {
-		_ = level.Error(h.logger).Log("vaid", valid, "error", err.Error())
+		_ = level.Error(h.logger).Log("valid", valid, "error", fmt.Sprintf("%v", err))
 		h.server.responseUnauth(w, "authLogin", err)
 		return
 	}
@@ -190,8 +190,17 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 
 		call_back_url := fmt.Sprintf("https://%s%s", api_gw_host, api_gw_cbp)
 
+		// Get the user sub code to use in token request
+		subCode, err := h.server.IvmSSO.Users.Find(core.UserID(email))
+		if err != nil {
+			_ = level.Error(h.logger).Log("findUser-error", fmt.Sprintf("%v", err))
+			h.server.responseUnauth(w, "authLogin", err)
+			return
+		}
+
 		var ac = h.server.Sm.GetAuthCode(state)
-		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s", call_back_url, ac["auth_code"], state)
+		subcodestr := fmt.Sprintf("%v", subCode)
+		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s&sc=%s", call_back_url, ac["auth_code"], state, subcodestr)
 
 		// [!] ACF S7 ->
 		// redirect to the web application server endpoint dedicated to call-back from /oauth/login
@@ -254,7 +263,7 @@ func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
 		h.handleRefTokenFllow(&rb, w, r)
 		return
 	default:
-		h.server.responseBadRequest(w, "issueTkon-grant-type", fmt.Errorf("unsupported grant_type flow [%s]", rb.GrantType))
+		h.server.responseBadRequest(w, "issueToken-grant-type", fmt.Errorf("unsupported grant_type flow [%s]", rb.GrantType))
 		return
 	}
 }
