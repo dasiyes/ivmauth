@@ -107,7 +107,7 @@ func isReqWhitelisted(r *http.Request) bool {
 		return true
 	case "GET /oauth/token":
 		return true
-	case "GET /oauth/ui":
+	case "GET /oauth/ui/login":
 		return true
 	case "GET /oauth2/v1/certs":
 		return true
