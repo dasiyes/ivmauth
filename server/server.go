@@ -125,7 +125,7 @@ func (s *Server) oidcc() http.Handler {
 
 // responseUnauth returns response status code 401 Unauthorized
 func (s *Server) responseUnauth(w http.ResponseWriter, method string, err error) {
-	w.Header().Set("WWW-Authenticate", "Newauth realm\"ivmanto\"")
+	w.Header().Set("WWW-Authenticate", "new auth realm `ivmanto`")
 	_ = level.Error(s.Logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
 	http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 }
@@ -140,6 +140,6 @@ func (s *Server) responseBadRequest(w http.ResponseWriter, method string, err er
 // responseBadRequest returns response status code 500 Internal Server Error
 func (s *Server) responseIntServerError(w http.ResponseWriter, method string, err error) {
 	w.Header().Set("Connection", "close")
-	_ = level.Error(s.Logger).Log("handler", "oauthHandler", fmt.Sprintf("method-%s", method), err.Error())
+	_ = level.Error(s.Logger).Log("handler", "oauthHandler", fmt.Sprintf("%v", method), err)
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }

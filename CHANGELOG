@@ -1,4 +1,5 @@
 v0.0.18
+        - custom auth headers X-Ivm-AT and X-Ivm-RT set by the session manager for sessions in state `Authed`.
         - endpoint for AT validation implemented
         - sign with private key from the rotated PKS
         - rsa to pem conversion implemented for saving private key to the db
