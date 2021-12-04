@@ -32,9 +32,8 @@ func (kj *keysJournalRepo) AddKey(k *core.KeyRecord) error {
 // FindDeadline is browse the repo for a given key id and return its deadline (expire date)
 func (kj *keysJournalRepo) FindDeadline(kid string) (dl int64, err error) {
 
-	fmt.Printf("arg kid %s\n", kid)
 	if kid == "" {
-		return 0, fmt.Errorf("missing mandatory argument kid %s", kid)
+		return 0, fmt.Errorf("[FindDeadline] missing mandatory argument kid [%s]", kid)
 	}
 
 	dsnap, err := kj.client.Collection(kj.collection).Doc(kid).Get(*kj.ctx)
@@ -44,12 +43,32 @@ func (kj *keysJournalRepo) FindDeadline(kid string) (dl int64, err error) {
 	var kr = core.KeyRecord{}
 	err = dsnap.DataTo(&kr)
 	if err != nil {
-		return 0, fmt.Errorf("error transforming documentId %s - error: %v", kid, err)
+		return 0, fmt.Errorf("[FindDeadline] error transforming documentId %s - error: %v", kid, err)
 	}
 
 	dl = kr.Deadline
 
 	return dl, nil
+}
+
+// GetSigningKey will return the private key required for signing operations
+func (kj *keysJournalRepo) GetSigningKey(kid string) (pk string, err error) {
+
+	if kid == "" {
+		return "", fmt.Errorf("[GetSigningKey] missing mandatory argument kid [%s]", kid)
+	}
+
+	dsnap, err := kj.client.Collection(kj.collection).Doc(kid).Get(*kj.ctx)
+	if err != nil {
+		return "", fmt.Errorf("[GetSigningKey] error retrieving documentId %s - error: %v", kid, err)
+	}
+	var kr = core.KeyRecord{}
+	err = dsnap.DataTo(&kr)
+	if err != nil {
+		return "", fmt.Errorf("[GetSigningKey] error transforming documentId %s - error: %v", kid, err)
+	}
+
+	return kr.PrivateKey, nil
 }
 
 func NewKeysJournalRepo(ctx *context.Context, collectionName string, client *firestore.Client) core.KJR {

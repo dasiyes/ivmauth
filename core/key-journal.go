@@ -12,6 +12,7 @@ type KeyRecord struct {
 	Deadline   int64  `firestore:"deadline"`
 	PublicKeyN string `firestore:"public_key_n"`
 	PublicKeyE string `firestore:"public_key_e"`
+	PrivateKey string `firestore:"private_key"`
 }
 
 // kj := map[string]interface{}{"n.a.": time.Now().Unix()}
@@ -21,4 +22,7 @@ type KJR interface {
 
 	// FindDeadline is browse the repo for a given key id and return its deadline (expire date)
 	FindDeadline(kid string) (dl int64, err error)
+
+	// GetSigningKey will return the private key required for signing operations
+	GetSigningKey(kid string) (pk string, err error)
 }

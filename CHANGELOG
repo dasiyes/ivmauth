@@ -1,3 +1,8 @@
+v0.0.18
+        - endpoint for AT validation implemented
+        - sign with private key from the rotated PKS
+        - rsa to pem conversion implemented for saving private key to the db
+        
 v0.0.17
         - rotating JWKS and public keys issue journal
         - service tests

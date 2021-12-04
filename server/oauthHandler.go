@@ -35,6 +35,7 @@ func (h *oauthHandler) router() chi.Router {
 		r.Get("/authorize", h.processAuthCode)
 		r.Post("/login", h.authLogin)
 		r.Post("/token", h.issueToken)
+		r.Get("/token", h.validateToken)
 		r.Route("/ui", func(r chi.Router) {
 			r.Use(noSurf)
 			r.Get("/login", h.userLoginForm)
@@ -174,7 +175,7 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 
 	valid, err := h.server.Auth.ValidateUsersCredentials(email, password)
 	if err != nil || !valid {
-		_ = level.Error(h.logger).Log("vaid", valid, "error", err.Error())
+		_ = level.Error(h.logger).Log("valid", valid, "error", fmt.Sprintf("%v", err))
 		h.server.responseUnauth(w, "authLogin", err)
 		return
 	}
@@ -189,8 +190,17 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 
 		call_back_url := fmt.Sprintf("https://%s%s", api_gw_host, api_gw_cbp)
 
+		// Get the user sub code to use in token request
+		usr, err := h.server.IvmSSO.Users.Find(core.UserID(email))
+		if err != nil {
+			_ = level.Error(h.logger).Log("findUser-error", fmt.Sprintf("%v", err))
+			h.server.responseUnauth(w, "authLogin", err)
+			return
+		}
+
 		var ac = h.server.Sm.GetAuthCode(state)
-		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s", call_back_url, ac["auth_code"], state)
+		subcodestr := fmt.Sprintf("%v", usr.SubCode)
+		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s&sc=%s", call_back_url, ac["auth_code"], state, subcodestr)
 
 		// [!] ACF S7 ->
 		// redirect to the web application server endpoint dedicated to call-back from /oauth/login
@@ -212,7 +222,7 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 }
 
 // issueToken will return an access token (Ivmanto's IDToken) to the post request
-// [ ] verify this is IDToken from provider Ivmanto taht follows the OpenIDConnect standard (https://openid.net/specs/openid-connect-core-1_0.html#IDToken)
+// [ ] verify this is IDToken from provider Ivmanto that follows the OpenIDConnect standard (https://openid.net/specs/openid-connect-core-1_0.html#IDToken)
 func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
 
 	// [x] perform a check for content type header - application/json
@@ -245,6 +255,8 @@ func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_ = level.Debug(h.logger).Log("issueToken-body", fmt.Sprintf("%+v", rb))
+
 	switch rb.GrantType {
 	case "authorization_code":
 		h.handleAuthCodeFlow(&rb, w, r)
@@ -253,7 +265,7 @@ func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
 		h.handleRefTokenFllow(&rb, w, r)
 		return
 	default:
-		h.server.responseBadRequest(w, "issueTkon-grant-type", fmt.Errorf("unsupported grant_type fllow [%s]", rb.GrantType))
+		h.server.responseBadRequest(w, "issueToken-grant-type", fmt.Errorf("unsupported grant_type flow [%s]", rb.GrantType))
 		return
 	}
 }
@@ -315,15 +327,14 @@ func (h *oauthHandler) handleAuthCodeFlow(
 		return
 	}
 
-	// [x] 1. Call issue Access Token Method
+	// [x] 1. Call issue Ivmanto IDToken and issue Access Token Methods
 	cid := core.ClientID(rb.ClientID)
-	uid := core.UserID("") // [!]
 	c := core.Client{ClientID: core.ClientID(rb.ClientID)}
 
-	oidt := h.server.Auth.IssueIvmIDToken(uid, cid)
+	oidt := h.server.Auth.IssueIvmIDToken(rb.SubCode, cid)
 	at, err := h.server.Auth.IssueAccessToken(oidt, &c)
 	if err != nil {
-		h.server.responseUnauth(w, "handleAuthCodeFllow-issue-accessToken", fmt.Errorf("error issue access token %s", err.Error()))
+		h.server.responseUnauth(w, "handleAuthCodeFllow-issue-accessToken", fmt.Errorf("error issue access token: %v", err))
 		return
 	}
 
@@ -339,7 +350,7 @@ func (h *oauthHandler) handleAuthCodeFlow(
 	http.Redirect(w, r, rb.RedirectUri, http.StatusSeeOther)
 }
 
-// TODO [dev]:
+// TODO [dev]: implement handling of the refresh token for re-issue Access Token!
 // handleRefTokenFllow performs the checks and logic for refresh_token grant_type fllow
 func (h *oauthHandler) handleRefTokenFllow(
 	rb *core.AuthRequestBody,
@@ -347,4 +358,26 @@ func (h *oauthHandler) handleRefTokenFllow(
 	r *http.Request) {
 
 	fmt.Fprintf(w, "post body is %v", rb)
+}
+
+func (h *oauthHandler) validateToken(w http.ResponseWriter, r *http.Request) {
+
+	oidpn := r.Header.Get("X-Token-Type")
+	if oidpn == "" {
+		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("empty openID provider name"))
+		return
+	}
+	auh := strings.Split(r.Header.Get("X-Ivm-AT"), " ")
+	if len(auh) != 2 || auh[0] != "Bearer" {
+		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("invalid request"))
+		return
+	}
+
+	if err := h.server.Auth.ValidateAccessToken(auh[1], oidpn); err != nil {
+		h.server.responseUnauth(w, "validateToken", fmt.Errorf("failed validation error: %v", err))
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
+	_, _ = w.Write([]byte(`welcome-realm-ivmanto`))
 }

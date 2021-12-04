@@ -73,8 +73,6 @@ func InvalidPublicKeySet(err error) error {
 	return ErrInvalidPubliKeySet
 }
 
-// TODO: Completely refactor this method... SHOULD return JSON response easy and fast!
-
 // EncodeError - responses to http requests with error
 func EncodeError(_ context.Context, rs int, err error, w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

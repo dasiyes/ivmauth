@@ -108,11 +108,23 @@ func (s *instrumentingService) GetClientsRedirectURI(cid string) (uri []string, 
 	return s.next.GetClientsRedirectURI(cid)
 }
 
-func (s *instrumentingService) IssueIvmIDToken(uid core.UserID, cid core.ClientID) *core.IDToken {
+func (s *instrumentingService) IssueIvmIDToken(subCode string, cid core.ClientID) *core.IDToken {
 	defer func(begin time.Time) {
 		s.requestCount.With("method", "IssueIvmIDToken").Add(1)
 		s.requestLatency.With("method", "IssueIvmIDToken").Observe(time.Since(begin).Seconds())
 	}(time.Now())
 
-	return s.next.IssueIvmIDToken(uid, cid)
+	return s.next.IssueIvmIDToken(subCode, cid)
+}
+
+func (s *instrumentingService) ValidateAccessToken(at, oidpn string) (err error) {
+	defer func(begin time.Time) {
+		s.requestCount.With("method", "ValidateAT").Add(1)
+		if err != nil {
+			s.requestCount.With("method", "ValidateAT-Error").Add(1)
+		}
+		s.requestLatency.With("method", "IssueIvmIDToken").Observe(time.Since(begin).Seconds())
+	}(time.Now())
+
+	return s.next.ValidateAccessToken(at, oidpn)
 }

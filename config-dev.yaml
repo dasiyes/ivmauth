@@ -41,6 +41,7 @@ at_config:
   realm:    "ivmanto.com"
   alg:      "RS256"
   issuer:   "https://accounts.ivmanto.dev"
+  oid_provider_name: "ivmanto"
 
 # supported OpenID Providers
 oidps:

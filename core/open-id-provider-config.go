@@ -97,23 +97,23 @@ type IDToken struct {
 func (it *IDToken) Valid() error {
 
 	if it.Iss == "" || !strings.HasPrefix(strings.ToLower(it.Iss), "https") {
-		return ErrInvalidIDToken
+		return fmt.Errorf("%s, %v", "empty or invalid `Iss` value | ", ErrInvalidIDToken)
 	}
 
 	if it.Sub == "" || len(it.Sub) > 255 {
-		return ErrInvalidIDToken
+		return fmt.Errorf("%s, %v", "empty or invalid `Sub` value | ", ErrInvalidIDToken)
 	}
 
 	if it.Aud == "" {
-		return ErrInvalidIDToken
+		return fmt.Errorf("%s, %v", "empty `Aud` value | ", ErrInvalidIDToken)
 	}
 
 	if it.Exp < time.Now().Unix()+60 {
-		return fmt.Errorf("%v, %v", ErrInvalidIDToken, "token expired")
+		return fmt.Errorf("%s, %v", "token expired | ", ErrInvalidIDToken)
 	}
 
 	if it.Iat >= time.Now().Unix() {
-		return ErrInvalidIDToken
+		return fmt.Errorf("%s, %v", "invalid `Iat` value | ", ErrInvalidIDToken)
 	}
 
 	return nil

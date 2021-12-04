@@ -46,6 +46,7 @@ type AuthRequestBody struct {
 	ClientSecret string `json:"client_secret,omitempty"`
 	Code         string `json:"code,omitempty"`
 	CodeVerifier string `json:"code_verifier,omitempty"`
+	SubCode      string `json:"sub_code"`
 	RedirectUri  string `json:"redirect_uri"`
 	RefreshToken string `json:"refresh_token,omitempty"`
 	IDToken      string

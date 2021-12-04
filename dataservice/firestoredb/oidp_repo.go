@@ -2,7 +2,6 @@ package firestoredb
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"cloud.google.com/go/firestore"
@@ -30,7 +29,17 @@ func (ip *oidProviderRepository) Store(pr *core.OIDProvider) error {
 // Find - finds a authentication request in the repository
 func (ip *oidProviderRepository) Find(pr core.ProviderName) (*core.OIDProvider, error) {
 
-	return nil, errors.New("provider not found")
+	dsnap, err := ip.client.Collection(ip.collection).Doc(string(pr)).Get(*ip.ctx)
+	if err != nil {
+		return nil, fmt.Errorf("[Find] error retrieving documentId %s - error: %v", string(pr), err)
+	}
+	var pro = core.OIDProvider{}
+	err = dsnap.DataTo(&pro)
+	if err != nil {
+		return nil, fmt.Errorf("error transforming documentId %s - error: %v", string(pr), err)
+	}
+
+	return &pro, nil
 }
 
 // FindAll - find and returns all authentication request

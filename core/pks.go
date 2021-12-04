@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"time"
 
+	rph "github.com/dasiyes/ivmauth/pkg/rsapemhelps"
 	"github.com/golang-jwt/jwt"
 	"github.com/segmentio/ksuid"
 )
@@ -182,6 +183,7 @@ func (pks *PublicKeySet) GetKid(kid string) (JWK, error) {
 	if n == "" && e == "" {
 		return JWK{}, InvalidPublicKeySet(errors.New("JWK not found by the provided kid"))
 	}
+
 	return jwk, nil
 }
 
@@ -210,17 +212,31 @@ func (pks *PublicKeySet) GetKidNE(kid string) (*big.Int, int, error) {
 			break
 		}
 	}
-	if n == "" && e == "" {
+	if n == "" || e == "" {
 		return nil, 0, InvalidPublicKeySet(errors.New("JWK not found by the provided kid"))
 	}
 
-	// nb, err := base64url.Decode(n)
-	nb, err := b64.URLEncoding.DecodeString(n)
+	// n encoding to string:
+	//			nb := n.Bytes()
+	//			nb64 := b64.URLEncoding.WithPadding(b64.NoPadding).EncodeToString(nb)
+	//			return nb64
+	nb, err := b64.URLEncoding.WithPadding(b64.NoPadding).DecodeString(n)
 	if err != nil {
 		return nil, 0, InvalidPublicKeySet(errors.New("invalid JWK modulus"))
 	}
-	// TODO add a condition to check if the jwk.e is not
-	ei := 65537
+
+	var ei int
+	if e == "AQAB" {
+		ei = 65537
+	} else {
+		// TODO [dev]: develop reverse on the method below...
+		// e encoding to string sample:
+		//	func expToString(pkE int) string {
+		//		var ebs = encodeUint(uint64(pkE))
+		//		eStr := b64.URLEncoding.EncodeToString(ebs)
+		//		return eStr}
+		ei = 65537
+	}
 
 	bn := new(big.Int)
 	bn = bn.SetBytes(nb)
@@ -280,6 +296,7 @@ func (pks *PublicKeySet) AddJWK(sm jwt.SigningMethod, validity int64) (kj *KeyJo
 		Deadline:   time.Now().Unix() + validity,
 		PublicKeyN: nToString(pk.N),
 		PublicKeyE: expToString(pk.E),
+		PrivateKey: rph.ExportRSAPrivateKeyAsPEM(prvkey),
 	}
 	kj.Records = append(kj.Records, kr)
 

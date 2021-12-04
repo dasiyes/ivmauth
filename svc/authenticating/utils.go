@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rsa"
 	b64 "encoding/base64"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -96,28 +97,31 @@ func getClientIDFromReqQueryPrm(r *http.Request) (cid string, err error) {
 // validateIDToken will provide validation of a signed JWT that respects OpenIDConnect ID Token (https://openid.net/specs/openid-connect-core-1_0.html#IDToken)
 func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (*jwt.Token, *core.IDToken, error) {
 
-	var err error
+	var err, errprs error
 	var tkn *jwt.Token
 	var oidt = core.IDToken{}
+	var pkset *core.PublicKeySet
 
-	_, err = pks.GetPKSCache(idP)
+	pkset, err = pks.GetPKSCache(idP)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("[validateIDToken] on GetPKSCache for provider name:%s, error:%v", idP, err)
 	}
 
 	// validate idToken
-	tkn, err = jwt.ParseWithClaims(rawIDToken, &oidt, func(token *jwt.Token) (interface{}, error) {
+	tkn, errprs = jwt.ParseWithClaims(rawIDToken, &oidt, func(token *jwt.Token) (interface{}, error) {
 
 		tKid := token.Header["kid"].(string)
 		alg := token.Method.Alg()
 		if strings.ToUpper(token.Header["typ"].(string)) != "JWT" {
 			return "", core.ErrAuthenticating
 		}
+
 		switch alg {
 		case "RS256":
-			n, e, err := pks.GetRSAPublicKey(idP, tKid)
+			// n, e, err := pks.GetRSAPublicKey(idP, tKid)
+			n, e, err := pkset.GetKidNE(tKid)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("[validateIDToken] on GetKidNE for tKid:%s, error:%v", tKid, err)
 			}
 
 			return &rsa.PublicKey{
@@ -125,12 +129,13 @@ func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (
 				E: e,
 			}, nil
 		default:
-			return "", nil
+			// Unsupported alg value
+			return "", fmt.Errorf("[validateIDToken] on switch alg:%s, error:%v", alg, errors.New("unsupported algorithm"))
 		}
 	})
 
-	if err != nil {
-		return nil, nil, err
+	if errprs != nil {
+		return nil, nil, fmt.Errorf("[validateIDToken] tkn: %#v, on jwt.ParseWithClaims returned error:%v", tkn, errprs)
 	}
 
 	return tkn, &oidt, nil
@@ -172,25 +177,25 @@ func validateOpenIDClaims(
 
 	issval, err = pks.GetIssuerVal(idP)
 	if err != nil {
-		return fmt.Errorf("%v inner %v", core.ErrInvalidIDToken, err)
+		return fmt.Errorf("[validateOpenIDClaims] on GetIssuerVal for provider %s, error: %v", idP, err)
 	}
 	if oidt.Iss != issval {
-		return core.ErrInvalidIDToken
+		return fmt.Errorf("[validateOpenIDClaims] for provider %s, error: %s", idP, "invalid issuer value")
 	}
 
 	if oidt.Azp != "" && body.ClientID != "" {
 		if oidt.Azp != body.ClientID {
-			return fmt.Errorf("%v inner %v", core.ErrInvalidIDToken, "authorized party not verified")
+			return fmt.Errorf("[validateOpenIDClaims] for provider %s, error: %s", idP, "authorized party not verified")
 		}
 	}
 
 	if oidt.Aud != body.ClientID {
-		return core.ErrInvalidIDToken
+		return fmt.Errorf("[validateOpenIDClaims] for provider %s, error: %s", idP, "unexpected audience")
 	}
 
 	// TODO: Check if this key is available in the OpenID spec for other Identity Providers
 	if !oidt.EmailVerified {
-		return core.ErrInvalidIDToken
+		return fmt.Errorf("[validateOpenIDClaims] for provider %s, error: %s", idP, "user`s email address not verified")
 	}
 
 	return nil
