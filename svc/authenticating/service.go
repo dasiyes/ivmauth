@@ -601,7 +601,7 @@ func (s *service) GetClientsRedirectURI(cid string) ([]string, error) {
 func (s *service) IssueIvmIDToken(subCode string, cid core.ClientID) *core.IDToken {
 
 	var iat = time.Now().Unix()
-	var exp = iat + 300
+	var exp = iat + 3600
 
 	var idt = core.IDToken{
 		// REQUIRED
