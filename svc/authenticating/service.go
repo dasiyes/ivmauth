@@ -436,8 +436,8 @@ func (s *service) IssueAccessToken(oidt *core.IDToken, client *core.Client) (*co
 		oidpn = "ivmanto"
 	}
 
-	clm := newIvmATC(validity, realm, issval)
-	rtclm := newIvmATC(0, realm, issval)
+	clm := newIvmATC(validity, realm, issval, oidt.Sub)
+	rtclm := newIvmATC(0, realm, issval, oidt.Sub)
 
 	switch alg {
 	case "RS256":
@@ -699,7 +699,7 @@ func NewService(pkr pksrefreshing.Service,
 
 // newIvmATC generates a new ivmantoATClaims set.
 // @validity in seconds
-func newIvmATC(validity int, realm string, issval string) *core.IvmantoATClaims {
+func newIvmATC(validity int, realm, issval, subCode string) *core.IvmantoATClaims {
 
 	tn := time.Now().Unix()
 	tid := core.GenTID(realm[:3])
@@ -708,7 +708,7 @@ func newIvmATC(validity int, realm string, issval string) *core.IvmantoATClaims 
 	// [x]: consider to change the content of the AUD. The meaing should be the receiver of the token should identify itslef withing the value of AUD.
 	return &core.IvmantoATClaims{
 		Iss: issval,
-		Sub: "",
+		Sub: subCode,
 		// [ ] Check if the value of `Aud` must be replaced by clienID?!?
 		Aud: "realm:[" + realm + "]",
 		Exp: tn + int64(validity),
