@@ -350,7 +350,7 @@ func (h *oauthHandler) handleAuthCodeFlow(
 	http.Redirect(w, r, rb.RedirectUri, http.StatusSeeOther)
 }
 
-// TODO [dev]:
+// TODO [dev]: implement handling of the refresh token for re-issue Access Token!
 // handleRefTokenFllow performs the checks and logic for refresh_token grant_type fllow
 func (h *oauthHandler) handleRefTokenFllow(
 	rb *core.AuthRequestBody,
