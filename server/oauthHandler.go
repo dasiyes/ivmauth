@@ -331,10 +331,11 @@ func (h *oauthHandler) handleAuthCodeFlow(
 	// uid := core.UserID("") // [!]
 	c := core.Client{ClientID: core.ClientID(rb.ClientID)}
 
+	_ = level.Debug(h.logger).Log("handleAuthCodeFllow", "before-IssueIvmIDToken", "subCode", rb.SubCode)
 	oidt := h.server.Auth.IssueIvmIDToken(rb.SubCode, cid)
 	at, err := h.server.Auth.IssueAccessToken(oidt, &c)
 	if err != nil {
-		h.server.responseUnauth(w, "handleAuthCodeFllow-issue-accessToken", fmt.Errorf("error issue access token %s", err.Error()))
+		h.server.responseUnauth(w, "handleAuthCodeFllow-issue-accessToken", fmt.Errorf("error issue access token: %v", err))
 		return
 	}
 
