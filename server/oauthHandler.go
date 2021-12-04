@@ -327,10 +327,8 @@ func (h *oauthHandler) handleAuthCodeFlow(
 		return
 	}
 
-	// [x] 1. Call issue Access Token Method
+	// [x] 1. Call issue Ivmanto IDToken and issue Access Token Methods
 	cid := core.ClientID(rb.ClientID)
-	// TODO: check if at all the uid will be required - after using subCode...
-	// uid := core.UserID("") // [!]
 	c := core.Client{ClientID: core.ClientID(rb.ClientID)}
 
 	oidt := h.server.Auth.IssueIvmIDToken(rb.SubCode, cid)

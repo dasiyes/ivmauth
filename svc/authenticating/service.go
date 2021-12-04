@@ -452,11 +452,11 @@ func (s *service) IssueAccessToken(oidt *core.IDToken, client *core.Client) (*co
 		}
 	}
 
-	at, err := s.newJWToken(clm, &sm, oidpn)
+	at, err := s.newJWToken(clm, &sm, oidpn, oidt.Sub)
 	if err != nil {
 		return nil, fmt.Errorf("error on create newJWToken [at]: %v", err)
 	}
-	rtkn, err := s.newJWToken(rtclm, &sm, oidpn)
+	rtkn, err := s.newJWToken(rtclm, &sm, oidpn, oidt.Sub)
 	if err != nil {
 		return nil, fmt.Errorf("error on create newJWToken [rtkn]: %v", err)
 	}
@@ -620,7 +620,7 @@ func (s *service) IssueIvmIDToken(subCode string, cid core.ClientID) *core.IDTok
 
 // Issue a new JWT Token with respective Signing method and claims
 // [ ] Review this possible cache solution: https://github.com/ReneKroon/ttlcache
-func (s *service) newJWToken(claims jwt.Claims, sm jwt.SigningMethod, oidpn string) (string, error) {
+func (s *service) newJWToken(claims jwt.Claims, sm jwt.SigningMethod, oidpn, subCode string) (string, error) {
 
 	var token *jwt.Token
 	var tkn string
@@ -665,6 +665,9 @@ func (s *service) newJWToken(claims jwt.Claims, sm jwt.SigningMethod, oidpn stri
 
 		// adding the key ID to the token header
 		token.Header["kid"] = kid
+
+		// adding the sub value as subject registered within the openId provider
+		token.Header["sub"] = subCode
 
 		tkn, err = token.SignedString(key)
 		if err != nil {
