@@ -191,7 +191,7 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 		call_back_url := fmt.Sprintf("https://%s%s", api_gw_host, api_gw_cbp)
 
 		// Get the user sub code to use in token request
-		subCode, err := h.server.IvmSSO.Users.Find(core.UserID(email))
+		usr, err := h.server.IvmSSO.Users.Find(core.UserID(email))
 		if err != nil {
 			_ = level.Error(h.logger).Log("findUser-error", fmt.Sprintf("%v", err))
 			h.server.responseUnauth(w, "authLogin", err)
@@ -199,7 +199,7 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 		}
 
 		var ac = h.server.Sm.GetAuthCode(state)
-		subcodestr := fmt.Sprintf("%v", subCode)
+		subcodestr := fmt.Sprintf("%v", usr.SubCode)
 		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s&sc=%s", call_back_url, ac["auth_code"], state, subcodestr)
 
 		// [!] ACF S7 ->
@@ -222,7 +222,7 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 }
 
 // issueToken will return an access token (Ivmanto's IDToken) to the post request
-// [ ] verify this is IDToken from provider Ivmanto taht follows the OpenIDConnect standard (https://openid.net/specs/openid-connect-core-1_0.html#IDToken)
+// [ ] verify this is IDToken from provider Ivmanto that follows the OpenIDConnect standard (https://openid.net/specs/openid-connect-core-1_0.html#IDToken)
 func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
 
 	// [x] perform a check for content type header - application/json
