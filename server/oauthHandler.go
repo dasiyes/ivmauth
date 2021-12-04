@@ -255,6 +255,8 @@ func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_ = level.Debug(h.logger).Log("issueToken-body", fmt.Sprintf("%+v", rb))
+
 	switch rb.GrantType {
 	case "authorization_code":
 		h.handleAuthCodeFlow(&rb, w, r)
@@ -331,7 +333,6 @@ func (h *oauthHandler) handleAuthCodeFlow(
 	// uid := core.UserID("") // [!]
 	c := core.Client{ClientID: core.ClientID(rb.ClientID)}
 
-	_ = level.Debug(h.logger).Log("handleAuthCodeFllow", "before-IssueIvmIDToken", "subCode", rb.SubCode)
 	oidt := h.server.Auth.IssueIvmIDToken(rb.SubCode, cid)
 	at, err := h.server.Auth.IssueAccessToken(oidt, &c)
 	if err != nil {
