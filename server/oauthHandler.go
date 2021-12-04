@@ -367,7 +367,7 @@ func (h *oauthHandler) validateToken(w http.ResponseWriter, r *http.Request) {
 		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("empty openID provider name"))
 		return
 	}
-	auh := strings.Split(r.Header.Get("Authorization"), " ")
+	auh := strings.Split(r.Header.Get("X-Ivm-AT"), " ")
 	if len(auh) != 2 || auh[0] != "Bearer" {
 		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("invalid request"))
 		return
@@ -377,6 +377,7 @@ func (h *oauthHandler) validateToken(w http.ResponseWriter, r *http.Request) {
 		h.server.responseUnauth(w, "validateToken", fmt.Errorf("failed validation error: %v", err))
 		return
 	}
-	w.WriteHeader(202)
+
+	w.WriteHeader(http.StatusAccepted)
 	_, _ = w.Write([]byte(`welcome-realm-ivmanto`))
 }
