@@ -1,0 +1,47 @@
+openapi: '3.0.3'
+info:
+  title: IVMAUTH
+  version: '0.0.19'
+  description: |-
+    OAuth2 complient authentication and authorization services for Ivmanto domains.
+  termsOfService: https://accounts.ivmanto.dev/tos
+  contact:
+    name: Ivmanto
+    url: https://accounts.ivmanto.dev/support
+    email: support@ivmanto.dev
+servers:
+  - url: https://accounts.ivmanto.dev
+
+paths:
+  /oauth/login:
+    post:
+      summary: authenticate users' credentials
+      description: |-
+        POST request to authenticate the users' credentials as part of OAuth2 authorization code flow.
+      requestBody:
+        description: |-
+          the user's data from the Login form of oauth server
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/components/schemas/LoginForm"
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: BadRequest
+        '401':
+          description: Unauthorized
+
+components:
+
+  schemas:
+
+    # x-www-form-urlencoded form from the Ivmanto's oauth2 server login form 
+    LoginForm:
+      type: object
+      required:
+        - email
+        - password
+        - CSRFToken
+        - ClientID

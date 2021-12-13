@@ -1,16 +1,14 @@
-openapi: 3.0.0
+openapi: '3.1.0'
 info:
   version: 1.0.0
-  title: Ivmanto Auth
-  description: |
-    Authentication and authorization service for Ivmanto domains.
+  title: Ivmauth
+  description: |-
+    OAuth2 complient authentication and authorization services for Ivmanto domains.
   termsOfService: https://www.github.com/dasiyes/tos
   contact:
     name: Ivmanto
     url: https://www.github.com/dasiyes/support
     email: support@ivmanto.dev
-  license:
-    name: MIT
 servers:
   - url: https://accounts.ivmanto.com/{base_path}
     description: production server address

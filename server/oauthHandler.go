@@ -35,10 +35,12 @@ func (h *oauthHandler) router() chi.Router {
 		r.Get("/authorize", h.processAuthCode)
 		r.Post("/login", h.authLogin)
 		r.Post("/token", h.issueToken)
+		r.Post("/register", h.registerUser)
 		r.Get("/token", h.validateToken)
 		r.Route("/ui", func(r chi.Router) {
 			r.Use(noSurf)
 			r.Get("/login", h.userLoginForm)
+			r.Get("/register", h.userRegisterForm)
 		})
 	})
 
@@ -219,6 +221,22 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.server.IvmSSO.Render(w, r, "login.page.tmpl", &td)
+}
+
+// userRegisterForm will handle the UI for the user's registration form
+func (h *oauthHandler) userRegisterForm(w http.ResponseWriter, r *http.Request) {
+
+	var td = ssoapp.TemplateData{
+		Form: forms.New(nil),
+	}
+
+	h.server.IvmSSO.Render(w, r, "register.page.tmpl", &td)
+}
+
+// registerUser will handle the registration of a new user as POST request from the UI form
+func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
+
+	// [ ] implement user register
 }
 
 // issueToken will return an access token (Ivmanto's IDToken) to the post request

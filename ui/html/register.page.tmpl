@@ -1,0 +1,35 @@
+{{template "base" .}}
+
+{{define "title"}}Register{{end}}
+
+{{define "main"}}
+    <div class="register-container">  
+        <section class="register" id="register">
+            <header>
+                <h2>Ivmanto &copy;</h2>
+                <h4>Register</h4>
+            </header>
+            <form class="register-form" action='/oauth/register' method='POST'>
+                <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
+                <input type='hidden' name='client_id' value='{{.ClientID}}'>
+                {{with .Form}}
+                    {{with .Errors.Get "generic"}}
+                        <div class='error'>{{.}}</div>
+                    {{end}}
+                    <div>
+                        <input type='names' class="register-input" placeholder="names" name='names' value='{{.Get "names"}}' required>
+                    </div>
+                    <div>
+                        <input type='email' class="register-input" placeholder="email" name='email' value='{{.Get "email"}}' required>
+                    </div>
+                    <div>
+                        <input type='password' class="register-input" placeholder="Password" name='password' required>
+                    </div>
+                    <div class="submit-container">
+                        <button id="e2" type="submit" class="login-button">Register</button>
+                    </div>
+                {{end}}
+            </form>
+        </section>
+    </div>
+{{end}}
