@@ -209,6 +209,108 @@ body {
   background: #FDAB43;
 }
 
+
+/* Register Form */
+.register-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  width: 340px;
+  height: auto;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
+.register-container img {
+  width: 200px;
+  margin: 0 0 20px 0;
+}
+
+.register-container p {
+  align-self: flex-start;
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.register-container p a {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.register {
+  position: relative;
+  width: 100%;
+  padding: 10px;
+  margin: 0 0 10px 0;
+  box-sizing: border-box;
+  border-radius: 3px;
+  background: #FAFAFA;
+  overflow: hidden;
+  animation: input_opacity 0.2s cubic-bezier(.55, 0, .1, 1);
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
+              0 1px 5px 0 rgba(0, 0, 0, 0.12),
+              0 3px 1px -2px rgba(0, 0, 0, 0.2);
+}
+
+.register > header {
+  position: relative;
+  width: 100%;
+  padding: 10px;
+  margin: -10px -10px 25px -10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  background: #009688;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.3rem;
+  color: #FAFAFA;
+  animation: scale_header 0.6s cubic-bezier(.55, 0, .1, 1), text_opacity 1s cubic-bezier(.55, 0, .1, 1);
+  box-shadow: 0px 2px 2px 0px rgba(0, 0, 0, 0.14),
+              0px 1px 5px 0px rgba(0, 0, 0, 0.12),
+              0px 3px 1px -2px rgba(0, 0, 0, 0.2);
+}
+
+.register > header:before {
+  content: '';
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  width: 100%;
+  height: 5px;
+  padding: 10px;
+  margin: -10px 0 0 -10px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.156);
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.9rem;
+  color: transparent;
+  z-index: 5;
+}
+
+.register.error_1 > header:before,
+.register.error_2 > header:before {
+  animation: error_before 3s cubic-bezier(.55, 0, .1, 1);
+}
+
+.register.error_1 > header:before {
+  content: 'Invalid username or password!';
+}
+
+.register.error_2 > header:before {
+  content: 'Invalid or expired Token!';
+}
+
+.register > header h2 {
+  margin: 50px 0 10px 0;
+}
+
+.register > header h4 {
+  font-size: 0.7em;
+  animation: text_opacity 1.5s cubic-bezier(.55, 0, .1, 1);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+
 /* Form */
 .register-form {
   padding: 15px;
@@ -233,17 +335,7 @@ body {
   transition: border-bottom 0.2s cubic-bezier(.55, 0, .1, 1);
 }
 
-.register {
-  position: relative;
-  width: 100%;
-  padding: 10px;
-  margin: 0 0 10px 0;
-  box-sizing: border-box;
-  border-radius: 3px;
-  background: #FAFAFA;
-  overflow: hidden;
-  animation: input_opacity 0.2s cubic-bezier(.55, 0, .1, 1);
-  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
-              0 1px 5px 0 rgba(0, 0, 0, 0.12),
-              0 3px 1px -2px rgba(0, 0, 0, 0.2);
+.register-input:focus {
+  outline: none;
+  border-bottom: 2px solid #E37F00;
 }
