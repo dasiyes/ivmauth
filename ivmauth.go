@@ -21,6 +21,7 @@ import (
 	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/pkg/ssoapp"
 	"github.com/dasiyes/ivmauth/svc/authenticating"
+	"github.com/dasiyes/ivmauth/svc/registering"
 	ivmcfg "github.com/dasiyes/ivmconfig/src/pkg/config"
 
 	"github.com/dasiyes/ivmauth/dataservice/firestoredb"
@@ -183,6 +184,27 @@ func main() {
 		)
 	}
 
+	var rg registering.Service
+	{
+		rg = registering.NewService(clients, users, &cfg)
+		rg = registering.NewLoggingService(log.With(logger, "component", "registering"), rg)
+		rg = registering.NewInstrumentingService(
+			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{
+				Namespace: "ivmauth",
+				Subsystem: "registering_service",
+				Name:      "request_count",
+				Help:      "Number of requests received.",
+			}, fieldKeys),
+			kitprometheus.NewSummaryFrom(stdprometheus.SummaryOpts{
+				Namespace: "ivmauth",
+				Subsystem: "registering_service",
+				Name:      "request_latency_microseconds",
+				Help:      "Total duration of requests in microseconds.",
+			}, fieldKeys),
+			rg,
+		)
+	}
+
 	fmt.Printf("  ... initiating OpenID Connect Providers\n")
 	// Initiating OpenID Connect Providers
 	errors := pkr.InitOIDProviders(cfg.GetOIDPS())
@@ -194,7 +216,7 @@ func main() {
 
 	fmt.Printf("  ... finalize config\n\n")
 	// creating a new http server to handle the requests
-	srv := server.New(au, pkr, log.With(logger, "component", "http"), sm, cfg, ivmSSO)
+	srv := server.New(au, pkr, rg, log.With(logger, "component", "http"), sm, cfg, ivmSSO)
 
 	errs := make(chan error, 2)
 	go func() {

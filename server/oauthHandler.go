@@ -236,7 +236,67 @@ func (h *oauthHandler) userRegisterForm(w http.ResponseWriter, r *http.Request) 
 // registerUser will handle the registration of a new user as POST request from the UI form
 func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
-	// [ ] implement user register
+	headerContentTtype := r.Header.Get("Content-Type")
+	if headerContentTtype != "application/x-www-form-urlencoded" {
+		w.WriteHeader(http.StatusUnsupportedMediaType)
+		h.server.responseBadRequest(w, "registerUser", fmt.Errorf("unsupported media type %s", headerContentTtype))
+		return
+	}
+
+	err := r.ParseForm()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "registerUser", fmt.Errorf("while parsing the form error: %v", err))
+		return
+	}
+
+	var names = r.FormValue("names")
+	var email = r.FormValue("email")
+	var password = r.FormValue("password")
+
+	// [ ] Check where this is used???
+	var cid = r.FormValue("client_id")
+	_ = cid
+
+	// Handle CSRF protection
+	var formCSRFToken = r.FormValue("csrf_token")
+	stc, err := r.Cookie("csrf_token")
+	if err == http.ErrNoCookie {
+		// [ ] potential CSRF attack - log the request with all possible details
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("missing csrf_token cookie: %#v", err))
+		return
+	}
+	// Verifying the CSRF tokens
+	if !nosurf.VerifyToken(formCSRFToken, stc.Value) {
+		// [ ] potential CSRF attack - log the request with all possible details
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("invalid CSRF tokens. [%s]", stc.Value))
+		return
+	}
+
+	// Getting state value (defacto pre-session id)
+	sc, err := r.Cookie(h.server.Config.GetSesssionCookieName())
+	if err == http.ErrNoCookie {
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("missing session id cookie: %#v", err))
+		return
+	}
+	var state = sc.Value
+
+	_ = level.Debug(h.logger).Log("cid", cid, "email", email, "password", password)
+
+	if email == "" || password == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("one or more empty manadatory attribute %s", email))
+		return
+	}
+
+	err = h.server.Rgs.RegisterUser(names, email, password, state)
+	if err != nil {
+		// [ ] return an internal error
+	}
+
 }
 
 // issueToken will return an access token (Ivmanto's IDToken) to the post request

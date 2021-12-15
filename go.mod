@@ -4,9 +4,9 @@ go 1.17
 
 require (
 	cloud.google.com/go/firestore v1.6.1
-	github.com/dasiyes/ivmapi v0.0.18-dev2
-	github.com/dasiyes/ivmconfig v0.0.0-20211126130128-1512553dd727
-	github.com/dasiyes/ivmsesman v0.4.9-dev11
+	github.com/dasiyes/ivmapi v0.0.19-t24-stage
+	github.com/dasiyes/ivmconfig v0.0.0-20211215150735-0f6785e919b7
+	github.com/dasiyes/ivmsesman v0.4.9-dev12
 	github.com/go-chi/chi v1.5.4
 	github.com/go-kit/kit v0.12.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible
@@ -26,9 +26,10 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v0.6.2 // indirect
 	github.com/go-chi/chi/v5 v5.0.5 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect
-	golang.org/x/net v0.0.0-20211101193420-4a448f8816b3 // indirect
-	golang.org/x/oauth2 v0.0.0-20211028175245-ba495a64dcb5 // indirect
-	google.golang.org/genproto v0.0.0-20211102202547-e9cf271f7f2c // indirect
+	github.com/rogpeppe/go-internal v1.8.1 // indirect
+	golang.org/x/net v0.0.0-20211104170005-ce137452f963 // indirect
+	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
+	google.golang.org/genproto v0.0.0-20211104193956-4c6863e31247 // indirect
 )
 
 require (
@@ -48,7 +49,7 @@ require (
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	go.opencensus.io v0.23.0 // indirect
-	golang.org/x/sys v0.0.0-20211102192858-4dd72447c267 // indirect
+	golang.org/x/sys v0.0.0-20211103235746-7861aae1554b // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

@@ -42,6 +42,7 @@ at_config:
   alg:      "RS256"
   issuer:   "https://accounts.ivmanto.dev"
   oid_provider_name: "ivmanto"
+  min_pass_len: 8
 
 # supported OpenID Providers
 oidps:
