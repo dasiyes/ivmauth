@@ -264,14 +264,14 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	if err == http.ErrNoCookie {
 		// [ ] potential CSRF attack - log the request with all possible details
 		w.WriteHeader(http.StatusBadRequest)
-		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("missing csrf_token cookie: %#v", err))
+		h.server.responseBadRequest(w, "registerUser", fmt.Errorf("missing csrf_token cookie: %#v", err))
 		return
 	}
 	// Verifying the CSRF tokens
 	if !nosurf.VerifyToken(formCSRFToken, stc.Value) {
 		// [ ] potential CSRF attack - log the request with all possible details
 		w.WriteHeader(http.StatusBadRequest)
-		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("invalid CSRF tokens. [%s]", stc.Value))
+		h.server.responseBadRequest(w, "registerUser", fmt.Errorf("invalid CSRF tokens. [%s]", stc.Value))
 		return
 	}
 
@@ -279,7 +279,7 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	sc, err := r.Cookie(h.server.Config.GetSesssionCookieName())
 	if err == http.ErrNoCookie {
 		w.WriteHeader(http.StatusBadRequest)
-		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("missing session id cookie: %#v", err))
+		h.server.responseBadRequest(w, "registerUser", fmt.Errorf("missing session id cookie: %#v", err))
 		return
 	}
 	var state = sc.Value
@@ -288,15 +288,19 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
 	if email == "" || password == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("one or more empty manadatory attribute %s", email))
+		h.server.responseBadRequest(w, "registerUser", fmt.Errorf("one or more empty manadatory attribute %s", email))
 		return
 	}
 
 	err = h.server.Rgs.RegisterUser(names, email, password, state)
 	if err != nil {
-		// [ ] return an internal error
+		w.WriteHeader(http.StatusInternalServerError)
+		h.server.responseIntServerError(w, "registerUser", fmt.Errorf("one or more empty manadatory attribute %s", email))
+		return
 	}
 
+	w.WriteHeader(http.StatusCreated)
+	_, _ = w.Write([]byte(fmt.Sprintf("user account %s successfully created", email)))
 }
 
 // issueToken will return an access token (Ivmanto's IDToken) to the post request
