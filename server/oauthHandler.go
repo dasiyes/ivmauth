@@ -303,7 +303,7 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	var to = []string{email}
 	var toName = []string{names}
 
-	err = h.sendActivationEmail(to, toName, 045657)
+	err = h.sendActivationEmail(to, toName, int(045657))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		h.server.responseIntServerError(w, "registerUser", fmt.Errorf("failed to send activation email to %s, error: %v", email, err))
