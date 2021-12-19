@@ -56,12 +56,7 @@ func (e *Email) SendMessageFromEmail(cfg *ivmcfg.EmailCfg) error {
 	}
 
 	// Message.
-	var message []byte = []byte(fmt.Sprintf("%s\r\n%s", msg, e.Message))
-	// if toList == "" {
-	// 	message = []byte(fmt.Sprintf("From:%s <%s>\nTo:%s <%s>\nSubject:%s\n\n%s", e.FromName, e.From, e.ToName, e.To, e.Subject, e.Message))
-	// } else {
-	// 	message = []byte(fmt.Sprintf("From:%s <%s>\nTo:%s\nSubject:%s\n\n%s", e.FromName, e.From, toList, e.Subject, e.Message))
-	// }
+	var message = []byte(fmt.Sprintf("%s\r\n%s", msg, e.Message))
 
 	// Authentication.
 	auth := smtp.PlainAuth("", from, password, smtpHost)
