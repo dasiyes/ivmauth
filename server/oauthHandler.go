@@ -487,7 +487,7 @@ func (h *oauthHandler) sendActivationEmail(to, toName []string, code int) error 
 		ToName:   toName,
 		Subject:  "activate your account",
 		Message: fmt.Sprintf(
-			"Please follow on the screen instructions to enter thr following code\n %d", code),
+			"Please follow on the screen instructions to enter the following code\n %d", code),
 	}
 
 	err := e.SendMessageFromEmail(cfg)

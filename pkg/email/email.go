@@ -38,13 +38,30 @@ func (e *Email) SendMessageFromEmail(cfg *ivmcfg.EmailCfg) error {
 		}
 	}
 
-	// Message.
-	var message []byte
+	header := make(map[string]string)
+	header["From"] = fmt.Sprintf("From:%s <%s>", e.FromName, e.From)
 	if toList == "" {
-		message = []byte(fmt.Sprintf("From:%s <%s>\nTo:%s <%s>\nSubject:%s\n\n%s", e.FromName, e.From, e.ToName, e.To, e.Subject, e.Message))
+		header["To"] = fmt.Sprintf("To:%s <%s>", e.ToName, e.To)
 	} else {
-		message = []byte(fmt.Sprintf("From:%s <%s>\nTo:%s\nSubject:%s\n\n%s", e.FromName, e.From, toList, e.Subject, e.Message))
+		header["To"] = fmt.Sprintf("To:%s", toList)
 	}
+	header["Subject"] = fmt.Sprintf("Subject:%s\n", e.Subject)
+	header["MIME-Version"] = "1.0"
+	header["Content-Type"] = "text/html; charset=\"utf-8\""
+	// header["Content-Transfer-Encoding"] = "base64"
+
+	var msg string
+	for k, v := range header {
+		msg += fmt.Sprintf("%s: %s\r\n", k, v)
+	}
+
+	// Message.
+	var message []byte = []byte(fmt.Sprintf("%s\r\n%s", msg, e.Message))
+	// if toList == "" {
+	// 	message = []byte(fmt.Sprintf("From:%s <%s>\nTo:%s <%s>\nSubject:%s\n\n%s", e.FromName, e.From, e.ToName, e.To, e.Subject, e.Message))
+	// } else {
+	// 	message = []byte(fmt.Sprintf("From:%s <%s>\nTo:%s\nSubject:%s\n\n%s", e.FromName, e.From, toList, e.Subject, e.Message))
+	// }
 
 	// Authentication.
 	auth := smtp.PlainAuth("", from, password, smtpHost)
