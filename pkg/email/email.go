@@ -39,13 +39,13 @@ func (e *Email) SendMessageFromEmail(cfg *ivmcfg.EmailCfg) error {
 	}
 
 	header := make(map[string]string)
-	header["From"] = fmt.Sprintf("From:%s <%s>", e.FromName, e.From)
+	header["From"] = fmt.Sprintf("%s <%s>", e.FromName, e.From)
 	if toList == "" {
-		header["To"] = fmt.Sprintf("To:%s <%s>", e.ToName, e.To)
+		header["To"] = fmt.Sprintf("%s <%s>", e.ToName, e.To)
 	} else {
-		header["To"] = fmt.Sprintf("To:%s", toList)
+		header["To"] = fmt.Sprintf("%s", toList)
 	}
-	header["Subject"] = fmt.Sprintf("Subject:%s\n", e.Subject)
+	header["Subject"] = fmt.Sprintf("%s\n", e.Subject)
 	header["MIME-Version"] = "1.0"
 	header["Content-Type"] = "text/html; charset=\"utf-8\""
 	// header["Content-Transfer-Encoding"] = "base64"
