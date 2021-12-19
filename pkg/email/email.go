@@ -30,8 +30,21 @@ func (e *Email) SendMessageFromEmail(cfg *ivmcfg.EmailCfg) error {
 	smtpHost := cfg.SmtpHost
 	smtpPort := cfg.SmptPort
 
+	// toList would list all Receivers in comma separated list
+	var toList string
+	if len(e.To) == len(e.ToName) {
+		for i, v := range e.To {
+			toList = toList + fmt.Sprintf("%s <%s>,", e.ToName[i], v)
+		}
+	}
+
 	// Message.
-	message := []byte(fmt.Sprintf("From:%s <%s>\nTo:%s <%s>\nSubject:%s\n\n%s", e.FromName, e.From, e.ToName, e.To, e.Subject, e.Message))
+	var message []byte
+	if toList == "" {
+		message = []byte(fmt.Sprintf("From:%s <%s>\nTo:%s <%s>\nSubject:%s\n\n%s", e.FromName, e.From, e.ToName, e.To, e.Subject, e.Message))
+	} else {
+		message = []byte(fmt.Sprintf("From:%s <%s>\nTo:%s\nSubject:%s\n\n%s", e.FromName, e.From, toList, e.Subject, e.Message))
+	}
 
 	// Authentication.
 	auth := smtp.PlainAuth("", from, password, smtpHost)
