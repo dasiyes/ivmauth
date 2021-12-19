@@ -23,7 +23,7 @@ sesman_config:
 email_cfg:
   smtp_host: "smtp.gmail.com"
   smtp_port: "587"
-  send_from: "donotreply@ivmanto.com"
+  send_from: "nikolay.tonev@ivmanto.com"
   password: ${SMTP_PASSWORD}
 
 # api-gateway config
