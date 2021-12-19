@@ -24,6 +24,7 @@ email_cfg:
   smtp_host: "smtp.gmail.com"
   smtp_port: "587"
   send_from: "nikolay.tonev@ivmanto.com"
+  send_from_alias: "accounts@ivmanto.com"
   password: ${SMTP_PASSWORD}
 
 # api-gateway config

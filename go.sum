@@ -122,6 +122,8 @@ github.com/dasiyes/ivmconfig v0.0.0-20211219102527-025370a8fd5a h1:4IE8MTBi+CjdJ
 github.com/dasiyes/ivmconfig v0.0.0-20211219102527-025370a8fd5a/go.mod h1:jHNMnECM5MQxJ5HfQi8koogAPbaqgXJhvVuYHiPsS6w=
 github.com/dasiyes/ivmconfig v0.0.0-20211219103543-daa80e5c6e18 h1:S+T+DvQba66yghMWlMenRsH1NezEkyF+ypv30ItOj7E=
 github.com/dasiyes/ivmconfig v0.0.0-20211219103543-daa80e5c6e18/go.mod h1:jHNMnECM5MQxJ5HfQi8koogAPbaqgXJhvVuYHiPsS6w=
+github.com/dasiyes/ivmconfig v0.0.0-20211219225649-b49f1b19e34e h1:VhOdpKFkW8G2+2N3KX1SxHfYudPQvS5sSVF37zweIw0=
+github.com/dasiyes/ivmconfig v0.0.0-20211219225649-b49f1b19e34e/go.mod h1:jHNMnECM5MQxJ5HfQi8koogAPbaqgXJhvVuYHiPsS6w=
 github.com/dasiyes/ivmsesman v0.4.9-dev12 h1:VNwZyb6wYIZ5UGSck2yHYqaPtWexi4vW8KyEwrtvnEI=
 github.com/dasiyes/ivmsesman v0.4.9-dev12/go.mod h1:axJdmwau158jAsdb2ewP8LSfFbMgfDLNZ/KW+vwRYpo=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

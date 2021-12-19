@@ -303,7 +303,7 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	var to = []string{email}
 	var toName = []string{names}
 
-	err = h.sendActivationEmail(to, toName, int(045657))
+	err = h.sendActivationEmail(to, toName, int(145657))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		h.server.responseIntServerError(w, "registerUser", fmt.Errorf("failed to send activation email to %s, error: %v", email, err))
@@ -481,8 +481,7 @@ func (h *oauthHandler) sendActivationEmail(to, toName []string, code int) error 
 
 	var cfg = h.server.Config.GetEmailCfg()
 	var e = email.Email{
-		// To be used an alias of the original account
-		From:     "accounts@ivmanto.com",
+		From:     cfg.SendFromAlias,
 		FromName: "Accounts Ivmanto",
 		To:       to,
 		ToName:   toName,
