@@ -62,7 +62,7 @@ func (e *Email) SendMessageFromEmail(cfg *ivmcfg.EmailCfg) error {
 	auth := smtp.PlainAuth("", from, password, smtpHost)
 
 	// Sending email.
-	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, to, message)
+	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, e.From, to, message)
 	if err != nil {
 		fmt.Printf("[SendMessageFromEmail] error:%v\n", err)
 		return err
