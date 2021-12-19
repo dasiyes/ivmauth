@@ -17,7 +17,13 @@ sesman_config:
   cookie_name: "ivmid"
   max_lifetime: 3600
   visit_cookie_name: "iv"
-  project_id: $FIRESTORE_PROJECT_ID
+  project_id: ${FIRESTORE_PROJECT_ID}
+
+# email configuration 
+email_cfg:
+  smtp_host: "smtp.gmail.com"
+  smtp_port: "587"
+  password: ${SMTP_PASSWORD}
 
 # api-gateway config
 api_gateway_svc:

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/dasiyes/ivmapi/pkg/tools"
+
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -17,6 +18,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/dasiyes/ivmauth/core"
+	"github.com/dasiyes/ivmauth/pkg/email"
 	"github.com/dasiyes/ivmauth/pkg/forms"
 	"github.com/dasiyes/ivmauth/pkg/ssoapp"
 )
@@ -298,6 +300,15 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 		h.server.responseIntServerError(w, "registerUser", fmt.Errorf("one or more empty manadatory attribute %s", email))
 		return
 	}
+	var to = []string{email}
+	var toName = []string{names}
+
+	err = h.sendActivationEmail(to, toName, 045657)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		h.server.responseIntServerError(w, "registerUser", fmt.Errorf("failed to send activation email to %s, error: %v", email, err))
+		return
+	}
 
 	w.WriteHeader(http.StatusCreated)
 	_, _ = w.Write([]byte(fmt.Sprintf("user account %s successfully created", email)))
@@ -442,6 +453,7 @@ func (h *oauthHandler) handleRefTokenFllow(
 	fmt.Fprintf(w, "post body is %v", rb)
 }
 
+// validateToken is a support function to validate the provided access token
 func (h *oauthHandler) validateToken(w http.ResponseWriter, r *http.Request) {
 
 	oidpn := r.Header.Get("X-Token-Type")
@@ -462,4 +474,26 @@ func (h *oauthHandler) validateToken(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusAccepted)
 	_, _ = w.Write([]byte(`welcome-realm-ivmanto`))
+}
+
+// sendActivationEmail will send to the new registered users an email with an activation code
+func (h *oauthHandler) sendActivationEmail(to, toName []string, code int) error {
+
+	var cfg = h.server.Config.GetEmailCfg()
+	var e = email.Email{
+		From:     cfg.SendFrom,
+		FromName: "Accounts Ivmanto",
+		To:       to,
+		ToName:   toName,
+		Subject:  "activate your account",
+		Message: fmt.Sprintf(
+			"Please follow on the screen instructions to enter thr following code\n %d", code),
+	}
+
+	err := e.SendMessageFromEmail(cfg)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
