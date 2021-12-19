@@ -45,10 +45,10 @@ func (e *Email) SendMessageFromEmail(cfg *ivmcfg.EmailCfg) error {
 	} else {
 		header["To"] = toList
 	}
-	header["Subject"] = fmt.Sprintf("%s\n", e.Subject)
 	header["MIME-Version"] = "1.0"
 	header["Content-Type"] = "text/html; charset=\"utf-8\""
 	// header["Content-Transfer-Encoding"] = "base64"
+	header["Subject"] = fmt.Sprintf("%s\r\n", e.Subject)
 
 	var msg string
 	for k, v := range header {
