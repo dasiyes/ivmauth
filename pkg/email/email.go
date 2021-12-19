@@ -20,7 +20,7 @@ type Email struct {
 func (e *Email) SendMessageFromEmail(cfg *ivmcfg.EmailCfg) error {
 
 	// Sender data.
-	from := e.From
+	from := cfg.SendFrom
 	password := cfg.Password
 
 	// Receiver email address.

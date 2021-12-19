@@ -481,7 +481,8 @@ func (h *oauthHandler) sendActivationEmail(to, toName []string, code int) error 
 
 	var cfg = h.server.Config.GetEmailCfg()
 	var e = email.Email{
-		From:     cfg.SendFrom,
+		// To be used an alias of the original account
+		From:     "accounts@ivmanto.com",
 		FromName: "Accounts Ivmanto",
 		To:       to,
 		ToName:   toName,
