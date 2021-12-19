@@ -43,7 +43,7 @@ func (e *Email) SendMessageFromEmail(cfg *ivmcfg.EmailCfg) error {
 	if toList == "" {
 		header["To"] = fmt.Sprintf("%s <%s>", e.ToName, e.To)
 	} else {
-		header["To"] = fmt.Sprintf("%s", toList)
+		header["To"] = toList
 	}
 	header["Subject"] = fmt.Sprintf("%s\n", e.Subject)
 	header["MIME-Version"] = "1.0"
