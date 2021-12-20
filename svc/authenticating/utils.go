@@ -245,7 +245,7 @@ func checkValidClientAuthRequest(r *http.Request, cfg config.IvmCfg) (bool, erro
 
 	if r.Method != http.MethodPost {
 		// Check for an exception - validate the clientID is registred for GET /oauth/authorize endpoint
-		if r.Method == http.MethodGet && r.URL.Path == "/oauth/authorize" {
+		if r.Method == http.MethodGet && (r.URL.Path == "/oauth/authorize" || r.URL.Path == "/oauth/ui/activate") {
 			return true, nil
 		}
 		return false, fmt.Errorf("request method %s is not accepted", r.Method)
