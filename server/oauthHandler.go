@@ -548,7 +548,7 @@ func (h *oauthHandler) sendActivationEmail(to, toName []string, qp string) error
 	}
 
 	// ParseTemplate function will take care of filling out the Message attribute of email struct
-	if errp := e.ParseTemplate("activateAccount.email.tmpl", data); errp != nil {
+	if errp := e.ParseTemplate("./ui/html/activateAccount.email.tmpl", data); errp != nil {
 		return fmt.Errorf("while parsing email message error raised: %v", errp)
 	}
 
