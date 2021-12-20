@@ -82,16 +82,27 @@ func getClientIDFromReqQueryPrm(r *http.Request) (cid string, err error) {
 
 	r.URL.RawQuery, err = url.QueryUnescape(r.URL.RawQuery)
 	if err != nil {
-		return "", fmt.Errorf("while validating clientID exists, error: %#v! %#v", err, core.ErrBadRequest)
+		return "", fmt.Errorf("while validating clientID exists, error: %v! %v", err, core.ErrBadRequest)
 	}
 
 	q := r.URL.Query()
 	cid = q.Get("client_id")
 	cid = strings.TrimSpace(cid)
 	if cid == "" {
-		return "", fmt.Errorf("while validating clientID exists - missing client_id! %#v", core.ErrBadRequest)
+		return "", fmt.Errorf("while validating clientID exists - missing client_id! %v", core.ErrBadRequest)
 	}
 	return cid, nil
+}
+
+// getClientIDFromCookie - will retrieve the client ID from the request cookie
+func getClientIDFromCookie(r *http.Request) (cid string, err error) {
+
+	cc, err := r.Cookie("c")
+	if err != nil {
+		return "", fmt.Errorf("while getting clientID from cookie - missing named cookie'c', error: %v", err)
+	}
+
+	return cc.Value, nil
 }
 
 // validateIDToken will provide validation of a signed JWT that respects OpenIDConnect ID Token (https://openid.net/specs/openid-connect-core-1_0.html#IDToken)
@@ -303,12 +314,17 @@ func validateClientExists(r *http.Request, clients core.ClientRepository) (*core
 	case "GET /oauth/authorize":
 		cID, err = getClientIDFromReqQueryPrm(r)
 		if err != nil {
-			return nil, fmt.Errorf("while getting clientID: %v from query param error raised: %#v", cID, err)
+			return nil, fmt.Errorf("while getting clientID: %v from query param error raised: %v", cID, err)
 		}
 	case "POST /oauth/login":
 		cID, _, err = getClientIDSecWFUE(r)
 		if err != nil {
-			return nil, fmt.Errorf("while getting clientID: %v from request body error raised: %#v", cID, err)
+			return nil, fmt.Errorf("while getting clientID: %v from request body error raised: %v", cID, err)
+		}
+	case "GET /oauth/ui/activate":
+		cID, err = getClientIDFromCookie(r)
+		if err != nil {
+			return nil, fmt.Errorf("while getting clientID: %v from cookie error raised: %v", cID, err)
 		}
 	default:
 		cID = ""
