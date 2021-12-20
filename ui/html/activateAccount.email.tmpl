@@ -6,10 +6,15 @@
 
     <body>
         <p>
-            <h4>Hello {{.Name}}</h4>,
-            Your account registration with Ivmanto accounts was successful
-            and needs to be activated by clicking the link below.
+            <h4>Hello {{.Name}},</h4>
+            Your account registration with Ivmanto accounts was successful</br>
+            and needs to be activated by clicking the link below.</br>
             <a href="{{.URL}}">Activate your Ivmanto account</a>
+        </p>
+        <p>
+            If the link would not work, copy below URL and paste it in the </br>
+            address bar of your browser in a new window.</br>
+            {{.URL}}
         </p>
         <p>
             If you have not initiated this registration simply ignore this message.
