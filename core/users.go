@@ -35,6 +35,9 @@ func (u *User) UpdateRefreshToken(rt string) {
 // UserRepository provides access to the users storage.
 type UserRepository interface {
 	Store(user *User) error
+	ActivateUserAccount(userId, subCode string) error
+	Exists(userId string) error
+	Verify(userId, subCode string) error
 	Find(id UserID) (*User, error)
 	FindAll() []*User
 }

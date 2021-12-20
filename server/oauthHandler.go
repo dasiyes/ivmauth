@@ -39,10 +39,12 @@ func (h *oauthHandler) router() chi.Router {
 		r.Post("/token", h.issueToken)
 		r.Post("/register", h.registerUser)
 		r.Get("/token", h.validateToken)
+		r.Get("/activate", h.activateUser)
 		r.Route("/ui", func(r chi.Router) {
 			r.Use(noSurf)
 			r.Get("/login", h.userLoginForm)
 			r.Get("/register", h.userRegisterForm)
+			r.Get("/activate", h.userActivateInfo)
 		})
 	})
 
@@ -149,7 +151,7 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 	if err == http.ErrNoCookie {
 		// [ ] potential CSRF attack - log the request with all possible details
 		w.WriteHeader(http.StatusBadRequest)
-		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("missing csrf_token cookie: %#v", err))
+		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("missing csrf_token cookie: %v", err))
 		return
 	}
 	// Verifying the CSRF tokens
@@ -235,6 +237,16 @@ func (h *oauthHandler) userRegisterForm(w http.ResponseWriter, r *http.Request) 
 	h.server.IvmSSO.Render(w, r, "register.page.tmpl", &td)
 }
 
+// userActivateInfo will show user activation reqired info page
+func (h *oauthHandler) userActivateInfo(w http.ResponseWriter, r *http.Request) {
+
+	var td = ssoapp.TemplateData{
+		Form: forms.New(nil),
+	}
+
+	h.server.IvmSSO.Render(w, r, "infoAccounntActivation.page.tmpl", &td)
+}
+
 // registerUser will handle the registration of a new user as POST request from the UI form
 func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
@@ -286,7 +298,7 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	}
 	var state = sc.Value
 
-	_ = level.Debug(h.logger).Log("cid", cid, "email", email, "password", password)
+	_ = level.Debug(h.logger).Log("cid", cid, "email", email, "password", fmt.Sprintf("%d", len(password)))
 
 	if email == "" || password == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -294,7 +306,8 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.server.Rgs.RegisterUser(names, email, password, state)
+	var subCode = core.NewSubCode()
+	err = h.server.Rgs.RegisterUser(names, email, password, "ivmanto", subCode)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		h.server.responseIntServerError(w, "registerUser", fmt.Errorf("one or more empty manadatory attribute %s", email))
@@ -302,16 +315,51 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	}
 	var to = []string{email}
 	var toName = []string{names}
+	var qp = fmt.Sprintf("ua=%s&state=%s&sc=%s", email, state, subCode)
 
-	err = h.sendActivationEmail(to, toName, int(145657))
+	err = h.sendActivationEmail(to, toName, qp)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		h.server.responseIntServerError(w, "registerUser", fmt.Errorf("failed to send activation email to %s, error: %v", email, err))
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
-	_, _ = w.Write([]byte(fmt.Sprintf("user account %s successfully created", email)))
+	// w.WriteHeader(http.StatusCreated)
+	// _, _ = w.Write([]byte(fmt.Sprintf("user account %s successfully created", email)))
+
+	var gwh = h.server.Config.GetAPIGWSvcURL()
+	var redirectURL = fmt.Sprintf("https://%s/oauth/ui/activate", gwh)
+
+	// redirect the user to user's Login form to capture its credentials
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+}
+
+// activateUser - will activate an user account on clicking url from activation email message
+func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
+	qp := r.URL.Query()
+	var sc = qp.Get("sc")
+	var ua = qp.Get("ua")
+	var state = qp.Get("state")
+
+	if ua == "" || sc == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "activateUser", fmt.Errorf("one or more empty manadatory attribute"))
+		return
+	}
+
+	err := h.server.Rgs.ActivateUser(ua, sc)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		h.server.responseIntServerError(w, "activateUser", fmt.Errorf("failed to activate user account %s, error: %v", ua, err))
+		return
+	}
+
+	var gwh = h.server.Config.GetAPIGWSvcURL()
+	var redirectURL = fmt.Sprintf("https://%s/oauth/ui/login?t=%s", gwh, state)
+
+	// redirect the user to user's Login form to capture its credentials
+	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+
 }
 
 // issueToken will return an access token (Ivmanto's IDToken) to the post request
@@ -477,17 +525,31 @@ func (h *oauthHandler) validateToken(w http.ResponseWriter, r *http.Request) {
 }
 
 // sendActivationEmail will send to the new registered users an email with an activation code
-func (h *oauthHandler) sendActivationEmail(to, toName []string, code int) error {
+func (h *oauthHandler) sendActivationEmail(to, toName []string, qp string) error {
 
+	var gwh = h.server.Config.GetAPIGWSvcURL()
 	var cfg = h.server.Config.GetEmailCfg()
+	var au = fmt.Sprintf("https://%s/oauth/activate?%s", gwh, qp)
+
+	var data = struct {
+		Name string
+		URL  string
+	}{
+		Name: toName[0],
+		URL:  au,
+	}
+
 	var e = email.Email{
 		From:     cfg.SendFromAlias,
 		FromName: "Accounts Ivmanto",
 		To:       to,
 		ToName:   toName,
 		Subject:  "activate your account",
-		Message: fmt.Sprintf(
-			"Please follow on the screen instructions to enter the following code\n %d", code),
+	}
+
+	// ParseTemplate function will take care of filling out the Message attribute of email struct
+	if errp := e.ParseTemplate("activateAccount.email.tmpl", data); errp != nil {
+		return fmt.Errorf("while parsing email message error raised: %v", errp)
 	}
 
 	err := e.SendMessageFromEmail(cfg)

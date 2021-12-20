@@ -1,8 +1,10 @@
 package email
 
 import (
+	"bytes"
 	"fmt"
 	"net/smtp"
+	"text/template"
 
 	ivmcfg "github.com/dasiyes/ivmconfig/src/pkg/config"
 )
@@ -68,5 +70,19 @@ func (e *Email) SendMessageFromEmail(cfg *ivmcfg.EmailCfg) error {
 		return err
 	}
 	fmt.Println("Email Sent Successfully!")
+	return nil
+}
+
+// ParseTemplate will be used to send emails in HTML format
+func (e *Email) ParseTemplate(templateFileName string, data interface{}) error {
+	t, err := template.ParseFiles(templateFileName)
+	if err != nil {
+		return err
+	}
+	buf := new(bytes.Buffer)
+	if err = t.Execute(buf, data); err != nil {
+		return err
+	}
+	e.Message = buf.String()
 	return nil
 }

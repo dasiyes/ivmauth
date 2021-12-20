@@ -189,7 +189,10 @@ func (s *service) ValidateUsersCredentials(email, pass string) (bool, error) {
 
 	usr, err := s.users.Find(core.UserID(email))
 	if err != nil {
-		return valid, fmt.Errorf("error finding user %s: %#v", email, err.Error())
+		return valid, fmt.Errorf("error finding user %s: %v", email, err.Error())
+	}
+	if usr.Status != core.EntryStatusActive {
+		return valid, fmt.Errorf("the user %s status is: %s. Must be `Active`", email, usr.Status.String())
 	}
 
 	err = bcrypt.CompareHashAndPassword(usr.Password, []byte(pass))
@@ -499,6 +502,7 @@ func (s *service) ValidateAccessToken(at, oidpn string) error {
 	return nil
 }
 
+// TODO [dev]: review and remove becuase the registering User is done in the svc/registering service
 // Registration of new user on Ivmanto realm
 func (s *service) RegisterUser(names, email, password string) (*core.User, error) {
 
@@ -521,7 +525,7 @@ func (s *service) RegisterUser(names, email, password string) (*core.User, error
 
 	nUsr.Name = names
 
-	nUsr.Status = core.EntryStatus(core.Draft)
+	nUsr.Status = core.EntryStatus(core.EntryStatusDraft)
 
 	var nup, errgp = bcrypt.GenerateFromPassword([]byte(password), 12)
 	if errgp != nil {
@@ -564,7 +568,7 @@ func (s *service) CheckUserRegistration(oidtoken *core.IDToken) {
 			}
 			nUsr.Name = oidtoken.Name
 			nUsr.Avatar = oidtoken.Picture
-			nUsr.Status = core.EntryStatus(core.Draft)
+			nUsr.Status = core.EntryStatus(core.EntryStatusDraft)
 			nUsr.OIDCProvider = oidtoken.Iss
 
 			if err = s.users.Store(nUsr); err != nil {
