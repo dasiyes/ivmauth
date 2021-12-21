@@ -333,6 +333,7 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
 // activateUser - will activate an user account on clicking url from activation email message
 func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
+
 	qp := r.URL.Query()
 	var sc = qp.Get("sc")
 	var ua = qp.Get("ua")
@@ -352,7 +353,7 @@ func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var gwh = h.server.Config.GetAPIGWSvcURL()
-	var redirectURL = fmt.Sprintf("https://%s/oauth/ui/login?t=%s", gwh, state)
+	var redirectURL = fmt.Sprintf("https://%s/oauth/authorize?t=%s", gwh, state)
 
 	// redirect the user to user's Login form to capture its credentials
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
