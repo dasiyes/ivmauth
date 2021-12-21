@@ -80,7 +80,7 @@ func (ur *userRepository) Verify(userId, subCode, state string) error {
 
 	// Only verify the init state if the parameter state is not empty
 	if state != "" {
-		if u["InitState"].(string) == state && u["Status"].(core.EntryStatus) == core.EntryStatusDraft {
+		if u["InitState"].(string) == state && u["Status"].(int64) == int64(core.EntryStatusDraft) {
 			return nil
 		} else {
 			return fmt.Errorf("invalid operation")
