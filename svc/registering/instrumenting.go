@@ -22,20 +22,20 @@ func NewInstrumentingService(counter metrics.Counter, latency metrics.Histogram,
 	}
 }
 
-func (s *instrumentingService) RegisterUser(names, email, password, provider string, subCode core.SubCode) (err error) {
+func (s *instrumentingService) RegisterUser(names, email, password, provider, state string, subCode core.SubCode) (err error) {
 	defer func(begin time.Time) {
 		s.requestCount.With("method", "RegisterUser").Add(1)
 		s.requestLatency.With("method", "RegisterUser").Observe(time.Since(begin).Seconds())
 	}(time.Now())
 
-	return s.next.RegisterUser(names, email, password, provider, subCode)
+	return s.next.RegisterUser(names, email, password, provider, state, subCode)
 }
 
-func (s *instrumentingService) ActivateUser(userId, subcode string) (err error) {
+func (s *instrumentingService) ActivateUser(userId, subcode, state string) (err error) {
 	defer func(begin time.Time) {
 		s.requestCount.With("method", "ActivateUser").Add(1)
 		s.requestLatency.With("method", "ActivateUser").Observe(time.Since(begin).Seconds())
 	}(time.Now())
 
-	return s.next.ActivateUser(userId, subcode)
+	return s.next.ActivateUser(userId, subcode, state)
 }

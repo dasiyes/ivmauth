@@ -18,7 +18,7 @@ func NewLoggingService(logger log.Logger, s Service) Service {
 	return &loggingService{logger, s}
 }
 
-func (s *loggingService) RegisterUser(names, email, password, provider string, subCode core.SubCode) (err error) {
+func (s *loggingService) RegisterUser(names, email, password, provider, state string, subCode core.SubCode) (err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "RegisterUser",
@@ -27,10 +27,10 @@ func (s *loggingService) RegisterUser(names, email, password, provider string, s
 			"registering_user_id", email,
 		)
 	}(time.Now())
-	return s.next.RegisterUser(names, email, password, provider, subCode)
+	return s.next.RegisterUser(names, email, password, provider, state, subCode)
 }
 
-func (s *loggingService) ActivateUser(userId, subcode string) (err error) {
+func (s *loggingService) ActivateUser(userId, subcode, state string) (err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
 			"method", "RegisterUser",
@@ -39,5 +39,5 @@ func (s *loggingService) ActivateUser(userId, subcode string) (err error) {
 			"activate_user_subCode", subcode,
 		)
 	}(time.Now())
-	return s.next.ActivateUser(userId, subcode)
+	return s.next.ActivateUser(userId, subcode, state)
 }

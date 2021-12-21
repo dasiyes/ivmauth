@@ -307,7 +307,7 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var subCode = core.NewSubCode()
-	err = h.server.Rgs.RegisterUser(names, email, password, "ivmanto", subCode)
+	err = h.server.Rgs.RegisterUser(names, email, password, "ivmanto", state, subCode)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		h.server.responseIntServerError(w, "registerUser", fmt.Errorf("one or more empty manadatory attribute %s", email))
@@ -345,7 +345,7 @@ func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.server.Rgs.ActivateUser(ua, sc)
+	err := h.server.Rgs.ActivateUser(ua, sc, state)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		h.server.responseIntServerError(w, "activateUser", fmt.Errorf("failed to activate user account %s, error: %v", ua, err))
@@ -353,7 +353,7 @@ func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var gwh = h.server.Config.GetAPIGWSvcURL()
-	var redirectURL = fmt.Sprintf("https://%s/oauth/authorize?t=%s", gwh, state)
+	var redirectURL = fmt.Sprintf("https://%s/oauth/ui/login?t=%s", gwh, state)
 
 	// redirect the user to user's Login form to capture its credentials
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)

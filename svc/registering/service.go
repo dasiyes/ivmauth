@@ -11,9 +11,9 @@ import (
 
 type Service interface {
 	// RegisterUser will be registering a new user in the ivmauth oauth2 server
-	RegisterUser(names, email, password, provider string, subCode core.SubCode) error
+	RegisterUser(names, email, password, provider, state string, subCode core.SubCode) error
 	// ActivateUser will activate newly registered users
-	ActivateUser(userId, subcode string) error
+	ActivateUser(userId, subcode, state string) error
 }
 
 type service struct {
@@ -22,7 +22,7 @@ type service struct {
 	config  *config.IvmCfg
 }
 
-func (s *service) RegisterUser(names, email, password, provider string, subCode core.SubCode) error {
+func (s *service) RegisterUser(names, email, password, provider, state string, subCode core.SubCode) error {
 
 	var mpl = 8
 
@@ -41,6 +41,7 @@ func (s *service) RegisterUser(names, email, password, provider string, subCode 
 		Password:     psw,
 		OIDCProvider: provider,
 		Status:       core.EntryStatusDraft,
+		InitState:    state,
 	}
 
 	err := s.users.Store(u)
@@ -51,9 +52,9 @@ func (s *service) RegisterUser(names, email, password, provider string, subCode 
 	return nil
 }
 
-func (s *service) ActivateUser(userId, subcode string) error {
+func (s *service) ActivateUser(userId, subcode, state string) error {
 
-	err := s.users.ActivateUserAccount(userId, subcode)
+	err := s.users.ActivateUserAccount(userId, subcode, state)
 	if err != nil {
 		return fmt.Errorf("error while activating user %s, error: %s", userId, err)
 	}

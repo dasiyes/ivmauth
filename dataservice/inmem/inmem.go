@@ -167,7 +167,7 @@ func (ur *userRepository) Store(u *core.User) error {
 	ur.users[u.UserID] = u
 	return nil
 }
-func (ur *userRepository) ActivateUserAccount(userId, subCode string) error {
+func (ur *userRepository) ActivateUserAccount(userId, subCode, state string) error {
 	// TODO [dev]: to implement
 	return nil
 }
@@ -177,7 +177,7 @@ func (ur *userRepository) Exists(userId string) error {
 	return nil
 }
 
-func (ur *userRepository) Verify(userId, subCode string) error {
+func (ur *userRepository) Verify(userId, subCode, state string) error {
 	// TODO [dev]: to implement
 	return nil
 }
