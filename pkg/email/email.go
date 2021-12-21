@@ -58,7 +58,7 @@ func (e *Email) SendMessageFromEmail(cfg *ivmcfg.EmailCfg) error {
 	}
 
 	// Message.
-	var message = []byte(fmt.Sprintf("%s\r\n\r\n%s", msg, e.Message))
+	var message = []byte(fmt.Sprintf("%s\n\n%s", msg, e.Message))
 
 	// Authentication.
 	auth := smtp.PlainAuth("", from, password, smtpHost)
@@ -83,6 +83,6 @@ func (e *Email) ParseTemplate(templateFileName string, data interface{}) error {
 	if err = t.Execute(buf, data); err != nil {
 		return err
 	}
-	e.Message = fmt.Sprintf("\r\n%s\r\n", buf.String())
+	e.Message = fmt.Sprintf("\n\n%s\n\n", buf.String())
 	return nil
 }

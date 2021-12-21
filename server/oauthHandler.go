@@ -532,7 +532,7 @@ func (h *oauthHandler) sendActivationEmail(to, toName []string, qp string) error
 		Name string
 		URL  string
 	}{
-		Name: toName[0],
+		Name: strings.TrimSpace(toName[0]),
 		URL:  au,
 	}
 
