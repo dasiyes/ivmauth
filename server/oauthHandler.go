@@ -324,9 +324,6 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// w.WriteHeader(http.StatusCreated)
-	// _, _ = w.Write([]byte(fmt.Sprintf("user account %s successfully created", email)))
-
 	var gwh = h.server.Config.GetAPIGWSvcURL()
 	var redirectURL = fmt.Sprintf("https://%s/oauth/ui/activate", gwh)
 
@@ -359,7 +356,6 @@ func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
 
 	// redirect the user to user's Login form to capture its credentials
 	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
-
 }
 
 // issueToken will return an access token (Ivmanto's IDToken) to the post request

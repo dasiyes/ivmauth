@@ -44,7 +44,8 @@ func (ur *userRepository) ActivateUserAccount(userId, subCode string) error {
 	if err != nil {
 		return fmt.Errorf("error while activating user account id %v, err: %v", userId, err)
 	}
-	fmt.Printf("user %s has been successfully activated", userId)
+
+	fmt.Printf("user %s has been successfully activated\r\n", userId)
 	return nil
 }
 

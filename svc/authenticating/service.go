@@ -316,7 +316,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 	// is a Public Client with no Client Secret or other authentication mechanism.
 
 	// [!] AuthenticateClient method `client_secret_basic`
-	//		 - Ivmanto OAuth server specific for Basic auth is that IF header Authrozation is taken for Bearer token, to use as alternative custome header `X-Ivm-Client`.
+	//		 - Ivmanto OAuth server specific for Basic auth is that IF header Authrozation is taken for Bearer token, to use as alternative custom header `X-Ivm-Client`.
 	var hav = r.Header.Get("Authorization")
 	if !strings.HasPrefix(hav, "Basic ") {
 		// Use the alternative custom header `X-Ivm-Client`
@@ -328,12 +328,12 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 
 		cID, cSec = getClientIDSecFromBasic(hav)
 		if cID == "" {
-			return nil, fmt.Errorf("client_secret_basic method failed: invalid clientID [%s] or client secret. %#v", cID, core.ErrBadRequest)
+			return nil, fmt.Errorf("client_secret_basic method failed: invalid clientID [%s] or client secret. %v", cID, core.ErrBadRequest)
 		}
 
 		rc, err := getAndAuthRegisteredClient(s.clients, cID, cSec)
 		if err != nil {
-			return nil, fmt.Errorf("client_secret_basic method failed. Auth error %#v, %#v", err, core.ErrBadRequest)
+			return nil, fmt.Errorf("client_secret_basic method failed. Auth error %v, %v", err, core.ErrBadRequest)
 		}
 
 		// returns the registered client object as means of `it is found and authenticated`!
@@ -347,19 +347,19 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 	if hct == "application/x-www-form-urlencoded" {
 		cID, cSec, err = getClientIDSecWFUE(r)
 		if err != nil {
-			return nil, fmt.Errorf("client_secret_post method failed. Error %#v. %#v", err, core.ErrBadRequest)
+			return nil, fmt.Errorf("client_secret_post method failed. Error %v. %v", err, core.ErrBadRequest)
 		}
 
 		rc, err := getAndAuthRegisteredClient(s.clients, cID, cSec)
 		if err != nil {
-			return nil, fmt.Errorf("client_secret_post method failed. Auth error %#v, %#v", err, core.ErrBadRequest)
+			return nil, fmt.Errorf("client_secret_post method failed. Auth error %v, %v", err, core.ErrBadRequest)
 		}
 
 		// returns the registered client object as means of `it is found and authenticated`!
 		return rc, nil
 	}
 
-	return nil, fmt.Errorf("client_secret_post method failed. Unsupported content type %s. %#v", hct, core.ErrBadRequest)
+	return nil, fmt.Errorf("client_secret_post method failed. Unsupported content type %s. %v", hct, core.ErrBadRequest)
 }
 
 // GetRequestBody considers the contet type header and reads the request body within core.AuthRequestBody
