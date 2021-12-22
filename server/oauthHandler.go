@@ -269,7 +269,8 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	form.MaxLength("names", 10)
 	form.MinLength("names", 4)
 	form.MaxLength("email", 320)
-	form.MaxLength("password", 8)
+	form.MaxLength("password", 20)
+	form.MinLength("password", 8)
 	if !form.Valid() {
 		h.server.IvmSSO.Render(w, r, "register.page.tmpl", &ssoapp.TemplateData{
 			Form: form,
