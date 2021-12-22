@@ -264,19 +264,6 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	form := forms.New(r.PostForm)
-	form.Required("names", "email", "password")
-	form.MaxLength("names", 10)
-	form.MinLength("names", 4)
-	form.MaxLength("email", 320)
-	form.MaxLength("password", 20)
-	form.MinLength("password", 8)
-	if !form.Valid() {
-		h.server.IvmSSO.Render(w, r, "register.page.tmpl", &ssoapp.TemplateData{
-			Form: form,
-		})
-	}
-
 	// Handle CSRF protection
 	var formCSRFToken = r.FormValue("csrf_token")
 	stc, err := r.Cookie("csrf_token")
@@ -294,6 +281,19 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	form := forms.New(r.PostForm)
+	form.Required("names", "email", "password")
+	form.MinLength("names", 4)
+	form.MaxLength("names", 100)
+	form.MaxLength("email", 320)
+	form.MinLength("password", 8)
+	form.MaxLength("password", 20)
+	if !form.Valid() {
+		h.server.IvmSSO.Render(w, r, "register.page.tmpl", &ssoapp.TemplateData{
+			Form: form,
+		})
+	}
+
 	// Getting state value (defacto pre-session id)
 	sc, err := r.Cookie(h.server.Config.GetSesssionCookieName())
 	if err == http.ErrNoCookie {
@@ -309,15 +309,15 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
 	// [ ] Check where this is used???
 	// _ = cid
-	var cid = form.Get("client_id")
+	// var cid = form.Get("client_id")
 
-	_ = level.Debug(h.logger).Log("cid", cid, "email", email, "password", fmt.Sprintf("%d", len(password)))
+	// _ = level.Debug(h.logger).Log("cid", cid, "email", email, "password", fmt.Sprintf("%d", len(password)))
 
-	if email == "" || password == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		h.server.responseBadRequest(w, "registerUser", fmt.Errorf("one or more empty manadatory attribute %s", email))
-		return
-	}
+	// if email == "" || password == "" {
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	h.server.responseBadRequest(w, "registerUser", fmt.Errorf("one or more empty manadatory attribute %s", email))
+	// 	return
+	// }
 
 	var subCode = core.NewSubCode()
 	err = h.server.Rgs.RegisterUser(names, email, password, "ivmanto", state, subCode)
