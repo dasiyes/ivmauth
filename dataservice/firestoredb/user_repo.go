@@ -19,9 +19,10 @@ type userRepository struct {
 
 // Store - stores the clients registrations
 func (ur *userRepository) Store(u *core.User) error {
-	_, err := ur.client.Collection(ur.collection).Doc(string(u.UserID)).Set(*ur.ctx, u)
+	// _, err := ur.client.Collection(ur.collection).Doc(string(u.UserID)).Set(*ur.ctx, u)
+	_, err := ur.client.Collection(ur.collection).Doc(string(u.UserID)).Create(*ur.ctx, u)
 	if err != nil {
-		return fmt.Errorf("unable to save in clients repository. error: %#v", err)
+		return fmt.Errorf("unable to save in clients repository. error: %v", err)
 	}
 	return nil
 }
