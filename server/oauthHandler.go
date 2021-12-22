@@ -264,13 +264,17 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var names = r.FormValue("names")
-	var email = r.FormValue("email")
-	var password = r.FormValue("password")
-
-	// [ ] Check where this is used???
-	var cid = r.FormValue("client_id")
-	_ = cid
+	form := forms.New(r.PostForm)
+	form.Required("names", "email", "password")
+	form.MaxLength("names", 10)
+	form.MinLength("names", 4)
+	form.MaxLength("email", 320)
+	form.MaxLength("password", 8)
+	if !form.Valid() {
+		h.server.IvmSSO.Render(w, r, "register.page.tmpl", &ssoapp.TemplateData{
+			Form: form,
+		})
+	}
 
 	// Handle CSRF protection
 	var formCSRFToken = r.FormValue("csrf_token")
@@ -297,6 +301,14 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var state = sc.Value
+
+	var names = form.Get("names")
+	var email = form.Get("email")
+	var password = form.Get("password")
+
+	// [ ] Check where this is used???
+	// _ = cid
+	var cid = form.Get("client_id")
 
 	_ = level.Debug(h.logger).Log("cid", cid, "email", email, "password", fmt.Sprintf("%d", len(password)))
 
@@ -339,7 +351,7 @@ func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
 	var ua = qp.Get("ua")
 	var state = qp.Get("state")
 
-	if ua == "" || sc == "" {
+	if ua == "" || sc == "" || state == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		h.server.responseBadRequest(w, "activateUser", fmt.Errorf("one or more empty manadatory attribute"))
 		return
