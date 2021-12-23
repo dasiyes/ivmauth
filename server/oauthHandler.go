@@ -330,7 +330,7 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 			ErrorTitle:   fmt.Sprintf("Error %s", w.Header().Get("StatusText")),
 			ErrorMessage: fmt.Sprintf("Message: %v", err),
 		})
-		// h.server.responseIntServerError(w, "registerUser", fmt.Errorf("one or more empty manadatory attribute %s", email))
+		h.server.responseIntServerError(w, "registerUser", fmt.Errorf("Unable to register user %s, error: %v", email, err))
 		return
 	}
 	var to = []string{email}
