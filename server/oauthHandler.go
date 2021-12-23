@@ -240,15 +240,47 @@ func (h *oauthHandler) userRegisterForm(w http.ResponseWriter, r *http.Request) 
 // userActivateInfo will show user activation reqired info page
 func (h *oauthHandler) userActivateInfo(w http.ResponseWriter, r *http.Request) {
 
-	var td = ssoapp.TemplateData{
-		Form: forms.New(nil),
+	var td ssoapp.TemplateData
+	q := r.URL.Query()
+	ms := q.Get("ms")
+
+	switch ms {
+
+	// user account activation
+	case "uaa":
+		td = ssoapp.TemplateData{
+			MsgTitle: "Check your inbox",
+			Message:  "Your account needs to be activated. We have sent an email message <br> to the email address you have used for this registration. <br><br> Please follow the instructions in it to complete your regstration process.<br> You can close this window now!",
+			URL:      "https://ivmanto.dev",
+		}
+	// user account already exists
+	case "uaae":
+		td = ssoapp.TemplateData{
+			MsgTitle: "User already exists",
+			Message:  "User with this email addrress already exists <br>",
+			URL:      "https://ivmanto.dev",
+		}
+	case "saef":
+		td = ssoapp.TemplateData{
+			MsgTitle: "User ",
+			Message:  "Your account needs to be activated. We have sent an email message <br> to the email address you have used for this registration. <br><br> Please follow the instructions in it to complete your regstration process.<br> You can close this window now!",
+			URL:      "https://ivmanto.dev",
+		}
+	default:
+		td = ssoapp.TemplateData{
+			MsgTitle: "Server error",
+			Message:  "There is no more details!",
+			URL:      "https://ivmanto.dev",
+		}
 	}
 
-	h.server.IvmSSO.Render(w, r, "infoAccounntActivation.page.tmpl", &td)
+	h.server.IvmSSO.Render(w, r, "message.page.tmpl", &td)
 }
 
 // registerUser will handle the registration of a new user as POST request from the UI form
 func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
+
+	var gwh = h.server.Config.GetAPIGWSvcURL()
 
 	headerContentTtype := r.Header.Get("Content-Type")
 	if headerContentTtype != "application/x-www-form-urlencoded" {
@@ -325,13 +357,12 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
 	err = h.server.Rgs.RegisterUser(names, email, password, "ivmanto", state, subCode)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		h.server.IvmSSO.Render(w, r, "errorUserRegActivate.page.tmpl", &ssoapp.TemplateData{
-			ErrorTitle:   fmt.Sprintf("Error %s", w.Header().Get("StatusText")),
-			ErrorMessage: fmt.Sprintf("Message: %v", err),
-		})
-		h.server.responseIntServerError(w, "registerUser", fmt.Errorf("Unable to register user %s, error: %v", email, err))
-		return
+
+		var redirectURL = fmt.Sprintf("https://%s/oauth/ui/activate?ms=uaae", gwh)
+
+		// redirect the user to message page
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+		//return
 	}
 	var to = []string{email}
 	var toName = []string{names}
@@ -339,16 +370,16 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
 	err = h.sendActivationEmail(to, toName, qp)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		h.server.IvmSSO.Render(w, r, "errorUserRegActivate.page.tmpl", &ssoapp.TemplateData{
-			ErrorTitle:   fmt.Sprintf("Error %s", w.Header().Get("StatusText")),
-			ErrorMessage: fmt.Sprintf("Message: %v", err),
-		})
+		// w.WriteHeader(http.StatusInternalServerError)
 		// h.server.responseIntServerError(w, "registerUser", fmt.Errorf("failed to send activation email to %s, error: %v", email, err))
-		return
+		// return
+
+		var redirectURL = fmt.Sprintf("https://%s/oauth/ui/activate?ms=saef", gwh)
+
+		// redirect the user to message page
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 	}
 
-	var gwh = h.server.Config.GetAPIGWSvcURL()
 	var redirectURL = fmt.Sprintf("https://%s/oauth/ui/activate", gwh)
 
 	// redirect the user to user's Login form to capture its credentials

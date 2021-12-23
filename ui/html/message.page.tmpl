@@ -1,18 +1,18 @@
 {{template "base" .}}
 
-{{define "title"}}Eror{{end}}
+{{define "title"}}Accounts{{end}}
 
 {{define "main"}}
     <body>
         <main>
-            <h3>{{.ErrorTitle}}</h3>
+            <h3>{{.MsgTitle}}</h3>
             <br>
             <p>
-                {{.ErrorMessage}}
+                {{.Message}}
             </p>
             <br>
             <p>
-                <a href=http://ivmanto.dev><strong>Go Back</strong></a>
+                <a href={{.URL}}>Go to ...</a>
             </p>
         </main>
     </body>
