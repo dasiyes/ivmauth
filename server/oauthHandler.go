@@ -264,6 +264,21 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	form := forms.New(r.PostForm)
+	form.Required("names", "email", "password")
+	form.MinLength("names", 4)
+	form.MaxLength("names", 100)
+	form.MaxLength("email", 320)
+	form.MinLength("password", 8)
+	form.MaxLength("password", 20)
+	if !form.Valid() {
+		h.server.IvmSSO.Render(w, r, "register.page.tmpl", &ssoapp.TemplateData{
+			Form:      form,
+			CSRFToken: r.FormValue("csrf_token"),
+			ClientID:  r.FormValue("client_id"),
+		})
+	}
+
 	// Handle CSRF protection
 	var formCSRFToken = r.FormValue("csrf_token")
 	stc, err := r.Cookie("csrf_token")
@@ -279,19 +294,6 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		h.server.responseBadRequest(w, "registerUser", fmt.Errorf("invalid CSRF tokens. [%s]", stc.Value))
 		return
-	}
-
-	form := forms.New(r.PostForm)
-	form.Required("names", "email", "password")
-	form.MinLength("names", 4)
-	form.MaxLength("names", 100)
-	form.MaxLength("email", 320)
-	form.MinLength("password", 8)
-	form.MaxLength("password", 20)
-	if !form.Valid() {
-		h.server.IvmSSO.Render(w, r, "register.page.tmpl", &ssoapp.TemplateData{
-			Form: form,
-		})
 	}
 
 	// Getting state value (defacto pre-session id)
@@ -320,10 +322,15 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	// }
 
 	var subCode = core.NewSubCode()
+
 	err = h.server.Rgs.RegisterUser(names, email, password, "ivmanto", state, subCode)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		h.server.responseIntServerError(w, "registerUser", fmt.Errorf("one or more empty manadatory attribute %s", email))
+		h.server.IvmSSO.Render(w, r, "errorUserRegActivate.page.tmpl", &ssoapp.TemplateData{
+			ErrorTitle:   fmt.Sprintf("Error %s", w.Header().Get("StatusText")),
+			ErrorMessage: fmt.Sprintf("Message: %v", err),
+		})
+		// h.server.responseIntServerError(w, "registerUser", fmt.Errorf("one or more empty manadatory attribute %s", email))
 		return
 	}
 	var to = []string{email}
@@ -333,7 +340,11 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	err = h.sendActivationEmail(to, toName, qp)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		h.server.responseIntServerError(w, "registerUser", fmt.Errorf("failed to send activation email to %s, error: %v", email, err))
+		h.server.IvmSSO.Render(w, r, "errorUserRegActivate.page.tmpl", &ssoapp.TemplateData{
+			ErrorTitle:   fmt.Sprintf("Error %s", w.Header().Get("StatusText")),
+			ErrorMessage: fmt.Sprintf("Message: %v", err),
+		})
+		// h.server.responseIntServerError(w, "registerUser", fmt.Errorf("failed to send activation email to %s, error: %v", email, err))
 		return
 	}
 

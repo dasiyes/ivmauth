@@ -18,6 +18,8 @@ type TemplateData struct {
 	User            *models.User
 	Version         string
 	ClientID        string
+	ErrorTitle      string
+	ErrorMessage    string
 }
 
 func humanDate(t time.Time) string {
