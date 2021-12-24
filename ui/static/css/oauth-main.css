@@ -35,6 +35,16 @@ body {
 }
 
 
+div.flash {
+  color: #FFFFFF;
+  font-weight: bold;
+  background-color: #34495E;
+  padding: 18px;
+  margin-bottom: 36px;
+  text-align: center;
+}
+
+
 /* Login Form */
 .login-container {
   display: flex;

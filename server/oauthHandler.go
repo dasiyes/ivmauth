@@ -231,7 +231,8 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 func (h *oauthHandler) userRegisterForm(w http.ResponseWriter, r *http.Request) {
 
 	var td = ssoapp.TemplateData{
-		Form: forms.New(nil),
+		Form:  forms.New(nil),
+		Flash: "De go toja flash",
 	}
 
 	h.server.IvmSSO.Render(w, r, "register.page.tmpl", &td)
@@ -257,13 +258,19 @@ func (h *oauthHandler) userActivateInfo(w http.ResponseWriter, r *http.Request) 
 	case "uaae":
 		td = ssoapp.TemplateData{
 			MsgTitle: "User already exists",
-			Message:  "User with this email addrress already exists <br>",
+			Message:  "User with this email addrress already exists in the database <br>",
 			URL:      "https://ivmanto.dev",
 		}
 	case "saef":
 		td = ssoapp.TemplateData{
-			MsgTitle: "User ",
-			Message:  "Your account needs to be activated. We have sent an email message <br> to the email address you have used for this registration. <br><br> Please follow the instructions in it to complete your regstration process.<br> You can close this window now!",
+			MsgTitle: "Sending activation email faild",
+			Message:  "...",
+			URL:      "https://ivmanto.dev",
+		}
+	case "auf":
+		td = ssoapp.TemplateData{
+			MsgTitle: "User activation failed",
+			Message:  "User activation has faileddue to error:",
 			URL:      "https://ivmanto.dev",
 		}
 	default:
@@ -332,7 +339,7 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	sc, err := r.Cookie(h.server.Config.GetSesssionCookieName())
 	if err == http.ErrNoCookie {
 		w.WriteHeader(http.StatusBadRequest)
-		h.server.responseBadRequest(w, "registerUser", fmt.Errorf("missing session id cookie: %#v", err))
+		h.server.responseBadRequest(w, "registerUser", fmt.Errorf("missing session id cookie: %v", err))
 		return
 	}
 	var state = sc.Value
@@ -362,7 +369,6 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
 		// redirect the user to message page
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
-		//return
 	}
 	var to = []string{email}
 	var toName = []string{names}
@@ -370,13 +376,7 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
 	err = h.sendActivationEmail(to, toName, qp)
 	if err != nil {
-		// w.WriteHeader(http.StatusInternalServerError)
-		// h.server.responseIntServerError(w, "registerUser", fmt.Errorf("failed to send activation email to %s, error: %v", email, err))
-		// return
-
 		var redirectURL = fmt.Sprintf("https://%s/oauth/ui/activate?ms=saef", gwh)
-
-		// redirect the user to message page
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 	}
 
@@ -388,6 +388,8 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
 // activateUser - will activate an user account on clicking url from activation email message
 func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
+
+	var gwh = h.server.Config.GetAPIGWSvcURL()
 
 	qp := r.URL.Query()
 	var sc = qp.Get("sc")
@@ -402,12 +404,16 @@ func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
 
 	err := h.server.Rgs.ActivateUser(ua, sc, state)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		h.server.responseIntServerError(w, "activateUser", fmt.Errorf("failed to activate user account %s, error: %v", ua, err))
-		return
+		// w.WriteHeader(http.StatusInternalServerError)
+		// h.server.responseIntServerError(w, "activateUser", fmt.Errorf("failed to activate user account %s, error: %v", ua, err))
+		// return
+
+		var redirectURL = fmt.Sprintf("https://%s/oauth/ui/activate?ms=auf", gwh)
+
+		// redirect the user to message page
+		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 	}
 
-	var gwh = h.server.Config.GetAPIGWSvcURL()
 	var redirectURL = fmt.Sprintf("https://%s/oauth/ui/login?t=%s", gwh, state)
 
 	// redirect the user to user's Login form to capture its credentials
