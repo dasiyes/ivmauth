@@ -287,18 +287,30 @@ func (h *oauthHandler) userActivateInfo(w http.ResponseWriter, r *http.Request) 
 func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
 	var gwh = h.server.Config.GetAPIGWSvcURL()
+	var ref = r.Referer()
+	if ref == "" {
+		ref = gwh
+	}
 
 	headerContentTtype := r.Header.Get("Content-Type")
 	if headerContentTtype != "application/x-www-form-urlencoded" {
-		w.WriteHeader(http.StatusUnsupportedMediaType)
-		h.server.responseBadRequest(w, "registerUser", fmt.Errorf("unsupported media type %s", headerContentTtype))
+		// w.WriteHeader(http.StatusUnsupportedMediaType)
+		// h.server.responseBadRequest(w, "registerUser", fmt.Errorf("unsupported media type %s", headerContentTtype))
+		h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
+			MsgTitle: "Bad Request",
+			Message:  fmt.Sprintf("unsupported media type %s", headerContentTtype),
+			URL:      ref,
+		})
 		return
 	}
 
 	err := r.ParseForm()
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		h.server.responseBadRequest(w, "registerUser", fmt.Errorf("while parsing the form error: %v", err))
+		h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
+			MsgTitle: "Bad Request",
+			Message:  fmt.Sprintf("while parsing the form error: %v", err),
+			URL:      ref,
+		})
 		return
 	}
 
@@ -363,14 +375,12 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
 	err = h.server.Rgs.RegisterUser(names, email, password, "ivmanto", state, subCode)
 	if err != nil {
-		h.server.IvmSSO.Render(w, r, "register.page.tmpl", &ssoapp.TemplateData{
-			Form:  form,
-			Flash: err.Error(),
+		h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
+			MsgTitle: "User registration",
+			Message:  fmt.Sprintf("while registering a new user: %v", err),
+			URL:      ref,
 		})
-
-		//var redirectURL = fmt.Sprintf("https://%s/oauth/ui/activate?ms=uaae", gwh)
-		// redirect the user to message page
-		//http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+		return
 	}
 	var to = []string{email}
 	var toName = []string{names}
