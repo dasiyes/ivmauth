@@ -380,14 +380,20 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
 	err = h.sendActivationEmail(to, toName, qp)
 	if err != nil {
-		var redirectURL = fmt.Sprintf("https://%s/oauth/ui/activate?ms=saef", gwh)
-		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+		//TODO [dev]: compose an URL for resending the email message
+		h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
+			MsgTitle: "Account activation",
+			Message:  fmt.Sprintf("while sending email to address %s, error: %v", email, err),
+			URL:      ref,
+		})
+		return
 	}
 
-	var redirectURL = fmt.Sprintf("https://%s/oauth/ui/activate", gwh)
-
-	// redirect the user to user's Login form to capture its credentials
-	http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+	h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
+		MsgTitle: "Check your inbox",
+		Message:  "Your account needs to be activated. We have sent an email message <br> to the email address you have used for this registration. <br><br> Please follow the instructions in it to complete your regstration process.<br> You can close this window now!",
+		URL:      gwh,
+	})
 }
 
 // activateUser - will activate an user account on clicking url from activation email message
