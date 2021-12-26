@@ -231,8 +231,7 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 func (h *oauthHandler) userRegisterForm(w http.ResponseWriter, r *http.Request) {
 
 	var td = ssoapp.TemplateData{
-		Form:  forms.New(nil),
-		Flash: "De go toja flash",
+		Form: forms.New(nil),
 	}
 
 	h.server.IvmSSO.Render(w, r, "register.page.tmpl", &td)
@@ -364,11 +363,14 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
 	err = h.server.Rgs.RegisterUser(names, email, password, "ivmanto", state, subCode)
 	if err != nil {
+		h.server.IvmSSO.Render(w, r, "register.page.tmpl", &ssoapp.TemplateData{
+			Form:  form,
+			Flash: err.Error(),
+		})
 
-		var redirectURL = fmt.Sprintf("https://%s/oauth/ui/activate?ms=uaae", gwh)
-
+		//var redirectURL = fmt.Sprintf("https://%s/oauth/ui/activate?ms=uaae", gwh)
 		// redirect the user to message page
-		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
+		//http.Redirect(w, r, redirectURL, http.StatusSeeOther)
 	}
 	var to = []string{email}
 	var toName = []string{names}
