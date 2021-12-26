@@ -363,14 +363,6 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	// _ = cid
 	// var cid = form.Get("client_id")
 
-	// _ = level.Debug(h.logger).Log("cid", cid, "email", email, "password", fmt.Sprintf("%d", len(password)))
-
-	// if email == "" || password == "" {
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	h.server.responseBadRequest(w, "registerUser", fmt.Errorf("one or more empty manadatory attribute %s", email))
-	// 	return
-	// }
-
 	var subCode = core.NewSubCode()
 
 	err = h.server.Rgs.RegisterUser(names, email, password, "ivmanto", state, subCode)

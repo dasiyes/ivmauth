@@ -52,6 +52,20 @@ div.flash {
   box-sizing: border-box;
 }
 
+div.flash > p {
+  width: 320px;
+}
+
+main.msg {
+  font-size: large;
+  font-family: 'Courier New', Courier, monospace;
+  width: 450;
+}
+
+main.msg > p {
+  color: #009688;
+  width: 420px;
+}
 
 /* Login Form */
 .login-container {
