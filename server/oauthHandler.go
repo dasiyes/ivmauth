@@ -342,6 +342,7 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Add("Set-Cookie", "csrf_token=\"\"; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
 	h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
 		MsgTitle: "Check your inbox",
 		Message:  "Your account needs to be activated. We have sent an email message <br> to the email address you have used for this registration. <br><br> Please follow the instructions in it to complete your regstration process.<br> You can close this window now!",
