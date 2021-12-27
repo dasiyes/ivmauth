@@ -207,6 +207,8 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 		subcodestr := fmt.Sprintf("%v", usr.SubCode)
 		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s&sc=%s", call_back_url, ac["auth_code"], state, subcodestr)
 
+		w.Header().Add("Set-Cookie", "csrf_token=\"\"; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
+
 		// [!] ACF S7 ->
 		// redirect to the web application server endpoint dedicated to call-back from /oauth/login
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
@@ -242,7 +244,7 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	var gwh = h.server.Config.GetAPIGWSvcURL()
 	var ref = r.Referer()
 	if ref == "" {
-		ref = gwh
+		ref = fmt.Sprintf("https://%s", gwh)
 	}
 
 	headerContentType := r.Header.Get("Content-Type")
@@ -346,8 +348,8 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Set-Cookie", "csrf_token=\"\"; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
 	h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
 		MsgTitle: "Check your inbox",
-		Message:  "Your account needs to be activated. We have sent an email message \n to the email address you have used for this registration. \n\n Please follow the instructions in it to complete your regstration process.\n You can close this window now!",
-		URL:      gwh,
+		Message:  "Your account has been registered successfully! \n But it needs to be activated. We have sent an email message to the email address you have used for this registration. \n\n Please follow the instructions in it to complete your regstration process.\n You can close this window now!",
+		URL:      fmt.Sprintf("https://%s/pg", gwh),
 		UrlLabel: "Home",
 	})
 }
@@ -391,6 +393,7 @@ func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Add("Set-Cookie", "csrf_token=\"\"; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
 	var redirectURL = fmt.Sprintf("https://%s/oauth/ui/login?t=%s", gwh, state)
 
 	h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
