@@ -21,6 +21,7 @@ type TemplateData struct {
 	MsgTitle        string
 	Message         string
 	URL             string
+	UrlLabel        string
 }
 
 func humanDate(t time.Time) string {

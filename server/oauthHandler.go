@@ -338,6 +338,7 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 			MsgTitle: "Account activation",
 			Message:  fmt.Sprintf("while sending email to address %s, error: %v", email, err),
 			URL:      ref,
+			UrlLabel: "Back",
 		})
 		return
 	}
@@ -345,8 +346,9 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Set-Cookie", "csrf_token=\"\"; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
 	h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
 		MsgTitle: "Check your inbox",
-		Message:  "Your account needs to be activated. We have sent an email message <br> to the email address you have used for this registration. <br><br> Please follow the instructions in it to complete your regstration process.<br> You can close this window now!",
+		Message:  "Your account needs to be activated. We have sent an email message \n to the email address you have used for this registration. \n\n Please follow the instructions in it to complete your regstration process.\n You can close this window now!",
 		URL:      gwh,
+		UrlLabel: "Home",
 	})
 }
 
@@ -371,6 +373,7 @@ func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
 			MsgTitle: "Bad Request",
 			Message:  "Missing one or more mandatory attributes",
 			URL:      ref,
+			UrlLabel: "Back",
 		})
 		return
 	}
@@ -383,6 +386,7 @@ func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
 			MsgTitle: "New User Activation",
 			Message:  fmt.Sprintf("while activating user account %s, error: %v", ua, err),
 			URL:      ref,
+			UrlLabel: "Back",
 		})
 		return
 	}
@@ -393,6 +397,7 @@ func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
 		MsgTitle: "User activated successfully",
 		Message:  "Now you may use your new account to login",
 		URL:      redirectURL,
+		UrlLabel: "Login",
 	})
 }
 
