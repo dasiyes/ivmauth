@@ -529,7 +529,7 @@ func (h *oauthHandler) handleAuthCodeFlow(
 		return
 	}
 
-	w.Header().Add("Set-Cookie", "ia=1; HTTPOnly")
+	w.Header().Add("Set-Cookie", "ia=1; HTTPOnly; Path=/")
 
 	// redirect back to web app page (registered for the client id)
 	http.Redirect(w, r, rb.RedirectUri, http.StatusSeeOther)
