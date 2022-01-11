@@ -541,9 +541,23 @@ func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 	scn := h.server.Config.GetSesssionCookieName()
 	rfr := r.Referer()
 
+	// Must have any session cookie (not checking for valid session id cookie - just session cookie)
 	sc, err := r.Cookie(scn)
 	if err != nil {
-		h.server.responseBadRequest(w, "logOut-get-session", err)
+		h.server.responseBadRequest(w, "logOut-get-session-cookie", err)
+		return
+	}
+
+	// Must have ia cookie
+	iac, err := r.Cookie("ia")
+	if err != nil {
+		h.server.responseBadRequest(w, "logOut-get-ia-cookie", err)
+		return
+	}
+
+	// ia cookie value must be valis (loggedIn)
+	if iac.Value != "1" {
+		h.server.responseBadRequest(w, "logOut-get-ia-cookie", fmt.Errorf("invalid cookie value %s", iac.Value))
 		return
 	}
 
@@ -554,10 +568,12 @@ func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Set-Cookie", "ia=; HTTPOnly; Path=/")
 	w.Header().Add("Set-Cookie", fmt.Sprintf("%s=; HTTPOnly; Path=/", scn))
 
-	//w.WriteHeader(http.StatusAccepted)
-
-	// redirect back to web app page (registered for the client id)
-	http.Redirect(w, r, rfr, http.StatusSeeOther)
+	if rfr != "" {
+		w.WriteHeader(http.StatusAccepted)
+	} else {
+		// redirect back to web app page (registered for the client id)
+		http.Redirect(w, r, rfr, http.StatusSeeOther)
+	}
 
 }
 
