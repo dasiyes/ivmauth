@@ -539,6 +539,8 @@ func (h *oauthHandler) handleAuthCodeFlow(
 func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 
 	scn := h.server.Config.GetSesssionCookieName()
+	rfr := r.Referer()
+
 	sc, err := r.Cookie(scn)
 	if err != nil {
 		h.server.responseBadRequest(w, "logOut-get-session", err)
@@ -551,7 +553,11 @@ func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Set-Cookie", "ia=; HTTPOnly; Path=/")
 	w.Header().Add("Set-Cookie", fmt.Sprintf("%s=; HTTPOnly; Path=/", scn))
-	w.WriteHeader(http.StatusAccepted)
+
+	//w.WriteHeader(http.StatusAccepted)
+
+	// redirect back to web app page (registered for the client id)
+	http.Redirect(w, r, rfr, http.StatusSeeOther)
 
 }
 
