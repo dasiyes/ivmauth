@@ -38,7 +38,7 @@ logo {
   padding: 2px calc((100% - 80%) / 2) 0;
   padding-top: 5px;
   padding-bottom: 5px;
-  background-image: url("/static/img/logo.png");
+  background-image: url("/static/img/logoc.svg");
   background-repeat: no-repeat;
   background-position: 50% 0%;
   background-size: 180px 180px;
