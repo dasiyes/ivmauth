@@ -73,8 +73,12 @@ main.msg {
 }
 
 main.msg > p {
-  color: #009688;
+  color: #028090;
   width: 420px;
+}
+
+header {
+  background: #02c39a;
 }
 
 /* Login Form */
@@ -96,7 +100,7 @@ main.msg > p {
 
 .login-container p {
   align-self: flex-start;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Josefin Sans', sans-serif;
   font-size: 0.8rem;
   color: rgba(0, 0, 0, 0.5);
 }
@@ -126,8 +130,11 @@ main.msg > p {
   padding: 10px;
   margin: -10px -10px 25px -10px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  background: #009688;
-  font-family: 'Roboto', sans-serif;
+  background-image: url("/static/img/logoc.svg");
+  background-repeat: no-repeat;
+  background-position: 80% 70%;
+  background-size: 120px 120px;
+  font-family: 'Josefin Sans', sans-serif;
   font-size: 1.3rem;
   color: #FAFAFA;
   animation: scale_header 0.6s cubic-bezier(.55, 0, .1, 1), text_opacity 1s cubic-bezier(.55, 0, .1, 1);
@@ -148,7 +155,7 @@ main.msg > p {
   margin: -10px 0 0 -10px;
   box-sizing: border-box;
   background: rgba(0, 0, 0, 0.156);
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Josefin Sans', sans-serif;
   font-size: 0.9rem;
   color: transparent;
   z-index: 5;
@@ -195,7 +202,7 @@ main.msg > p {
   box-sizing: border-box;
   background: transparent;
   font-size: 1rem;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Josefin Sans', sans-serif;
   font-weight: 500;
   opacity: 1;
   animation: input_opacity 0.8s cubic-bezier(.55, 0, .1, 1);
@@ -224,7 +231,7 @@ main.msg > p {
   border: none;
   border-radius: 3px;
   background: transparent;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Josefin Sans', sans-serif;
   font-size: 0.9rem;
   font-weight: 500;
   color: #E37F00;
@@ -271,7 +278,7 @@ main.msg > p {
 
 .register-container p {
   align-self: flex-start;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Josefin Sans', sans-serif;
   font-size: 0.8rem;
   color: rgba(0, 0, 0, 0.5);
 }
@@ -301,8 +308,11 @@ main.msg > p {
   padding: 10px;
   margin: -10px -10px 25px -10px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  background: #009688;
-  font-family: 'Roboto', sans-serif;
+  background-image: url("/static/img/logoc.svg");
+  background-repeat: no-repeat;
+  background-position: 80% 50%;
+  background-size: 120px 120px;
+  font-family: 'Josefin Sans', sans-serif;
   font-size: 1.3rem;
   color: #FAFAFA;
   animation: scale_header 0.6s cubic-bezier(.55, 0, .1, 1), text_opacity 1s cubic-bezier(.55, 0, .1, 1);
@@ -323,7 +333,7 @@ main.msg > p {
   margin: -10px 0 0 -10px;
   box-sizing: border-box;
   background: rgba(0, 0, 0, 0.156);
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Josefin Sans', sans-serif;
   font-size: 0.9rem;
   color: transparent;
   z-index: 5;
@@ -370,7 +380,7 @@ main.msg > p {
   box-sizing: border-box;
   background: transparent;
   font-size: 1rem;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Josefin Sans', sans-serif;
   font-weight: 500;
   opacity: 1;
   animation: input_opacity 0.8s cubic-bezier(.55, 0, .1, 1);

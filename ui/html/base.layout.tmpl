@@ -6,9 +6,11 @@
         <title>{{template "title" .}} - Ivmanto</title>
         <link rel='stylesheet' href='/static/css/oauth-main.css'>
         <link rel='shortcut icon' href='/static/img/favicon.ico' type='image/x-icon'>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100;400;700&display=swap" rel="stylesheet">
     </head>
     <body>
-        <logo></logo>
         <main>
             {{with .Flash}}
                 <div class='flash'><p>{{.}}</p></div>
