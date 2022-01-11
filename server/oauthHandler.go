@@ -565,8 +565,8 @@ func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 	h.server.Sm.Destroy(w, r)
 	_ = level.Debug(h.logger).Log("[LogOut]", fmt.Sprintf("session id %s destroyed", sc.Value))
 
-	w.Header().Add("Set-Cookie", "ia=; HTTPOnly; Path=/")
-	w.Header().Add("Set-Cookie", fmt.Sprintf("%s=; HTTPOnly; Path=/", scn))
+	w.Header().Add("Set-Cookie", "ia=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
+	w.Header().Add("Set-Cookie", fmt.Sprintf("%s=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT", scn))
 
 	if rfr != "" {
 		w.WriteHeader(http.StatusAccepted)
