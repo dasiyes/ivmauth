@@ -81,6 +81,12 @@ header {
   background: #02c39a;
 }
 
+footer h3 {
+  font-family: 'Josefin Sans', sans-serif;
+  font-weight: 100;
+  font-size: 0.4rem;
+}
+
 /* Login Form */
 .login-container {
   display: flex;
@@ -310,7 +316,7 @@ header {
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   background-image: url("/static/img/logoc.svg");
   background-repeat: no-repeat;
-  background-position: 80% 50%;
+  background-position: 80% 70%;
   background-size: 120px 120px;
   font-family: 'Josefin Sans', sans-serif;
   font-size: 1.3rem;
