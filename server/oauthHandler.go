@@ -568,7 +568,7 @@ func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Set-Cookie", "ia=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
 	w.Header().Add("Set-Cookie", fmt.Sprintf("%s=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT", scn))
 
-	if rfr != "" {
+	if rfr == "" {
 		w.WriteHeader(http.StatusAccepted)
 	} else {
 		// redirect back to web app page (registered for the client id)
