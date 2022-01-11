@@ -35,6 +35,8 @@ body {
 }
 
 logo {
+  padding: 2px calc((100% - 30%) / 2) 0;
+  width: 100%;
   border-bottom: 1px solid #E4E5E7;
   padding-top: 5px;
   padding-bottom: 5px;
