@@ -35,15 +35,13 @@ body {
 }
 
 logo {
-  padding: 2px calc((100% - 30%) / 2) 0;
-  width: 100%;
-  border-bottom: 1px solid #E4E5E7;
+  padding: 2px calc((100% - 80%) / 2) 0;
   padding-top: 5px;
   padding-bottom: 5px;
   background-image: url("/static/img/logo.png");
   background-repeat: no-repeat;
-  background-position: 0px 0px;
-  background-size: 150px 150px;
+  background-position: 50% 0%;
+  background-size: 180px 180px;
   height: 160px;
 }
 
