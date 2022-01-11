@@ -37,6 +37,7 @@ func (h *oauthHandler) router() chi.Router {
 		r.Get("/authorize", h.processAuthCode)
 		r.Post("/login", h.authLogin)
 		r.Post("/token", h.issueToken)
+		r.Post("/logout", h.logOut)
 		r.Post("/register", h.registerUser)
 		r.Get("/token", h.validateToken)
 		r.Get("/activate", h.activateUser)
@@ -533,6 +534,25 @@ func (h *oauthHandler) handleAuthCodeFlow(
 
 	// redirect back to web app page (registered for the client id)
 	http.Redirect(w, r, rb.RedirectUri, http.StatusSeeOther)
+}
+
+func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
+
+	scn := h.server.Config.GetSesssionCookieName()
+	sc, err := r.Cookie(scn)
+	if err != nil {
+		h.server.responseBadRequest(w, "logOut-get-session", err)
+		return
+	}
+
+	// Destroy the session in Session Manager
+	h.server.Sm.Destroy(w, r)
+	_ = level.Debug(h.logger).Log("[LogOut]", fmt.Sprintf("session id %s destroyed", sc.Value))
+
+	w.Header().Add("Set-Cookie", "ia=; HTTPOnly; Path=/")
+	w.Header().Add("Set-Cookie", fmt.Sprintf("%s=; HTTPOnly; Path=/", scn))
+	w.WriteHeader(http.StatusAccepted)
+
 }
 
 // TODO [dev]: implement handling of the refresh token for re-issue Access Token!
