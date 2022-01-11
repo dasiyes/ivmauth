@@ -8,11 +8,12 @@
         <link rel='shortcut icon' href='/static/img/favicon.ico' type='image/x-icon'>
     </head>
     <body>
-        <logo></logo>
         <main>
             {{with .Flash}}
                 <div class='flash'><p>{{.}}</p></div>
             {{end}}
+            
+            <logo></logo>
             {{template "main" .}}
         </main>
         {{template "footer" .}}
