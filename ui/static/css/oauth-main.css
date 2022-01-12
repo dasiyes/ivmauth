@@ -192,7 +192,8 @@ footer h3 {
 .login > header a {
   text-decoration: none;
   font-size: 0.6em;
-  color: #028090;
+  /*color: #028090; */
+  color: #1B659D;
 }
 
 /* Form */
