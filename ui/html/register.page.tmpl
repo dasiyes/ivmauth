@@ -1,0 +1,41 @@
+{{template "base" .}}
+
+{{define "title"}}Register{{end}}
+
+{{define "main"}}
+    <div class="register-container">  
+        <section class="register" id="register">
+            <header>
+                <h2>Register</h2>
+                <h4><a href=/oauth/ui/login>Login</a></h4>
+            </header>
+            <form class="register-form" action='/oauth/register' method='POST'>
+                <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
+                <input type='hidden' name='client_id' value='{{.ClientID}}'>
+                {{with .Form}}
+                    <div>
+                        {{with .Errors.Get "names"}}
+                            <div class='error'>{{.}}</div>
+                        {{end}}
+                        <input type='text' class="register-input" placeholder="names" name='names' value='{{.Get "names"}}' required>
+                    </div>
+                    <div>
+                        {{with .Errors.Get "email"}}
+                            <div class='error'>{{.}}</div>
+                        {{end}}
+                        <input type='email' class="register-input" placeholder="email" name='email' value='{{.Get "email"}}' required>
+                    </div>
+                    <div>
+                        {{with .Errors.Get "password"}}
+                            <div class='error'>{{.}}</div>
+                        {{end}}
+                        <input type='password' class="register-input" placeholder="password" name='password' required>
+                    </div>
+                    <div class="submit-container">
+                        <button id="e2" type="submit" class="login-button">Register</button>
+                    </div>
+                {{end}}
+            </form>
+        </section>
+    </div>
+{{end}}

@@ -82,16 +82,27 @@ func getClientIDFromReqQueryPrm(r *http.Request) (cid string, err error) {
 
 	r.URL.RawQuery, err = url.QueryUnescape(r.URL.RawQuery)
 	if err != nil {
-		return "", fmt.Errorf("while validating clientID exists, error: %#v! %#v", err, core.ErrBadRequest)
+		return "", fmt.Errorf("while validating clientID exists, error: %v! %v", err, core.ErrBadRequest)
 	}
 
 	q := r.URL.Query()
 	cid = q.Get("client_id")
 	cid = strings.TrimSpace(cid)
 	if cid == "" {
-		return "", fmt.Errorf("while validating clientID exists - missing client_id! %#v", core.ErrBadRequest)
+		return "", fmt.Errorf("while validating clientID exists - missing client_id! %v", core.ErrBadRequest)
 	}
 	return cid, nil
+}
+
+// getClientIDFromCookie - will retrieve the client ID from the request cookie
+func getClientIDFromCookie(r *http.Request) (cid string, err error) {
+
+	cc, err := r.Cookie("c")
+	if err != nil {
+		return "", fmt.Errorf("while getting clientID from cookie - missing named cookie'c', error: %v", err)
+	}
+
+	return cc.Value, nil
 }
 
 // validateIDToken will provide validation of a signed JWT that respects OpenIDConnect ID Token (https://openid.net/specs/openid-connect-core-1_0.html#IDToken)
@@ -228,26 +239,30 @@ func checkValidClientAuthRequest(r *http.Request, cfg config.IvmCfg) (bool, erro
 	var expected_host = cfg.GetAuthSvcURL()
 
 	if host != expected_host || host == "" || expected_host == "" {
-		return false, core.ErrBadRequest
+		fmt.Printf("[checkValidClientAuthRequest] - host:%s, expected_host:%s", host, expected_host)
+		return false, fmt.Errorf("unable to identify host value, error:%v", core.ErrBadRequest)
 	}
 
 	var env string = cfg.GetEnv()
 	if origin == "" && env == "prod" {
 		//TODO [dev]: implement db support for taking the array of allowed origins
-		fmt.Printf("BadRequest: missing origin value\n")
-		return false, core.ErrBadRequest
+		fmt.Printf("[checkValidClientAuthRequest]: missing origin value\n")
+		return false, fmt.Errorf("missing origin value in prod env, error:%v", core.ErrBadRequest)
 	}
 
 	if referer == "" {
 		//TODO [design]: consider if this value must be part of the client Authentication process...
-		fmt.Printf("INFO: missing referer value\n")
+		fmt.Printf("[checkValidClientAuthRequest]: missing referer value\n")
 	}
 
 	if r.Method != http.MethodPost {
-		// Check for an exception - validate the clientID is registred for GET /oauth/authorize endpoint
-		if r.Method == http.MethodGet && r.URL.Path == "/oauth/authorize" {
+		// Check for an exception - validate the clientID is registred for the following endpoints:
+		// * GET /oauth/authorize
+		// * GET /oauth/ui/activate
+		if r.Method == http.MethodGet && (r.URL.Path == "/oauth/authorize" || r.URL.Path == "/oauth/ui/activate") {
 			return true, nil
 		}
+		fmt.Printf("[checkValidClientAuthRequest] not allowed method %s\n", r.Method)
 		return false, fmt.Errorf("request method %s is not accepted", r.Method)
 	}
 
@@ -262,7 +277,7 @@ func getAndAuthRegisteredClient(clients core.ClientRepository, cID, cSec string)
 
 	rc, err := clients.Find(core.ClientID(cID))
 	if err != nil {
-		return nil, fmt.Errorf("while finding clientID: %v in the database error raised: %#v", cID, err)
+		return nil, fmt.Errorf("while finding clientID: %v in the database error raised: %v", cID, err)
 	}
 
 	var dbCS = strings.TrimSpace(rc.ClientSecret)
@@ -273,7 +288,7 @@ func getAndAuthRegisteredClient(clients core.ClientRepository, cID, cSec string)
 		if cSec != "" && dbCS == cSec {
 			return rc, nil
 		} else {
-			return nil, fmt.Errorf("authentication failed for clientID %s, clientType %s, dbCS: %s, cSec: %s,%#v", cID, rc.ClientType.String(), dbCS, cSec, core.ErrClientAuth)
+			return nil, fmt.Errorf("authentication failed for clientID %s, clientType %s, dbCS: %s, cSec: %s, error:%v", cID, rc.ClientType.String(), dbCS, cSec, core.ErrClientAuth)
 		}
 	case core.Credentialed:
 		// TODO [dev]: identify the use case for this client Type and implement the logic
@@ -303,12 +318,17 @@ func validateClientExists(r *http.Request, clients core.ClientRepository) (*core
 	case "GET /oauth/authorize":
 		cID, err = getClientIDFromReqQueryPrm(r)
 		if err != nil {
-			return nil, fmt.Errorf("while getting clientID: %v from query param error raised: %#v", cID, err)
+			return nil, fmt.Errorf("while getting clientID: %v from query param error raised: %v", cID, err)
 		}
 	case "POST /oauth/login":
 		cID, _, err = getClientIDSecWFUE(r)
 		if err != nil {
-			return nil, fmt.Errorf("while getting clientID: %v from request body error raised: %#v", cID, err)
+			return nil, fmt.Errorf("while getting clientID: %v from request body error raised: %v", cID, err)
+		}
+	case "GET /oauth/ui/activate":
+		cID, err = getClientIDFromCookie(r)
+		if err != nil {
+			return nil, fmt.Errorf("while getting clientID: %v from cookie error raised: %v", cID, err)
 		}
 	default:
 		cID = ""
@@ -333,6 +353,10 @@ func isClientIDValidateCase(r *http.Request) bool {
 	case mrp == "GET /oauth/authorize":
 		return true
 	case mrp == "POST /oauth/login":
+		return true
+	case mrp == "POST /oauth/register":
+		return true
+	case mrp == "GET /oauth/ui/activate":
 		return true
 	default:
 		return false

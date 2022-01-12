@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/dasiyes/ivmapi/pkg/tools"
+
 	"github.com/go-chi/chi"
 	kitlog "github.com/go-kit/log"
 	"github.com/go-kit/log/level"
@@ -17,6 +18,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/dasiyes/ivmauth/core"
+	"github.com/dasiyes/ivmauth/pkg/email"
 	"github.com/dasiyes/ivmauth/pkg/forms"
 	"github.com/dasiyes/ivmauth/pkg/ssoapp"
 )
@@ -35,10 +37,14 @@ func (h *oauthHandler) router() chi.Router {
 		r.Get("/authorize", h.processAuthCode)
 		r.Post("/login", h.authLogin)
 		r.Post("/token", h.issueToken)
+		r.Post("/logout", h.logOut)
+		r.Post("/register", h.registerUser)
 		r.Get("/token", h.validateToken)
+		r.Get("/activate", h.activateUser)
 		r.Route("/ui", func(r chi.Router) {
 			r.Use(noSurf)
 			r.Get("/login", h.userLoginForm)
+			r.Get("/register", h.userRegisterForm)
 		})
 	})
 
@@ -145,7 +151,7 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 	if err == http.ErrNoCookie {
 		// [ ] potential CSRF attack - log the request with all possible details
 		w.WriteHeader(http.StatusBadRequest)
-		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("missing csrf_token cookie: %#v", err))
+		h.server.responseBadRequest(w, "authLogin", fmt.Errorf("missing csrf_token cookie: %v", err))
 		return
 	}
 	// Verifying the CSRF tokens
@@ -202,6 +208,8 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 		subcodestr := fmt.Sprintf("%v", usr.SubCode)
 		var redirectURL = fmt.Sprintf("%s?code=%s&state=%s&sc=%s", call_back_url, ac["auth_code"], state, subcodestr)
 
+		w.Header().Add("Set-Cookie", "csrf_token=\"\"; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
+
 		// [!] ACF S7 ->
 		// redirect to the web application server endpoint dedicated to call-back from /oauth/login
 		http.Redirect(w, r, redirectURL, http.StatusSeeOther)
@@ -219,6 +227,186 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.server.IvmSSO.Render(w, r, "login.page.tmpl", &td)
+}
+
+// userRegisterForm will handle the UI for the user's registration form
+func (h *oauthHandler) userRegisterForm(w http.ResponseWriter, r *http.Request) {
+
+	var td = ssoapp.TemplateData{
+		Form: forms.New(nil),
+	}
+
+	h.server.IvmSSO.Render(w, r, "register.page.tmpl", &td)
+}
+
+// registerUser will handle the registration of a new user as POST request from the UI form
+func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
+
+	var gwh = h.server.Config.GetAPIGWSvcURL()
+	var ref = r.Referer()
+	if ref == "" {
+		ref = fmt.Sprintf("https://%s", gwh)
+	}
+
+	headerContentType := r.Header.Get("Content-Type")
+	if headerContentType != "application/x-www-form-urlencoded" {
+		// w.WriteHeader(http.StatusUnsupportedMediaType)
+		// h.server.responseBadRequest(w, "registerUser", fmt.Errorf("unsupported media type %s", headerContentTtype))
+		h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
+			MsgTitle: "Bad Request",
+			Message:  fmt.Sprintf("unsupported media type %s", headerContentType),
+			URL:      ref,
+		})
+		return
+	}
+
+	err := r.ParseForm()
+	if err != nil {
+		h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
+			MsgTitle: "Bad Request",
+			Message:  fmt.Sprintf("while parsing the form error: %v", err),
+			URL:      ref,
+		})
+		return
+	}
+
+	form := forms.New(r.PostForm)
+	form.Required("names", "email", "password")
+	form.MinLength("names", 4)
+	form.MaxLength("names", 100)
+	form.MaxLength("email", 320)
+	form.MinLength("password", 8)
+	form.MaxLength("password", 20)
+	if !form.Valid() {
+		h.server.IvmSSO.Render(w, r, "register.page.tmpl", &ssoapp.TemplateData{
+			Form:      form,
+			CSRFToken: r.FormValue("csrf_token"),
+			ClientID:  r.FormValue("client_id"),
+		})
+	}
+
+	// Handle CSRF protection
+	var formCSRFToken = r.FormValue("csrf_token")
+	stc, err := r.Cookie("csrf_token")
+	if err == http.ErrNoCookie {
+		// [x] potential CSRF attack - log the request with all possible details
+		nerr := fmt.Errorf("missing csrf_token cookie: %#v", err)
+		go h.logPotentialCSRFAttacks(r, nerr)
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "registerUser", nerr)
+		return
+	}
+	// Verifying the CSRF tokens
+	if !nosurf.VerifyToken(formCSRFToken, stc.Value) {
+		// [x] potential CSRF attack - log the request with all possible details
+		nerr := fmt.Errorf("invalid CSRF tokens. [%s]", stc.Value)
+		go h.logPotentialCSRFAttacks(r, nerr)
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "registerUser", nerr)
+		return
+	}
+
+	// Getting state value (defacto pre-session id)
+	sc, err := r.Cookie(h.server.Config.GetSesssionCookieName())
+	if err == http.ErrNoCookie {
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "registerUser", fmt.Errorf("missing session id cookie: %v", err))
+		return
+	}
+	var state = sc.Value
+
+	var names = form.Get("names")
+	var email = form.Get("email")
+	var password = form.Get("password")
+
+	// [ ] Check where this is used???
+	// _ = cid
+	// var cid = form.Get("client_id")
+
+	var subCode = core.NewSubCode()
+
+	err = h.server.Rgs.RegisterUser(names, email, password, "ivmanto", state, subCode)
+	if err != nil {
+		h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
+			MsgTitle: "User registration",
+			Message:  fmt.Sprintf("while registering a new user: %v", err),
+			URL:      ref,
+		})
+		return
+	}
+	var to = []string{email}
+	var toName = []string{names}
+	var qp = fmt.Sprintf("ua=%s&state=%s&sc=%s", email, state, subCode)
+
+	err = h.sendActivationEmail(to, toName, qp)
+	if err != nil {
+		//TODO [dev]: compose an URL for resending the email message
+		h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
+			MsgTitle: "Account activation",
+			Message:  fmt.Sprintf("while sending email to address %s, error: %v", email, err),
+			URL:      ref,
+			UrlLabel: "Back",
+		})
+		return
+	}
+
+	w.Header().Add("Set-Cookie", "csrf_token=\"\"; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
+	h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
+		MsgTitle: "Check your inbox",
+		Message:  "Your account has been registered successfully! \n But it needs to be activated. We have sent an email message to the email address you have used for this registration. \n\n Please follow the instructions in it to complete your regstration process.\n You can close this window now!",
+		URL:      fmt.Sprintf("https://%s/pg", gwh),
+		UrlLabel: "Home",
+	})
+}
+
+// activateUser - will activate an user account on clicking url from activation email message
+func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
+
+	var gwh = h.server.Config.GetAPIGWSvcURL()
+	var ref = r.Referer()
+	if ref == "" {
+		ref = gwh
+	}
+
+	qp := r.URL.Query()
+	var sc = qp.Get("sc")
+	var ua = qp.Get("ua")
+	var state = qp.Get("state")
+
+	if ua == "" || sc == "" || state == "" {
+		//w.WriteHeader(http.StatusBadRequest)
+		//h.server.responseBadRequest(w, "activateUser", fmt.Errorf("one or more empty manadatory attribute"))
+		h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
+			MsgTitle: "Bad Request",
+			Message:  "Missing one or more mandatory attributes",
+			URL:      ref,
+			UrlLabel: "Back",
+		})
+		return
+	}
+
+	err := h.server.Rgs.ActivateUser(ua, sc, state)
+	if err != nil {
+		// w.WriteHeader(http.StatusInternalServerError)
+		// h.server.responseIntServerError(w, "activateUser", fmt.Errorf("failed to activate user account %s, error: %v", ua, err))
+		h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
+			MsgTitle: "New User Activation",
+			Message:  fmt.Sprintf("while activating user account %s, error: %v", ua, err),
+			URL:      ref,
+			UrlLabel: "Back",
+		})
+		return
+	}
+
+	w.Header().Add("Set-Cookie", "csrf_token=\"\"; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
+	var redirectURL = fmt.Sprintf("https://%s/oauth/ui/login?t=%s", gwh, state)
+
+	h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
+		MsgTitle: "User activated successfully",
+		Message:  "Now you may use your new account to login",
+		URL:      redirectURL,
+		UrlLabel: "Login",
+	})
 }
 
 // issueToken will return an access token (Ivmanto's IDToken) to the post request
@@ -346,8 +534,51 @@ func (h *oauthHandler) handleAuthCodeFlow(
 		return
 	}
 
+	w.Header().Add("Set-Cookie", "ia=1; HTTPOnly; Path=/")
+
 	// redirect back to web app page (registered for the client id)
 	http.Redirect(w, r, rb.RedirectUri, http.StatusSeeOther)
+}
+
+func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
+
+	scn := h.server.Config.GetSesssionCookieName()
+	rfr := r.Referer()
+
+	// Must have any session cookie (not checking for valid session id cookie - just session cookie)
+	sc, err := r.Cookie(scn)
+	if err != nil {
+		h.server.responseBadRequest(w, "logOut-get-session-cookie", err)
+		return
+	}
+
+	// Must have ia cookie
+	iac, err := r.Cookie("ia")
+	if err != nil {
+		h.server.responseBadRequest(w, "logOut-get-ia-cookie", err)
+		return
+	}
+
+	// ia cookie value must be valis (loggedIn)
+	if iac.Value != "1" {
+		h.server.responseBadRequest(w, "logOut-get-ia-cookie", fmt.Errorf("invalid cookie value %s", iac.Value))
+		return
+	}
+
+	// Destroy the session in Session Manager
+	h.server.Sm.Destroy(w, r)
+	_ = level.Debug(h.logger).Log("[LogOut]", fmt.Sprintf("session id %s destroyed", sc.Value))
+
+	w.Header().Add("Set-Cookie", "ia=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
+	w.Header().Add("Set-Cookie", fmt.Sprintf("%s=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT", scn))
+
+	if rfr == "" {
+		r.Header.Set("Location", "https://ivmanto.dev/pg")
+		w.WriteHeader(http.StatusAccepted)
+	} else {
+		// redirect back to web app page (registered for the client id)
+		http.Redirect(w, r, rfr, http.StatusSeeOther)
+	}
 }
 
 // TODO [dev]: implement handling of the refresh token for re-issue Access Token!
@@ -360,6 +591,7 @@ func (h *oauthHandler) handleRefTokenFllow(
 	fmt.Fprintf(w, "post body is %v", rb)
 }
 
+// validateToken is a support function to validate the provided access token
 func (h *oauthHandler) validateToken(w http.ResponseWriter, r *http.Request) {
 
 	oidpn := r.Header.Get("X-Token-Type")
@@ -380,4 +612,48 @@ func (h *oauthHandler) validateToken(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusAccepted)
 	_, _ = w.Write([]byte(`welcome-realm-ivmanto`))
+}
+
+// sendActivationEmail will send to the new registered users an email with an activation code
+func (h *oauthHandler) sendActivationEmail(to, toName []string, qp string) error {
+
+	var gwh = h.server.Config.GetAPIGWSvcURL()
+	var cfg = h.server.Config.GetEmailCfg()
+	var au = fmt.Sprintf("https://%s/oauth/activate?%s", gwh, qp)
+
+	var data = struct {
+		Name string
+		URL  string
+	}{
+		Name: strings.TrimSpace(toName[0]),
+		URL:  au,
+	}
+
+	var e = email.Email{
+		From:     cfg.SendFromAlias,
+		FromName: "Accounts Ivmanto",
+		To:       to,
+		ToName:   toName,
+		Subject:  "activate your account",
+	}
+
+	// ParseTemplate function will take care of filling out the Message attribute of email struct
+	if errp := e.ParseTemplate("./ui/html/activateAccount.email.tmpl", data); errp != nil {
+		return fmt.Errorf("while parsing email message error raised: %v", errp)
+	}
+
+	err := e.SendMessageFromEmail(cfg)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// logPotentialCSRFAttacks will create a log entry for further trace on possible CSRF atack
+func (h *oauthHandler) logPotentialCSRFAttacks(r *http.Request, err error) {
+	ip := r.RemoteAddr
+	rm := r.Method
+	rp := r.URL.Path
+	_ = level.Info(h.logger).Log("log_possible_CSRF", fmt.Sprintf("remote ip %s, request method %s, request path %s", ip, rm, rp), "error", fmt.Sprintf("%v", err))
 }

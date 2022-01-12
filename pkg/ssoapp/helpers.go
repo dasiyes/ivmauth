@@ -35,7 +35,7 @@ func (a *IvmSSO) Render(w http.ResponseWriter, r *http.Request, name string, td 
 
 	_, err = buf.WriteTo(w)
 	if err != nil {
-		a.serverError(w, fmt.Errorf("while rendering template %s error raised [%#v]", name, err))
+		a.serverError(w, fmt.Errorf("while rendering template %s error raised [%v]", name, err))
 		return
 	}
 }

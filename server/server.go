@@ -16,6 +16,7 @@ import (
 	"github.com/dasiyes/ivmauth/pkg/ssoapp"
 	"github.com/dasiyes/ivmauth/svc/authenticating"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
+	"github.com/dasiyes/ivmauth/svc/registering"
 )
 
 // TODO: Authorization process review against the checklist below:
@@ -38,6 +39,7 @@ var UID core.UserID
 type Server struct {
 	Auth   authenticating.Service
 	Pks    pksrefreshing.Service
+	Rgs    registering.Service
 	Sm     *ivmsesman.Sesman
 	Logger kitlog.Logger
 	router chi.Router
@@ -46,10 +48,19 @@ type Server struct {
 }
 
 // New returns a new HTTP server.
-func New(au authenticating.Service, pks pksrefreshing.Service, logger kitlog.Logger, sm *ivmsesman.Sesman, cfg config.IvmCfg, sso *ssoapp.IvmSSO) *Server {
+func New(
+	au authenticating.Service,
+	pks pksrefreshing.Service,
+	rgs registering.Service,
+	logger kitlog.Logger,
+	sm *ivmsesman.Sesman,
+	cfg config.IvmCfg,
+	sso *ssoapp.IvmSSO) *Server {
+
 	s := &Server{
 		Auth:   au,
 		Pks:    pks,
+		Rgs:    rgs,
 		Sm:     sm,
 		Logger: logger,
 		Config: cfg,

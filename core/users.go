@@ -23,6 +23,8 @@ type User struct {
 	OIDCProvider string
 	SubCode      SubCode
 	RefreshToken string
+	// InitState is the attribute to use as verification attribute when the user activate its account. Effectively the value of the session id when registering the new user.
+	InitState string
 }
 
 // UpdateRefreshToken updates the Refresh Token for the user
@@ -35,6 +37,9 @@ func (u *User) UpdateRefreshToken(rt string) {
 // UserRepository provides access to the users storage.
 type UserRepository interface {
 	Store(user *User) error
+	ActivateUserAccount(userId, subCode, state string) error
+	Exists(userId string) error
+	Verify(userId, subCode, state string) error
 	Find(id UserID) (*User, error)
 	FindAll() []*User
 }

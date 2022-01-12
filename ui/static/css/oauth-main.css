@@ -9,7 +9,7 @@ body {
   align-items: center;
   position: relative;
   min-height: 100%;
-  background: #F1F1F1;
+  background: #f7fbfcff;
 }
 
 /* Animation Keyframes */
@@ -34,6 +34,58 @@ body {
   100% {height: 5px; background: rgba(0, 0, 0, 0.156); color: transparent;}
 }
 
+logo {
+  padding: 2px calc((100% - 80%) / 2) 0;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  background-image: url("/static/img/logoc.svg");
+  background-repeat: no-repeat;
+  background-position: 50% 0%;
+  background-size: 180px 180px;
+  height: 160px;
+}
+
+div.flash {
+  color: #FFFFFF;
+  font-weight: bold;
+  background-color: #34495E;
+  padding: 18px;
+  margin-bottom: 36px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  width: 340px;
+  height: auto;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
+div.flash > p {
+  width: 320px;
+}
+
+main.msg {
+  font-size: large;
+  font-family: 'Courier New', Courier, monospace;
+  width: 450;
+}
+
+main.msg > p {
+  color: #028090;
+  width: 420px;
+}
+
+header {
+  background: #02c39a;
+}
+
+footer h3 {
+  font-family: 'Josefin Sans', sans-serif;
+  font-weight: 100;
+  font-size: 1rem;
+}
 
 /* Login Form */
 .login-container {
@@ -54,7 +106,7 @@ body {
 
 .login-container p {
   align-self: flex-start;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Josefin Sans', sans-serif;
   font-size: 0.8rem;
   color: rgba(0, 0, 0, 0.5);
 }
@@ -84,8 +136,11 @@ body {
   padding: 10px;
   margin: -10px -10px 25px -10px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  background: #009688;
-  font-family: 'Roboto', sans-serif;
+  background-image: url("/static/img/logoc.svg");
+  background-repeat: no-repeat;
+  background-position: 90% 70%;
+  background-size: 120px 120px;
+  font-family: 'Josefin Sans', sans-serif;
   font-size: 1.3rem;
   color: #FAFAFA;
   animation: scale_header 0.6s cubic-bezier(.55, 0, .1, 1), text_opacity 1s cubic-bezier(.55, 0, .1, 1);
@@ -106,7 +161,7 @@ body {
   margin: -10px 0 0 -10px;
   box-sizing: border-box;
   background: rgba(0, 0, 0, 0.156);
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Josefin Sans', sans-serif;
   font-size: 0.9rem;
   color: transparent;
   z-index: 5;
@@ -130,9 +185,15 @@ body {
 }
 
 .login > header h4 {
-  font-size: 0.7em;
   animation: text_opacity 1.5s cubic-bezier(.55, 0, .1, 1);
   color: rgba(255, 255, 255, 0.4);
+}
+
+.login > header a {
+  text-decoration: none;
+  font-size: 0.6em;
+  /*color: #028090; */
+  color: #1B659D;
 }
 
 /* Form */
@@ -153,7 +214,7 @@ body {
   box-sizing: border-box;
   background: transparent;
   font-size: 1rem;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Josefin Sans', sans-serif;
   font-weight: 500;
   opacity: 1;
   animation: input_opacity 0.8s cubic-bezier(.55, 0, .1, 1);
@@ -182,7 +243,7 @@ body {
   border: none;
   border-radius: 3px;
   background: transparent;
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Josefin Sans', sans-serif;
   font-size: 0.9rem;
   font-weight: 500;
   color: #E37F00;
@@ -207,4 +268,142 @@ body {
 
 .login-button.raised:hover {
   background: #FDAB43;
+}
+
+
+/* Register Form */
+.register-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  width: 340px;
+  height: auto;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
+.register-container img {
+  width: 200px;
+  margin: 0 0 20px 0;
+}
+
+.register-container p {
+  align-self: flex-start;
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.register-container p a {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.register {
+  position: relative;
+  width: 100%;
+  padding: 10px;
+  margin: 0 0 10px 0;
+  box-sizing: border-box;
+  border-radius: 3px;
+  background: #FAFAFA;
+  overflow: hidden;
+  animation: input_opacity 0.2s cubic-bezier(.55, 0, .1, 1);
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
+              0 1px 5px 0 rgba(0, 0, 0, 0.12),
+              0 3px 1px -2px rgba(0, 0, 0, 0.2);
+}
+
+.register > header {
+  position: relative;
+  width: 100%;
+  padding: 10px;
+  margin: -10px -10px 25px -10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  background-image: url("/static/img/logoc.svg");
+  background-repeat: no-repeat;
+  background-position: 90% 70%;
+  background-size: 120px 120px;
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 1.3rem;
+  color: #FAFAFA;
+  animation: scale_header 0.6s cubic-bezier(.55, 0, .1, 1), text_opacity 1s cubic-bezier(.55, 0, .1, 1);
+  box-shadow: 0px 2px 2px 0px rgba(0, 0, 0, 0.14),
+              0px 1px 5px 0px rgba(0, 0, 0, 0.12),
+              0px 3px 1px -2px rgba(0, 0, 0, 0.2);
+}
+
+.register > header:before {
+  content: '';
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  width: 100%;
+  height: 5px;
+  padding: 10px;
+  margin: -10px 0 0 -10px;
+  box-sizing: border-box;
+  background: rgba(0, 0, 0, 0.156);
+  font-family: 'Josefin Sans', sans-serif;
+  font-size: 0.9rem;
+  color: transparent;
+  z-index: 5;
+}
+
+.register.error_1 > header:before,
+.register.error_2 > header:before {
+  animation: error_before 3s cubic-bezier(.55, 0, .1, 1);
+}
+
+.register.error_1 > header:before {
+  content: 'Invalid username or password!';
+}
+
+.register.error_2 > header:before {
+  content: 'Invalid or expired Token!';
+}
+
+.register > header h2 {
+  margin: 50px 0 10px 0;
+}
+
+.register > header h4 {
+  animation: text_opacity 1.5s cubic-bezier(.55, 0, .1, 1);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.register > header a {
+  text-decoration: none;
+  font-size: 0.6em;
+  color: #028090;
+}
+
+/* Form */
+.register-form {
+  padding: 15px;
+  box-sizing: border-box;
+}
+
+/* Inputs */
+.register-input {
+  position: relative;
+  width: 100%;
+  padding: 10px 5px;
+  margin: 0 0 25px 0;
+  border: none;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.2);
+  box-sizing: border-box;
+  background: transparent;
+  font-size: 1rem;
+  font-family: 'Josefin Sans', sans-serif;
+  font-weight: 500;
+  opacity: 1;
+  animation: input_opacity 0.8s cubic-bezier(.55, 0, .1, 1);
+  transition: border-bottom 0.2s cubic-bezier(.55, 0, .1, 1);
+}
+
+.register-input:focus {
+  outline: none;
+  border-bottom: 2px solid #E37F00;
 }

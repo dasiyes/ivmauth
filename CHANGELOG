@@ -1,3 +1,9 @@
+v0.0.19
+        - message page for UI redirect
+        - style changes for the UI
+        - sign in method added with activation email sending
+        - CSRF possibe attack logging
+
 v0.0.18
         - endpoint for AT validation implemented
         - sign with private key from the rotated PKS

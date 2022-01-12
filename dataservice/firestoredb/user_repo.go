@@ -19,10 +19,75 @@ type userRepository struct {
 
 // Store - stores the clients registrations
 func (ur *userRepository) Store(u *core.User) error {
-	_, err := ur.client.Collection(ur.collection).Doc(string(u.UserID)).Set(*ur.ctx, u)
+	// _, err := ur.client.Collection(ur.collection).Doc(string(u.UserID)).Set(*ur.ctx, u)
+	_, err := ur.client.Collection(ur.collection).Doc(string(u.UserID)).Create(*ur.ctx, u)
 	if err != nil {
-		return fmt.Errorf("unable to save in clients repository. error: %#v", err)
+		return fmt.Errorf("unable to save in clients repository. error: %v", err)
 	}
+	return nil
+}
+
+// ActivateUser will update the status of user that
+func (ur *userRepository) ActivateUserAccount(userId, subCode, state string) error {
+
+	errv := ur.Verify(userId, subCode, state)
+	if errv != nil {
+		return errv
+	}
+
+	_, err := ur.client.Collection(ur.collection).Doc(userId).Update(context.TODO(),
+		[]firestore.Update{
+			{
+				Path:  "Status",
+				Value: core.EntryStatusActive,
+			},
+			{
+				Path:  "InitState",
+				Value: "Done",
+			},
+		})
+	if err != nil {
+		return fmt.Errorf("error while activating user account id %v, err: %v", userId, err)
+	}
+
+	fmt.Printf("user %s has been successfully activated\r\n", userId)
+	return nil
+}
+
+// Exists will check if a user exists in the database
+func (ur *userRepository) Exists(userId string) error {
+
+	docusr, err := ur.client.Collection(ur.collection).Doc(userId).Get(context.TODO())
+	if err != nil || docusr == nil {
+		return fmt.Errorf("document for userId:%s not found", userId)
+	}
+	return nil
+}
+
+// Verify will check if a user exists in the database AND the subCode confirms to match the provided.
+// this method will be called before the user account will be activated.
+//
+// If state is an empty value - the validation will still work for other use cases
+func (ur *userRepository) Verify(userId, subCode, state string) error {
+
+	docusr, err := ur.client.Collection(ur.collection).Doc(userId).Get(context.TODO())
+	if err != nil || docusr == nil {
+		return fmt.Errorf("document for userId:%s not found", userId)
+	}
+	var u = docusr.Data()
+	if u["SubCode"].(string) != subCode {
+		return fmt.Errorf("user's subject code: %s doesn't match provided: %s", u["SubCode"].(string), subCode)
+	}
+
+	// Only verify the init state if the parameter state is not empty
+	if state != "" {
+		if u["InitState"].(string) == state && u["Status"].(int64) == int64(core.EntryStatusDraft) {
+			return nil
+		} else {
+			return fmt.Errorf("invalid operation")
+		}
+	}
+
 	return nil
 }
 

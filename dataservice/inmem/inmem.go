@@ -167,6 +167,20 @@ func (ur *userRepository) Store(u *core.User) error {
 	ur.users[u.UserID] = u
 	return nil
 }
+func (ur *userRepository) ActivateUserAccount(userId, subCode, state string) error {
+	// TODO [dev]: to implement
+	return nil
+}
+
+func (ur *userRepository) Exists(userId string) error {
+	// TODO [dev]: to implement
+	return nil
+}
+
+func (ur *userRepository) Verify(userId, subCode, state string) error {
+	// TODO [dev]: to implement
+	return nil
+}
 
 // Find - finds a authentication request in the repository
 func (ur *userRepository) Find(id core.UserID) (*core.User, error) {

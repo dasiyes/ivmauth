@@ -189,7 +189,10 @@ func (s *service) ValidateUsersCredentials(email, pass string) (bool, error) {
 
 	usr, err := s.users.Find(core.UserID(email))
 	if err != nil {
-		return valid, fmt.Errorf("error finding user %s: %#v", email, err.Error())
+		return valid, fmt.Errorf("error finding user %s: %v", email, err.Error())
+	}
+	if usr.Status != core.EntryStatusActive {
+		return valid, fmt.Errorf("the user %s status is: %s. Must be `Active`", email, usr.Status.String())
 	}
 
 	err = bcrypt.CompareHashAndPassword(usr.Password, []byte(pass))
@@ -313,7 +316,7 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 	// is a Public Client with no Client Secret or other authentication mechanism.
 
 	// [!] AuthenticateClient method `client_secret_basic`
-	//		 - Ivmanto OAuth server specific for Basic auth is that IF header Authrozation is taken for Bearer token, to use as alternative custome header `X-Ivm-Client`.
+	//		 - Ivmanto OAuth server specific for Basic auth is that IF header Authrozation is taken for Bearer token, to use as alternative custom header `X-Ivm-Client`.
 	var hav = r.Header.Get("Authorization")
 	if !strings.HasPrefix(hav, "Basic ") {
 		// Use the alternative custom header `X-Ivm-Client`
@@ -325,12 +328,12 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 
 		cID, cSec = getClientIDSecFromBasic(hav)
 		if cID == "" {
-			return nil, fmt.Errorf("client_secret_basic method failed: invalid clientID [%s] or client secret. %#v", cID, core.ErrBadRequest)
+			return nil, fmt.Errorf("client_secret_basic method failed: invalid clientID [%s] or client secret. %v", cID, core.ErrBadRequest)
 		}
 
 		rc, err := getAndAuthRegisteredClient(s.clients, cID, cSec)
 		if err != nil {
-			return nil, fmt.Errorf("client_secret_basic method failed. Auth error %#v, %#v", err, core.ErrBadRequest)
+			return nil, fmt.Errorf("client_secret_basic method failed. Auth error %v, %v", err, core.ErrBadRequest)
 		}
 
 		// returns the registered client object as means of `it is found and authenticated`!
@@ -344,19 +347,19 @@ func (s *service) AuthenticateClient(r *http.Request) (*core.Client, error) {
 	if hct == "application/x-www-form-urlencoded" {
 		cID, cSec, err = getClientIDSecWFUE(r)
 		if err != nil {
-			return nil, fmt.Errorf("client_secret_post method failed. Error %#v. %#v", err, core.ErrBadRequest)
+			return nil, fmt.Errorf("client_secret_post method failed. Error %v. %v", err, core.ErrBadRequest)
 		}
 
 		rc, err := getAndAuthRegisteredClient(s.clients, cID, cSec)
 		if err != nil {
-			return nil, fmt.Errorf("client_secret_post method failed. Auth error %#v, %#v", err, core.ErrBadRequest)
+			return nil, fmt.Errorf("client_secret_post method failed. Auth error %v, %v", err, core.ErrBadRequest)
 		}
 
 		// returns the registered client object as means of `it is found and authenticated`!
 		return rc, nil
 	}
 
-	return nil, fmt.Errorf("client_secret_post method failed. Unsupported content type %s. %#v", hct, core.ErrBadRequest)
+	return nil, fmt.Errorf("client_secret_post method failed. Unsupported content type %s. %v", hct, core.ErrBadRequest)
 }
 
 // GetRequestBody considers the contet type header and reads the request body within core.AuthRequestBody
@@ -499,6 +502,7 @@ func (s *service) ValidateAccessToken(at, oidpn string) error {
 	return nil
 }
 
+// TODO [dev]: review and remove becuase the registering User is done in the svc/registering service
 // Registration of new user on Ivmanto realm
 func (s *service) RegisterUser(names, email, password string) (*core.User, error) {
 
@@ -521,7 +525,7 @@ func (s *service) RegisterUser(names, email, password string) (*core.User, error
 
 	nUsr.Name = names
 
-	nUsr.Status = core.EntryStatus(core.Draft)
+	nUsr.Status = core.EntryStatus(core.EntryStatusDraft)
 
 	var nup, errgp = bcrypt.GenerateFromPassword([]byte(password), 12)
 	if errgp != nil {
@@ -564,7 +568,7 @@ func (s *service) CheckUserRegistration(oidtoken *core.IDToken) {
 			}
 			nUsr.Name = oidtoken.Name
 			nUsr.Avatar = oidtoken.Picture
-			nUsr.Status = core.EntryStatus(core.Draft)
+			nUsr.Status = core.EntryStatus(core.EntryStatusDraft)
 			nUsr.OIDCProvider = oidtoken.Iss
 
 			if err = s.users.Store(nUsr); err != nil {

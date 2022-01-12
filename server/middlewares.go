@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/svc/authenticating"
@@ -96,20 +97,28 @@ func isReqWhitelisted(r *http.Request) bool {
 	mr := r.Method + " " + r.URL.Path
 	fmt.Printf("request path: %#v;\n", mr)
 
-	switch mr {
-	case "GET /.well-known/openid-configuration":
+	switch {
+	case strings.HasPrefix(mr, "GET /oauth/activate"):
 		return true
-	case "GET /auth/version":
+	case mr == "GET /.well-known/openid-configuration":
 		return true
-	case "GET /auth/metrics":
+	case mr == "GET /auth/version":
 		return true
-	case "GET /oauth/metrics":
+	case mr == "GET /auth/metrics":
 		return true
-	case "GET /oauth/token":
+	case mr == "GET /oauth/metrics":
 		return true
-	case "GET /oauth/ui/login":
+	case mr == "GET /oauth/token":
 		return true
-	case "GET /oauth2/v1/certs":
+	case mr == "POST /oauth/register":
+		return true
+	case mr == "POST /oauth/logout":
+		return true
+	case mr == "GET /oauth/ui/login":
+		return true
+	case mr == "GET /oauth/ui/register":
+		return true
+	case mr == "GET /oauth2/v1/certs":
 		return true
 	default:
 		return false

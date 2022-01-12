@@ -106,19 +106,19 @@ type EntryStatus int
 
 // Valid client statuses.
 const (
-	Draft EntryStatus = iota
-	Active
-	NotActive
+	EntryStatusDraft EntryStatus = iota
+	EntryStatusActive
+	EntryStatusNotActive
 )
 
 func (s EntryStatus) String() string {
 	switch s {
-	case Draft:
-		return "Draft"
-	case Active:
-		return "Active"
-	case NotActive:
-		return "NotActive"
+	case EntryStatusDraft:
+		return "EntryStatusDraft"
+	case EntryStatusActive:
+		return "EntryStatusActive"
+	case EntryStatusNotActive:
+		return "EntryStatusNotActive"
 	}
 	return ""
 }

@@ -1,0 +1,19 @@
+{{template "base" .}}
+
+{{define "title"}}Accounts{{end}}
+
+{{define "main"}}
+    <body>
+        <main class=msg>
+            <h3>{{.MsgTitle}}</h3>
+            <br>
+            <p>
+                {{.Message}}
+            </p>
+            <br>
+            <p>
+                <a href={{.URL}}>{{.UrlLabel}}</a>
+            </p>
+        </main>
+    </body>
+{{end}}
