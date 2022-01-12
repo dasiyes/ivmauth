@@ -289,16 +289,20 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 	var formCSRFToken = r.FormValue("csrf_token")
 	stc, err := r.Cookie("csrf_token")
 	if err == http.ErrNoCookie {
-		// [ ] potential CSRF attack - log the request with all possible details
+		// [x] potential CSRF attack - log the request with all possible details
+		nerr := fmt.Errorf("missing csrf_token cookie: %#v", err)
+		go h.logPotentialCSRFAttacks(r, nerr)
 		w.WriteHeader(http.StatusBadRequest)
-		h.server.responseBadRequest(w, "registerUser", fmt.Errorf("missing csrf_token cookie: %#v", err))
+		h.server.responseBadRequest(w, "registerUser", nerr)
 		return
 	}
 	// Verifying the CSRF tokens
 	if !nosurf.VerifyToken(formCSRFToken, stc.Value) {
-		// [ ] potential CSRF attack - log the request with all possible details
+		// [x] potential CSRF attack - log the request with all possible details
+		nerr := fmt.Errorf("invalid CSRF tokens. [%s]", stc.Value)
+		go h.logPotentialCSRFAttacks(r, nerr)
 		w.WriteHeader(http.StatusBadRequest)
-		h.server.responseBadRequest(w, "registerUser", fmt.Errorf("invalid CSRF tokens. [%s]", stc.Value))
+		h.server.responseBadRequest(w, "registerUser", nerr)
 		return
 	}
 
@@ -575,7 +579,6 @@ func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 		// redirect back to web app page (registered for the client id)
 		http.Redirect(w, r, rfr, http.StatusSeeOther)
 	}
-
 }
 
 // TODO [dev]: implement handling of the refresh token for re-issue Access Token!
@@ -645,4 +648,12 @@ func (h *oauthHandler) sendActivationEmail(to, toName []string, qp string) error
 	}
 
 	return nil
+}
+
+// logPotentialCSRFAttacks will create a log entry for further trace on possible CSRF atack
+func (h *oauthHandler) logPotentialCSRFAttacks(r *http.Request, err error) {
+	ip := r.RemoteAddr
+	rm := r.Method
+	rp := r.URL.Path
+	_ = level.Info(h.logger).Log("log_possible_CSRF", fmt.Sprintf("remote ip %s, request method %s, request path %s", ip, rm, rp), "error", fmt.Sprintf("%v", err))
 }

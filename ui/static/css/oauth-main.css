@@ -138,7 +138,7 @@ footer h3 {
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   background-image: url("/static/img/logoc.svg");
   background-repeat: no-repeat;
-  background-position: 80% 70%;
+  background-position: 90% 70%;
   background-size: 120px 120px;
   font-family: 'Josefin Sans', sans-serif;
   font-size: 1.3rem;
@@ -185,13 +185,14 @@ footer h3 {
 }
 
 .login > header h4 {
-  font-size: 0.5em;
   animation: text_opacity 1.5s cubic-bezier(.55, 0, .1, 1);
   color: rgba(255, 255, 255, 0.4);
 }
 
 .login > header a {
   text-decoration: none;
+  font-size: 0.6em;
+  color: #028090;
 }
 
 /* Form */
@@ -320,7 +321,7 @@ footer h3 {
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
   background-image: url("/static/img/logoc.svg");
   background-repeat: no-repeat;
-  background-position: 80% 70%;
+  background-position: 90% 70%;
   background-size: 120px 120px;
   font-family: 'Josefin Sans', sans-serif;
   font-size: 1.3rem;
@@ -367,13 +368,14 @@ footer h3 {
 }
 
 .register > header h4 {
-  font-size: 0.7em;
   animation: text_opacity 1.5s cubic-bezier(.55, 0, .1, 1);
   color: rgba(255, 255, 255, 0.4);
 }
 
 .register > header a {
   text-decoration: none;
+  font-size: 0.6em;
+  color: #028090;
 }
 
 /* Form */
