@@ -259,7 +259,10 @@ func checkValidClientAuthRequest(r *http.Request, cfg config.IvmCfg) (bool, erro
 		// Check for an exception - validate the clientID is registred for the following endpoints:
 		// * GET /oauth/authorize
 		// * GET /oauth/ui/activate
-		if r.Method == http.MethodGet && (r.URL.Path == "/oauth/authorize" || r.URL.Path == "/oauth/ui/activate") {
+		// * GET /oauth/userInfo
+		if r.Method == http.MethodGet && (r.URL.Path == "/oauth/authorize" ||
+			r.URL.Path == "/oauth/ui/activate" ||
+			r.URL.Path == "/oauth/userInfo") {
 			return true, nil
 		}
 		fmt.Printf("[checkValidClientAuthRequest] not allowed method %s\n", r.Method)
