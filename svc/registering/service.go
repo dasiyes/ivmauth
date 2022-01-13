@@ -46,7 +46,7 @@ func (s *service) RegisterUser(names, email, password, provider, state string, s
 
 	err := s.users.Store(u)
 	if err != nil {
-		return fmt.Errorf("while saving the user with id %s, error raised: %v", email, err)
+		return fmt.Errorf("while saving the user with code %s, error raised: %v", subCode, err)
 	}
 
 	return nil

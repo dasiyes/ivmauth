@@ -17,9 +17,10 @@ type userRepository struct {
 	client     *firestore.Client
 }
 
-// Store - stores the clients registrations
+// Store - stores the users' registrations
 func (ur *userRepository) Store(u *core.User) error {
-	// _, err := ur.client.Collection(ur.collection).Doc(string(u.UserID)).Set(*ur.ctx, u)
+
+	// Using ".Create" instead of ".Set" to avoid overwrite of already saved user with the same email
 	_, err := ur.client.Collection(ur.collection).Doc(string(u.UserID)).Create(*ur.ctx, u)
 	if err != nil {
 		return fmt.Errorf("unable to save in clients repository. error: %v", err)

@@ -340,10 +340,11 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
 	err = h.sendActivationEmail(to, toName, qp)
 	if err != nil {
+		_ = level.Error(h.logger).Log("[registerUser][sendActivationEmail]", fmt.Sprintf("Failed to send activation message to %s", email))
 		//TODO [dev]: compose an URL for resending the email message
 		h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
 			MsgTitle: "Account activation",
-			Message:  fmt.Sprintf("while sending email to address %s, error: %v", email, err),
+			Message:  fmt.Sprintf("while sending email to the provided email address, error: %v", err),
 			URL:      ref,
 			UrlLabel: "Back",
 		})
