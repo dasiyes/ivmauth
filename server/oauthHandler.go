@@ -540,7 +540,7 @@ func (h *oauthHandler) handleAuthCodeFlow(
 
 	// [x] 2. Take the value of AT and RT and store them in Session Store using session Manager
 	// [x] 3. SM to generate a new sessionID with state "Auth" and set it in the session cookie.
-	err = h.server.Sm.SessionAuth(w, r, at.AccessToken, at.RefreshToken, rb.Email)
+	err = h.server.Sm.SessionAuth(w, r, at.AccessToken, at.RefreshToken, rb.SubCode)
 	if err != nil {
 		h.server.responseUnauth(w, "handleAuthCodeFllow-sm-sessionAuth", fmt.Errorf("error issue new authenticated session %s", err.Error()))
 		return
