@@ -333,6 +333,11 @@ func validateClientExists(r *http.Request, clients core.ClientRepository) (*core
 		if err != nil {
 			return nil, fmt.Errorf("while getting clientID: %v from cookie error raised: %v", cID, err)
 		}
+	case "GET /oauth/userInfo":
+		cID, err = getClientIDFromCookie(r)
+		if err != nil {
+			return nil, fmt.Errorf("while getting clientID: %v from cookie error raised: %v", cID, err)
+		}
 	default:
 		cID = ""
 	}
