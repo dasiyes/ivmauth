@@ -413,12 +413,31 @@ func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
 
 // userInfo - returns the user data object for user sent the request
 func (h *oauthHandler) userInfo(w http.ResponseWriter, r *http.Request) {
-	at := h.server.Sm.GetAuthSessAT(r.Context(), "at")
-	uid := h.server.Sm.GetAuthSessAT(r.Context(), "uid")
 
-	_ = level.Debug(h.logger).Log("[userInfo]-at", at, "userID", uid)
-	w.WriteHeader(202)
-	_, _ = w.Write([]byte("done..."))
+	// [x] perform a check for content type header - application/json
+	ct := r.Header.Get("Content-Type")
+	if !strings.HasPrefix(ct, "application/json") {
+		h.server.responseBadRequest(w, "userInfo-check-content-type",
+			fmt.Errorf("unsupported content type [%#v] in the request", ct))
+		return
+	}
+
+	// Get the Subjectcode for the session's user
+	uid := h.server.Sm.GetAuthSessAT(r.Context(), "uid")
+	_ = level.Debug(h.logger).Log("[userInfo]-userID", uid)
+
+	usr, err := h.server.IvmSSO.Users.FindBySubjectCode(uid)
+	if err != nil {
+		_ = level.Error(h.logger).Log("[userInfo]-error", "unable to retrieve the user")
+		h.server.responseIntServerError(w, "userInfo", fmt.Errorf("unable to retrieve the user"))
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	if err := json.NewEncoder(w).Encode(usr); err != nil {
+		_ = level.Error(h.logger).Log("[userInfo]-error", err)
+		h.server.responseIntServerError(w, "userInfo", err)
+		return
+	}
 }
 
 // issueToken will return an access token (Ivmanto's IDToken) to the post request

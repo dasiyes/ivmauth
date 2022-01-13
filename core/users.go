@@ -25,6 +25,7 @@ type User struct {
 	RefreshToken string
 	// InitState is the attribute to use as verification attribute when the user activate its account. Effectively the value of the session id when registering the new user.
 	InitState string
+	Created   int64
 }
 
 // UpdateRefreshToken updates the Refresh Token for the user
@@ -41,6 +42,7 @@ type UserRepository interface {
 	Exists(userId string) error
 	Verify(userId, subCode, state string) error
 	Find(id UserID) (*User, error)
+	FindBySubjectCode(sc string) (*User, error)
 	FindAll() []*User
 }
 

@@ -192,6 +192,12 @@ func (ur *userRepository) Find(id core.UserID) (*core.User, error) {
 	return nil, errors.New("user not found")
 }
 
+// FindBySubjectCode - finds a user by the provided subject code
+func (ur *userRepository) FindBySubjectCode(sc string) (*core.User, error) {
+	// TODO: implement FindBySubjectCode
+	return &core.User{}, nil
+}
+
 // FindAll - find and returns all authentication request
 func (ur *userRepository) FindAll() []*core.User {
 	// TODO: implement FindAll
