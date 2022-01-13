@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/firestore v1.6.1
 	github.com/dasiyes/ivmapi v0.0.19-t26-stage
 	github.com/dasiyes/ivmconfig v0.0.0-20211219225649-b49f1b19e34e
-	github.com/dasiyes/ivmsesman v0.4.9-dev12
+	github.com/dasiyes/ivmsesman v0.4.9-dev18
 	github.com/go-chi/chi v1.5.4
 	github.com/go-kit/kit v0.12.0
 	github.com/golang-jwt/jwt v3.2.2+incompatible

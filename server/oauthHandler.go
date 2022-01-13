@@ -36,11 +36,12 @@ func (h *oauthHandler) router() chi.Router {
 	r.Route("/", func(r chi.Router) {
 		r.Get("/authorize", h.processAuthCode)
 		r.Post("/login", h.authLogin)
-		r.Post("/token", h.issueToken)
 		r.Post("/logout", h.logOut)
-		r.Post("/register", h.registerUser)
 		r.Get("/token", h.validateToken)
+		r.Post("/token", h.issueToken)
+		r.Post("/register", h.registerUser)
 		r.Get("/activate", h.activateUser)
+		r.Get("/userInfo", h.userInfo)
 		r.Route("/ui", func(r chi.Router) {
 			r.Use(noSurf)
 			r.Get("/login", h.userLoginForm)
@@ -410,6 +411,16 @@ func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// userInfo - returns the user data object for user sent the request
+func (h *oauthHandler) userInfo(w http.ResponseWriter, r *http.Request) {
+	at := h.server.Sm.GetAuthSessAT(r.Context(), "at")
+	uid := h.server.Sm.GetAuthSessAT(r.Context(), "uid")
+
+	_ = level.Debug(h.logger).Log("[userInfo]-at", at, "userID", uid)
+	w.WriteHeader(202)
+	_, _ = w.Write([]byte("done..."))
+}
+
 // issueToken will return an access token (Ivmanto's IDToken) to the post request
 // [ ] verify this is IDToken from provider Ivmanto that follows the OpenIDConnect standard (https://openid.net/specs/openid-connect-core-1_0.html#IDToken)
 func (h *oauthHandler) issueToken(w http.ResponseWriter, r *http.Request) {
@@ -529,7 +540,7 @@ func (h *oauthHandler) handleAuthCodeFlow(
 
 	// [x] 2. Take the value of AT and RT and store them in Session Store using session Manager
 	// [x] 3. SM to generate a new sessionID with state "Auth" and set it in the session cookie.
-	err = h.server.Sm.SessionAuth(w, r, at.AccessToken, at.RefreshToken)
+	err = h.server.Sm.SessionAuth(w, r, at.AccessToken, at.RefreshToken, rb.Email)
 	if err != nil {
 		h.server.responseUnauth(w, "handleAuthCodeFllow-sm-sessionAuth", fmt.Errorf("error issue new authenticated session %s", err.Error()))
 		return
