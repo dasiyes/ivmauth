@@ -355,6 +355,8 @@ func isClientIDValidateCase(r *http.Request) bool {
 	switch {
 	case mrp == "GET /oauth/authorize":
 		return true
+	case mrp == "GET /oauth/userInfo":
+		return true
 	case mrp == "POST /oauth/login":
 		return true
 	case mrp == "POST /oauth/register":
