@@ -437,6 +437,8 @@ func (h *oauthHandler) userInfo(w http.ResponseWriter, r *http.Request) {
 		h.server.responseIntServerError(w, "userInfo", fmt.Errorf("unable to retrieve the user"))
 	}
 
+	_ = level.Debug(h.logger).Log("user", fmt.Sprintf("%#v", usr))
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if err := json.NewEncoder(w).Encode(usr); err != nil {
 		_ = level.Error(h.logger).Log("[userInfo]-error", err)
