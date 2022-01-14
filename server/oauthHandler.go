@@ -423,12 +423,17 @@ func (h *oauthHandler) userInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get the Subjectcode for the session's user
-	uid := h.server.Sm.GetAuthSessAT(r.Context(), "uid")
-	_ = level.Debug(h.logger).Log("[userInfo]-userID", uid)
-
-	usr, err := h.server.IvmSSO.Users.FindBySubjectCode(uid)
+	uid, err := h.server.Sm.GetAuthSessionAttribute(r, "uid")
 	if err != nil {
-		_ = level.Error(h.logger).Log("[userInfo]-error", "unable to retrieve the user")
+		_ = level.Error(h.logger).Log("[userInfo]-error", fmt.Errorf("unable to retrieve sesstion attribute - error: %v", err))
+		h.server.responseIntServerError(w, "userInfo", fmt.Errorf("unable to retrieve session attribute"))
+	}
+
+	_ = level.Debug(h.logger).Log("[userInfo]-session-userID", uid.(string))
+
+	usr, err := h.server.IvmSSO.Users.FindBySubjectCode(uid.(string))
+	if err != nil {
+		_ = level.Error(h.logger).Log("[userInfo]-error", fmt.Errorf("unable to retrieve the user - error: %v", err))
 		h.server.responseIntServerError(w, "userInfo", fmt.Errorf("unable to retrieve the user"))
 	}
 
