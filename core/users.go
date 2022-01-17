@@ -17,14 +17,14 @@ type User struct {
 
 	UserID       UserID `json:"email"`
 	Name         string
-	Password     []byte
-	Avatar       string
-	Status       EntryStatus
+	Password     []byte      `json:"-"`
+	Avatar       string      `json:"-"`
+	Status       EntryStatus `json:"-"`
 	OIDCProvider string
-	SubCode      SubCode
-	RefreshToken string
+	SubCode      SubCode `json:"-"`
+	RefreshToken string  `json:"-"`
 	// InitState is the attribute to use as verification attribute when the user activate its account. Effectively the value of the session id when registering the new user.
-	InitState string
+	InitState string `json:"-"`
 	Created   int64
 }
 
