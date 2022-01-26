@@ -414,14 +414,14 @@ func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
 // userInfo - returns the user data object for user sent the request
 func (h *oauthHandler) userInfo(w http.ResponseWriter, r *http.Request) {
 
-	// [x] perform a check for content type header - application/json
+	// [x] perform a check for Accepted content type header - application/json
 	ct := r.Header.Get("Accept")
-	if !strings.HasPrefix(ct, "application/json") ||
-		!strings.Contains(ct, "application/json") ||
+	if !strings.HasPrefix(ct, "application/json") &&
+		!strings.Contains(ct, "application/json") &&
 		!strings.Contains(ct, "*/*") {
 
-		h.server.responseBadRequest(w, "userInfo-check-content-type",
-			fmt.Errorf("unsupported content type [%#v] in the request", ct))
+		h.server.responseBadRequest(w, "userInfo-check-accept-content-type",
+			fmt.Errorf("the requestor does not support application/json content type: %s", ct))
 		return
 	}
 
