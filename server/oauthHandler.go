@@ -640,7 +640,7 @@ func (h *oauthHandler) validateToken(w http.ResponseWriter, r *http.Request) {
 		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("empty openID provider name"))
 		return
 	}
-	auh := strings.Split(r.Header.Get("X-Ivm-AT"), " ")
+	auh := strings.Split(r.Header.Get("Authorrization"), " ")
 	if len(auh) != 2 || auh[0] != "Bearer" {
 		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("invalid request"))
 		return
