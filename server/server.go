@@ -117,15 +117,16 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // OpenID Connect Configuration
-// [ ]: Refactor the method to a proper code style
 func (s *Server) oidcc() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		var ivmoid *config.OpenIDConfiguration = s.Config.GetIvmantoOIDC()
 
 		w.Header().Set("Content-Type", "application/json")
+
 		rsl, err := json.MarshalIndent(ivmoid, "", " ")
 		if err != nil {
-			w.WriteHeader(500)
+			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write(nil)
 			return
 		}

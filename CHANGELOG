@@ -1,5 +1,5 @@
 v0.0.20
-        - TBD ...
+        - Access Token validation will now look at Authorization header for AT
         - Review and correct errors for user login and register
         - implement user info endpoint
         - 
