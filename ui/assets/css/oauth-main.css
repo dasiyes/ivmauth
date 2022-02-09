@@ -78,7 +78,8 @@ main.msg > p {
 }
 
 header {
-  background: #02c39a;
+  background: #f7fbfcff;
+  /*background: #02c39a;*/
 }
 
 footer h3 {
@@ -93,7 +94,7 @@ footer h3 {
   flex-direction: column;
   align-items: center;
   position: relative;
-  width: 340px;
+  width: 640px;
   height: auto;
   padding: 5px;
   box-sizing: border-box;

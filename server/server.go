@@ -76,8 +76,8 @@ func New(
 	r.Use(authClients(s.Logger, s.Auth))
 
 	// Handle the resources files for the Login Screen
-	fileServer := http.FileServer(http.Dir("./ui/static"))
-	r.Method("GET", "/static/*", http.StripPrefix("/static/", fileServer))
+	fileServer := http.FileServer(http.Dir("./ui/assets"))
+	r.Method("GET", "/assets/*", http.StripPrefix("/asstes/", fileServer))
 
 	// OpenID Connect configuration
 	r.Method("GET", "/.well-known/openid-configuration", s.oidcc())
