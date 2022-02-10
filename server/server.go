@@ -75,7 +75,7 @@ func New(
 	r.Use(requestsLogging(s.Logger))
 	r.Use(authClients(s.Logger, s.Auth))
 
-	// Handle the resources files for the Login Screen
+	// Handle the resources files for the Login, Signup and Consent Screens
 	fileServer := http.FileServer(http.Dir("./ui/assets"))
 	r.Method("GET", "/assets/*", http.StripPrefix("/asstes/", fileServer))
 
