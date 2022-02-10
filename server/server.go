@@ -77,7 +77,7 @@ func New(
 
 	// Handle the resources files for the Login, Signup and Consent Screens
 	fileServer := http.FileServer(http.Dir("./ui/assets"))
-	r.Method("GET", "/assets/*", http.StripPrefix("/asstes/", fileServer))
+	r.Method("GET", "/assets/*", http.StripPrefix("/assets/", fileServer))
 
 	// OpenID Connect configuration
 	r.Method("GET", "/.well-known/openid-configuration", s.oidcc())
