@@ -68,7 +68,10 @@ div.flash > p {
 
 main.msg {
   font-size: large;
+  /*
   font-family: 'Courier New', Courier, monospace;
+  */
+  font-family: 'Roboto', sans-serif;
   width: 450;
 }
 
@@ -83,8 +86,8 @@ header {
 }
 
 footer h3 {
-  font-family: 'Josefin Sans', sans-serif;
-  font-weight: 50;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 100;
   font-size: 0.8rem;
 }
 
@@ -111,7 +114,7 @@ footer h3 {
 
 .login-container p {
   align-self: flex-start;
-  font-family: 'Josefin Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 0.8rem;
   color: rgba(0, 0, 0, 0.5);
   border-radius: 14 px;
@@ -154,8 +157,8 @@ footer h3 {
   background-repeat: no-repeat;
   background-position: 90% 70%;
   background-size: 120px 120px;
-  font-family: 'Josefin Sans', sans-serif;
-  font-size: 1.6rem;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.2rem;
   color: #D1D1D1;
   /*
   animation: scale_header 0.6s cubic-bezier(.55, 0, .1, 1), text_opacity 1s cubic-bezier(.55, 0, .1, 1);
@@ -176,10 +179,9 @@ footer h3 {
   margin: -10px 0 0 -10px;
   box-sizing: border-box;
   background: rgba(0, 0, 0, 0.156);
-  font-family: 'Josefin Sans', sans-serif;
-  font-size: 0.9rem;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1rem;
   color: transparent;
-  z-index: 50;
 }
 
 .login.error_1 > header:before,
@@ -219,6 +221,8 @@ footer h3 {
 .login-form {
   padding: 15px;
   box-sizing: border-box;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.2rem;
 }
 
 
@@ -231,9 +235,7 @@ footer h3 {
   border: none;
   border-bottom: 2px solid rgba(0, 0, 0, 0.2);
   box-sizing: border-box;
-  background: transparent;
-  font-size: 1.4rem;
-  font-family: 'Josefin Sans', sans-serif;
+  background: transparent;  
   font-weight: 200;
   opacity: 1;
   animation: input_opacity 0.8s cubic-bezier(.55, 0, .1, 1);
@@ -254,8 +256,10 @@ footer h3 {
   position: relative;
   padding: 10px;
   margin: 35px -25px 25px -25px;
+  /*
   border-top: 1px solid rgba(0, 0, 0, 0.2);
   border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  */
 }
 
 .login-button {
@@ -264,7 +268,7 @@ footer h3 {
   border-radius: 3px;
   width: 100%;
   background: transparent;
-  font-family: 'Josefin Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 1.4rem;
   font-weight: 300;
   color: #E37F00;
@@ -315,7 +319,7 @@ footer h3 {
 
 .register-container p {
   align-self: flex-start;
-  font-family: 'Josefin Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 0.8rem;
   color: rgba(0, 0, 0, 0.5);
 }
@@ -354,8 +358,8 @@ footer h3 {
   background-repeat: no-repeat;
   background-position: 90% 70%;
   background-size: 120px 120px;
-  font-family: 'Josefin Sans', sans-serif;
-  font-size: 1.6rem;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.2rem;
   color: #D1D1D1;
   /*
   animation: scale_header 0.6s cubic-bezier(.55, 0, .1, 1), text_opacity 1s cubic-bezier(.55, 0, .1, 1);
@@ -376,7 +380,7 @@ footer h3 {
   margin: -10px 0 0 -10px;
   box-sizing: border-box;
   background: rgba(0, 0, 0, 0.156);
-  font-family: 'Josefin Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 0.9rem;
   color: transparent;
   z-index: 5;
@@ -419,6 +423,8 @@ footer h3 {
 .register-form {
   padding: 15px;
   box-sizing: border-box;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.2rem;
 }
 
 /* Inputs */
@@ -431,8 +437,6 @@ footer h3 {
   border-bottom: 2px solid rgba(0, 0, 0, 0.2);
   box-sizing: border-box;
   background: transparent;
-  font-size: 1.4rem;
-  font-family: 'Josefin Sans', sans-serif;
   font-weight: 200;
   opacity: 1;
   animation: input_opacity 0.8s cubic-bezier(.55, 0, .1, 1);
@@ -446,12 +450,17 @@ footer h3 {
 
 /* below-line class - for all small letter url links*/
 .below-line {
+  font-family: 'Roboto', sans-serif;
   font-size: 0.9rem;
-  font-weight: 100;
+  font-weight: 200;
   color: #1B659D;
   opacity: 0.6;
 }
 
+.below-line p {
+  margin-bottom: -5px;
+}
+
 .below-line a {
-  text-decoration: #028090;
+  text-decoration: none;
 }
