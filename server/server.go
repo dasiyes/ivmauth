@@ -75,9 +75,9 @@ func New(
 	r.Use(requestsLogging(s.Logger))
 	r.Use(authClients(s.Logger, s.Auth))
 
-	// Handle the resources files for the Login Screen
-	fileServer := http.FileServer(http.Dir("./ui/static"))
-	r.Method("GET", "/static/*", http.StripPrefix("/static/", fileServer))
+	// Handle the resources files for the Login, Signup and Consent Screens
+	fileServer := http.FileServer(http.Dir("./ui/assets"))
+	r.Method("GET", "/assets/*", http.StripPrefix("/assets/", fileServer))
 
 	// OpenID Connect configuration
 	r.Method("GET", "/.well-known/openid-configuration", s.oidcc())
@@ -117,15 +117,16 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // OpenID Connect Configuration
-// [ ]: Refactor the method to a proper code style
 func (s *Server) oidcc() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		var ivmoid *config.OpenIDConfiguration = s.Config.GetIvmantoOIDC()
 
 		w.Header().Set("Content-Type", "application/json")
+
 		rsl, err := json.MarshalIndent(ivmoid, "", " ")
 		if err != nil {
-			w.WriteHeader(500)
+			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write(nil)
 			return
 		}

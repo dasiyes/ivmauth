@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"github.com/dasiyes/ivmauth/core"
@@ -17,9 +18,11 @@ type userRepository struct {
 	client     *firestore.Client
 }
 
-// Store - stores the clients registrations
+// Store - stores the users' registrations
 func (ur *userRepository) Store(u *core.User) error {
-	// _, err := ur.client.Collection(ur.collection).Doc(string(u.UserID)).Set(*ur.ctx, u)
+
+	u.Created = time.Now().Unix()
+	// Using ".Create" instead of ".Set" to avoid overwrite of already saved user with the same email
 	_, err := ur.client.Collection(ur.collection).Doc(string(u.UserID)).Create(*ur.ctx, u)
 	if err != nil {
 		return fmt.Errorf("unable to save in clients repository. error: %v", err)
@@ -117,6 +120,39 @@ func (ur *userRepository) Find(id core.UserID) (*core.User, error) {
 			return nil, fmt.Errorf("error while convert DataTo user object for %s", doc.Ref.ID)
 		}
 		if core.UserID(doc.Ref.ID) == id {
+			break
+		}
+		u = core.User{}
+	}
+	return &u, nil
+}
+
+// FindBySubjectCode - finds a user by the provided subject code
+func (ur *userRepository) FindBySubjectCode(sc string) (*core.User, error) {
+
+	iter := ur.client.Collection(ur.collection).Documents(*ur.ctx)
+
+	var u core.User
+
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			return nil, ErrUserNotFound
+		}
+		if err != nil {
+			if strings.Contains(err.Error(), "Missing or insufficient permissions") {
+				return nil, ErrInsufficientPermissions
+			} else {
+				fmt.Printf("err while iterate firestoreDB: %v", err.Error())
+			}
+			continue
+		}
+
+		err = doc.DataTo(&u)
+		if err != nil {
+			return nil, fmt.Errorf("error while convert DataTo user object for %s", doc.Ref.ID)
+		}
+		if string(u.SubCode) == sc {
 			break
 		}
 		u = core.User{}

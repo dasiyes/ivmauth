@@ -36,11 +36,12 @@ func (h *oauthHandler) router() chi.Router {
 	r.Route("/", func(r chi.Router) {
 		r.Get("/authorize", h.processAuthCode)
 		r.Post("/login", h.authLogin)
-		r.Post("/token", h.issueToken)
 		r.Post("/logout", h.logOut)
-		r.Post("/register", h.registerUser)
 		r.Get("/token", h.validateToken)
+		r.Post("/token", h.issueToken)
+		r.Post("/register", h.registerUser)
 		r.Get("/activate", h.activateUser)
+		r.Get("/userInfo", h.userInfo)
 		r.Route("/ui", func(r chi.Router) {
 			r.Use(noSurf)
 			r.Get("/login", h.userLoginForm)
@@ -340,10 +341,11 @@ func (h *oauthHandler) registerUser(w http.ResponseWriter, r *http.Request) {
 
 	err = h.sendActivationEmail(to, toName, qp)
 	if err != nil {
+		_ = level.Error(h.logger).Log("[registerUser][sendActivationEmail]", fmt.Sprintf("Failed to send activation message to %s", email))
 		//TODO [dev]: compose an URL for resending the email message
 		h.server.IvmSSO.Render(w, r, "message.page.tmpl", &ssoapp.TemplateData{
 			MsgTitle: "Account activation",
-			Message:  fmt.Sprintf("while sending email to address %s, error: %v", email, err),
+			Message:  fmt.Sprintf("while sending email to the provided email address, error: %v", err),
 			URL:      ref,
 			UrlLabel: "Back",
 		})
@@ -407,6 +409,45 @@ func (h *oauthHandler) activateUser(w http.ResponseWriter, r *http.Request) {
 		URL:      redirectURL,
 		UrlLabel: "Login",
 	})
+}
+
+// userInfo - returns the user data object for user sent the request
+func (h *oauthHandler) userInfo(w http.ResponseWriter, r *http.Request) {
+
+	// [x] perform a check for Accepted content type header - application/json
+	ct := r.Header.Get("Accept")
+	if !strings.HasPrefix(ct, "application/json") &&
+		!strings.Contains(ct, "application/json") &&
+		!strings.Contains(ct, "*/*") {
+
+		h.server.responseBadRequest(w, "userInfo-check-accept-content-type",
+			fmt.Errorf("the requestor does not support application/json content type: %s", ct))
+		return
+	}
+
+	// Get the Subjectcode for the session's user
+	uid, err := h.server.Sm.GetAuthSessionAttribute(r, "uid")
+	if err != nil {
+		_ = level.Error(h.logger).Log("[userInfo]-error", fmt.Errorf("unable to retrieve sesstion attribute - error: %v", err))
+		h.server.responseIntServerError(w, "userInfo", fmt.Errorf("unable to retrieve session attribute"))
+	}
+
+	_ = level.Debug(h.logger).Log("[userInfo]-session-userID", uid.(string))
+
+	usr, err := h.server.IvmSSO.Users.FindBySubjectCode(uid.(string))
+	if err != nil {
+		_ = level.Error(h.logger).Log("[userInfo]-error", fmt.Errorf("unable to retrieve the user - error: %v", err))
+		h.server.responseIntServerError(w, "userInfo", fmt.Errorf("unable to retrieve the user"))
+	}
+
+	_ = level.Debug(h.logger).Log("user", fmt.Sprintf("%#v", usr))
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	if err := json.NewEncoder(w).Encode(usr); err != nil {
+		_ = level.Error(h.logger).Log("[userInfo]-error", err)
+		h.server.responseIntServerError(w, "userInfo", err)
+		return
+	}
 }
 
 // issueToken will return an access token (Ivmanto's IDToken) to the post request
@@ -528,7 +569,7 @@ func (h *oauthHandler) handleAuthCodeFlow(
 
 	// [x] 2. Take the value of AT and RT and store them in Session Store using session Manager
 	// [x] 3. SM to generate a new sessionID with state "Auth" and set it in the session cookie.
-	err = h.server.Sm.SessionAuth(w, r, at.AccessToken, at.RefreshToken)
+	err = h.server.Sm.SessionAuth(w, r, at.AccessToken, at.RefreshToken, rb.SubCode)
 	if err != nil {
 		h.server.responseUnauth(w, "handleAuthCodeFllow-sm-sessionAuth", fmt.Errorf("error issue new authenticated session %s", err.Error()))
 		return
@@ -599,7 +640,7 @@ func (h *oauthHandler) validateToken(w http.ResponseWriter, r *http.Request) {
 		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("empty openID provider name"))
 		return
 	}
-	auh := strings.Split(r.Header.Get("X-Ivm-AT"), " ")
+	auh := strings.Split(r.Header.Get("Authorrization"), " ")
 	if len(auh) != 2 || auh[0] != "Bearer" {
 		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("invalid request"))
 		return

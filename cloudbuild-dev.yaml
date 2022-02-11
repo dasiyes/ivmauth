@@ -15,9 +15,12 @@ steps:
     '--platform', 'managed', 
     '--memory', '1Gi', '--cpu', '2',
     # '--no-use-http2', 
-    '--no-allow-unauthenticated', 
+    #'--no-allow-unauthenticated', 
+    '--allow-unauthenticated',
+    '--ingress', 'internal-and-cloud-load-balancing',
+    '--vpc-connector', 'ivm-svrls-con-1',
     '--service-account', 'ivmauth-staging@${PROJECT_ID}.iam.gserviceaccount.com', 
-    '--min-instances', '1', '--max-instances', '4',
+    '--min-instances', '0', '--max-instances', '4',
     '--set-env-vars','FIRESTORE_PROJECT_ID=${_FIRESTORE_PROJECT_ID}, SMTP_PASSWORD=${_SMTP_PASSWORD}']
 images:
 - eu.gcr.io/${PROJECT_ID}/ivmauth-staging

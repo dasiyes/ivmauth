@@ -38,11 +38,11 @@ logo {
   padding: 2px calc((100% - 80%) / 2) 0;
   padding-top: 5px;
   padding-bottom: 5px;
-  background-image: url("/static/img/logoc.svg");
+  background-image: url("/assets/img/logoc.svg");
   background-repeat: no-repeat;
   background-position: 50% 0%;
-  background-size: 180px 180px;
-  height: 160px;
+  background-size: 110px 110px;
+  height: 100px;
 }
 
 div.flash {
@@ -68,7 +68,10 @@ div.flash > p {
 
 main.msg {
   font-size: large;
+  /*
   font-family: 'Courier New', Courier, monospace;
+  */
+  font-family: 'Roboto', sans-serif;
   width: 450;
 }
 
@@ -78,13 +81,14 @@ main.msg > p {
 }
 
 header {
-  background: #02c39a;
+  background: #f7fbfcff;
+  /*background: #02c39a;*/
 }
 
 footer h3 {
-  font-family: 'Josefin Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-weight: 100;
-  font-size: 1rem;
+  font-size: 0.8rem;
 }
 
 /* Login Form */
@@ -97,6 +101,10 @@ footer h3 {
   height: auto;
   padding: 5px;
   box-sizing: border-box;
+  border-radius: 14px;
+  box-shadow: 0px 12px 12px 0px rgba(0, 0, 0, 0.08),
+  0px 11px 15px 0px rgba(0, 0, 0, 0.12),
+  0px 3px 1px -2px rgba(0, 0, 0, 0.2);
 }
 
 .login-container img {
@@ -106,9 +114,13 @@ footer h3 {
 
 .login-container p {
   align-self: flex-start;
-  font-family: 'Josefin Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 0.8rem;
   color: rgba(0, 0, 0, 0.5);
+  border-radius: 14 px;
+  box-shadow: 0px 12px 12px 0px rgba(0, 0, 0, 0.08),
+  0px 11px 15px 0px rgba(0, 0, 0, 0.12),
+  0px 3px 1px -2px rgba(0, 0, 0, 0.2);
 }
 
 .login-container p a {
@@ -119,15 +131,17 @@ footer h3 {
   position: relative;
   width: 100%;
   padding: 10px;
-  margin: 0 0 10px 0;
+  margin: 14px 0 10px 0;
   box-sizing: border-box;
   border-radius: 3px;
   background: #FAFAFA;
   overflow: hidden;
+  /*
   animation: input_opacity 0.2s cubic-bezier(.55, 0, .1, 1);
   box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
               0 1px 5px 0 rgba(0, 0, 0, 0.12),
               0 3px 1px -2px rgba(0, 0, 0, 0.2);
+  */
 }
 
 .login > header {
@@ -135,22 +149,26 @@ footer h3 {
   width: 100%;
   padding: 10px;
   margin: -10px -10px 25px -10px;
+  /*
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  background-image: url("/static/img/logoc.svg");
+  border-radius: 30px;
+  */
+  background-image: url("/assets/img/logoc.svg");
   background-repeat: no-repeat;
   background-position: 90% 70%;
   background-size: 120px 120px;
-  font-family: 'Josefin Sans', sans-serif;
-  font-size: 1.3rem;
-  color: #FAFAFA;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.2rem;
+  color: #D1D1D1;
+  /*
   animation: scale_header 0.6s cubic-bezier(.55, 0, .1, 1), text_opacity 1s cubic-bezier(.55, 0, .1, 1);
-  box-shadow: 0px 2px 2px 0px rgba(0, 0, 0, 0.14),
-              0px 1px 5px 0px rgba(0, 0, 0, 0.12),
+  box-shadow: 0px 12px 12px 0px rgba(0, 0, 0, 0.08),
+              0px 11px 15px 0px rgba(0, 0, 0, 0.12),
               0px 3px 1px -2px rgba(0, 0, 0, 0.2);
+  */
 }
 
 .login > header:before {
-  content: '';
   display: flex;
   justify-content: center;
   align-items: center;
@@ -161,10 +179,9 @@ footer h3 {
   margin: -10px 0 0 -10px;
   box-sizing: border-box;
   background: rgba(0, 0, 0, 0.156);
-  font-family: 'Josefin Sans', sans-serif;
-  font-size: 0.9rem;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1rem;
   color: transparent;
-  z-index: 5;
 }
 
 .login.error_1 > header:before,
@@ -181,25 +198,31 @@ footer h3 {
 }
 
 .login > header h2 {
-  margin: 50px 0 10px 0;
+  margin: 10px 0 10px 0;
+  color: #1B659D;
+  opacity: 0.5;
 }
 
 .login > header h4 {
   animation: text_opacity 1.5s cubic-bezier(.55, 0, .1, 1);
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(98, 98, 98, 0.5);
+  font-weight: 300;
+  margin: 10px 0 50px 0;
 }
 
 .login > header a {
   text-decoration: none;
-  font-size: 0.6em;
-  /*color: #028090; */
   color: #1B659D;
+  opacity: 0.3;
+  font-weight: 400;
 }
 
 /* Form */
 .login-form {
   padding: 15px;
   box-sizing: border-box;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.2rem;
 }
 
 
@@ -212,10 +235,8 @@ footer h3 {
   border: none;
   border-bottom: 2px solid rgba(0, 0, 0, 0.2);
   box-sizing: border-box;
-  background: transparent;
-  font-size: 1rem;
-  font-family: 'Josefin Sans', sans-serif;
-  font-weight: 500;
+  background: transparent;  
+  font-weight: 200;
   opacity: 1;
   animation: input_opacity 0.8s cubic-bezier(.55, 0, .1, 1);
   transition: border-bottom 0.2s cubic-bezier(.55, 0, .1, 1);
@@ -231,21 +252,25 @@ footer h3 {
 .submit-container {
   display: flex;
   flex-direction: row;
-  justify-content: flex-end;
+  justify-content: space-around;
   position: relative;
   padding: 10px;
-  margin: 35px -25px -25px -25px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin: 35px -25px 25px -25px;
+  /*
+  border-top: 1px solid rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.2);
+  */
 }
 
 .login-button {
   padding: 10px;
   border: none;
   border-radius: 3px;
+  width: 100%;
   background: transparent;
-  font-family: 'Josefin Sans', sans-serif;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 300;
   color: #E37F00;
   cursor: pointer;
   opacity: 1;
@@ -281,6 +306,10 @@ footer h3 {
   height: auto;
   padding: 5px;
   box-sizing: border-box;
+  border-radius: 14px;
+  box-shadow: 0px 12px 12px 0px rgba(0, 0, 0, 0.08),
+  0px 11px 15px 0px rgba(0, 0, 0, 0.12),
+  0px 3px 1px -2px rgba(0, 0, 0, 0.2);
 }
 
 .register-container img {
@@ -290,7 +319,7 @@ footer h3 {
 
 .register-container p {
   align-self: flex-start;
-  font-family: 'Josefin Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 0.8rem;
   color: rgba(0, 0, 0, 0.5);
 }
@@ -303,38 +332,44 @@ footer h3 {
   position: relative;
   width: 100%;
   padding: 10px;
-  margin: 0 0 10px 0;
+  margin: 14px 0 10px 0;
   box-sizing: border-box;
   border-radius: 3px;
   background: #FAFAFA;
   overflow: hidden;
+  /*
   animation: input_opacity 0.2s cubic-bezier(.55, 0, .1, 1);
   box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
               0 1px 5px 0 rgba(0, 0, 0, 0.12),
               0 3px 1px -2px rgba(0, 0, 0, 0.2);
+  */
 }
 
 .register > header {
+  content: '';
   position: relative;
   width: 100%;
   padding: 10px;
   margin: -10px -10px 25px -10px;
+  /*
   border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-  background-image: url("/static/img/logoc.svg");
+  */
+  background-image: url("/assets/img/logoc.svg");
   background-repeat: no-repeat;
   background-position: 90% 70%;
   background-size: 120px 120px;
-  font-family: 'Josefin Sans', sans-serif;
-  font-size: 1.3rem;
-  color: #FAFAFA;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.2rem;
+  color: #D1D1D1;
+  /*
   animation: scale_header 0.6s cubic-bezier(.55, 0, .1, 1), text_opacity 1s cubic-bezier(.55, 0, .1, 1);
   box-shadow: 0px 2px 2px 0px rgba(0, 0, 0, 0.14),
               0px 1px 5px 0px rgba(0, 0, 0, 0.12),
               0px 3px 1px -2px rgba(0, 0, 0, 0.2);
-}
+  */
+  }
 
 .register > header:before {
-  content: '';
   display: flex;
   justify-content: center;
   align-items: center;
@@ -345,7 +380,7 @@ footer h3 {
   margin: -10px 0 0 -10px;
   box-sizing: border-box;
   background: rgba(0, 0, 0, 0.156);
-  font-family: 'Josefin Sans', sans-serif;
+  font-family: 'Roboto', sans-serif;
   font-size: 0.9rem;
   color: transparent;
   z-index: 5;
@@ -365,24 +400,31 @@ footer h3 {
 }
 
 .register > header h2 {
-  margin: 50px 0 10px 0;
+  margin: 10px 0 10px 0;
+  color: #1B659D;
+  opacity: 0.5;
 }
 
 .register > header h4 {
   animation: text_opacity 1.5s cubic-bezier(.55, 0, .1, 1);
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(98, 98, 98, 0.5);
+  font-weight: 300;
+  margin: 10px 0 50px 0;
 }
 
 .register > header a {
   text-decoration: none;
-  font-size: 0.6em;
-  color: #028090;
+  color: #1B659D;
+  opacity: 0.3;
+  font-weight: 400;
 }
 
 /* Form */
 .register-form {
   padding: 15px;
   box-sizing: border-box;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.2rem;
 }
 
 /* Inputs */
@@ -395,9 +437,7 @@ footer h3 {
   border-bottom: 2px solid rgba(0, 0, 0, 0.2);
   box-sizing: border-box;
   background: transparent;
-  font-size: 1rem;
-  font-family: 'Josefin Sans', sans-serif;
-  font-weight: 500;
+  font-weight: 200;
   opacity: 1;
   animation: input_opacity 0.8s cubic-bezier(.55, 0, .1, 1);
   transition: border-bottom 0.2s cubic-bezier(.55, 0, .1, 1);
@@ -406,4 +446,21 @@ footer h3 {
 .register-input:focus {
   outline: none;
   border-bottom: 2px solid #E37F00;
+}
+
+/* below-line class - for all small letter url links*/
+.below-line {
+  font-family: 'Roboto', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 200;
+  color: #1B659D;
+  opacity: 0.6;
+}
+
+.below-line p {
+  margin-bottom: -5px;
+}
+
+.below-line a {
+  text-decoration: none;
 }

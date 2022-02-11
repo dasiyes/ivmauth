@@ -1,11 +1,12 @@
 # ivmauth service configuration file
 
 # environment
-env: DEV
+env: STAGING
 
 # current service configuration
 auth_svc:
-  host: ["ivmauth-staging-3fu5utwshq-ez.a.run.app"]
+  host: ["localhost:8090"]
+  # host: ["ivmauth-staging-xmywgxnrfq-ez.a.run.app"]
   port: ${PORT}
 
 # cloud environment config
@@ -17,7 +18,15 @@ sesman_config:
   cookie_name: "ivmid"
   max_lifetime: 3600
   visit_cookie_name: "iv"
-  project_id: $FIRESTORE_PROJECT_ID
+  project_id: ${FIRESTORE_PROJECT_ID}
+
+# email configuration 
+email_cfg:
+  smtp_host: "smtp.gmail.com"
+  smtp_port: "587"
+  send_from: "nikolay.tonev@ivmanto.com"
+  send_from_alias: "accounts@ivmanto.com"
+  password: ${SMTP_PASSWORD}
 
 # api-gateway config
 api_gateway_svc:
@@ -42,13 +51,14 @@ at_config:
   alg:      "RS256"
   issuer:   "https://accounts.ivmanto.dev"
   oid_provider_name: "ivmanto"
+  min_pass_len: 8
 
 # supported OpenID Providers
 oidps:
   - "ivmanto"
-  # - "google"
-  # - "github"
-  # - "apple"
+  - "google"
+  - "github"
+  - "apple"
 
 # ivmanto openID config
 ivmanto_oidc:

@@ -100,6 +100,9 @@ func isReqWhitelisted(r *http.Request) bool {
 	switch {
 	case strings.HasPrefix(mr, "GET /oauth/activate"):
 		return true
+	case strings.HasPrefix(mr, "GET /assets/"):
+		fmt.Printf("the request has reached ivmauth service with path: %s", mr)
+		return true
 	case mr == "GET /.well-known/openid-configuration":
 		return true
 	case mr == "GET /auth/version":

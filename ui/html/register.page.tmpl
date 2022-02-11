@@ -7,7 +7,7 @@
         <section class="register" id="register">
             <header>
                 <h2>Register</h2>
-                <h4><a href=/oauth/ui/login>Login</a></h4>
+                <h4>a new user</h4>
             </header>
             <form class="register-form" action='/oauth/register' method='POST'>
                 <input type='hidden' name='csrf_token' value='{{.CSRFToken}}'>
@@ -36,6 +36,28 @@
                     </div>
                 {{end}}
             </form>
+
+            <div id="g_id_onload"
+                data-client_id="755477323135-ai15g84hp3ht4vn1lutcibpa4es22m49.apps.googleusercontent.com"
+                data-context="signup"
+                data-ux_mode="popup"
+                data-login_uri="https://ivmanto.dev/oauth/register"
+                data-auto_prompt="false">
+            </div>
+
+            <div class="g_id_signin"
+                data-type="standard"
+                data-shape="rectangular"
+                data-theme="outline"
+                data-text="signup_with"
+                data-size="large"
+                data-locale="en-GB"
+                data-logo_alignment="left"
+                data-width="310">
+            </div>
+
         </section>
     </div>
+
+    <button id="e1" hidden>Login error!</button>
 {{end}}

@@ -259,7 +259,10 @@ func checkValidClientAuthRequest(r *http.Request, cfg config.IvmCfg) (bool, erro
 		// Check for an exception - validate the clientID is registred for the following endpoints:
 		// * GET /oauth/authorize
 		// * GET /oauth/ui/activate
-		if r.Method == http.MethodGet && (r.URL.Path == "/oauth/authorize" || r.URL.Path == "/oauth/ui/activate") {
+		// * GET /oauth/userInfo
+		if r.Method == http.MethodGet && (r.URL.Path == "/oauth/authorize" ||
+			r.URL.Path == "/oauth/ui/activate" ||
+			r.URL.Path == "/oauth/userInfo") {
 			return true, nil
 		}
 		fmt.Printf("[checkValidClientAuthRequest] not allowed method %s\n", r.Method)
@@ -330,6 +333,11 @@ func validateClientExists(r *http.Request, clients core.ClientRepository) (*core
 		if err != nil {
 			return nil, fmt.Errorf("while getting clientID: %v from cookie error raised: %v", cID, err)
 		}
+	case "GET /oauth/userInfo":
+		cID, err = getClientIDFromCookie(r)
+		if err != nil {
+			return nil, fmt.Errorf("while getting clientID: %v from cookie error raised: %v", cID, err)
+		}
 	default:
 		cID = ""
 	}
@@ -351,6 +359,8 @@ func isClientIDValidateCase(r *http.Request) bool {
 	mrp := r.Method + " " + r.URL.Path
 	switch {
 	case mrp == "GET /oauth/authorize":
+		return true
+	case mrp == "GET /oauth/userInfo":
 		return true
 	case mrp == "POST /oauth/login":
 		return true
