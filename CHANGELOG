@@ -2,7 +2,7 @@ v0.0.20
         - Access Token validation will now look at Authorization header for AT
         - Review and correct errors for user login and register
         - implement user info endpoint
-        - 
+        - changing UI design for OAuth
         
 v0.0.19
         - message page for UI redirect
