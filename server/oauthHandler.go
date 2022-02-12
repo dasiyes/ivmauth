@@ -47,6 +47,9 @@ func (h *oauthHandler) router() chi.Router {
 			r.Get("/login", h.userLoginForm)
 			r.Get("/register", h.userRegisterForm)
 		})
+		r.Route("/gs", func(r chi.Router) {
+			r.Post("/validate", h.gsValidate)
+		})
 	})
 
 	r.Method("GET", "/docs", http.StripPrefix("/auth/v1/docs", http.FileServer(http.Dir("authenticating/docs"))))
@@ -697,4 +700,45 @@ func (h *oauthHandler) logPotentialCSRFAttacks(r *http.Request, err error) {
 	rm := r.Method
 	rp := r.URL.Path
 	_ = level.Info(h.logger).Log("log_possible_CSRF", fmt.Sprintf("remote ip %s, request method %s, request path %s", ip, rm, rp), "error", fmt.Sprintf("%v", err))
+}
+
+// gsValidate - will validate the Google's Sign In JWT token sent as POST request to the endpoint /oauth/gs/validate
+func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
+
+	headerContentTtype := r.Header.Get("Content-Type")
+	if headerContentTtype != "application/x-www-form-urlencoded" {
+		w.WriteHeader(http.StatusUnsupportedMediaType)
+		h.server.responseBadRequest(w, "gsValidate", fmt.Errorf("unsupported media type %s", headerContentTtype))
+		return
+	}
+
+	err := r.ParseForm()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "gsValidate", fmt.Errorf("while parsing the form error: %v", err))
+		return
+	}
+
+	// CSRF check
+	csrf_c, err := r.Cookie("g_csrf_token")
+	if err != nil {
+		h.server.responseBadRequest(w, "gsValidate", fmt.Errorf("invalid request"))
+		return
+	}
+
+	csrf_b := r.FormValue("g_csrf_token")
+
+	if csrf_c.Value != csrf_b {
+		h.server.responseBadRequest(w, "gsValidate", fmt.Errorf("invalid request"))
+		return
+	}
+
+	id_token := r.FormValue("credential")
+	_ = level.Debug(h.logger).Log("IDtoken", id_token)
+
+	// validate ID Token
+	if err := h.server.Auth.ValidateAccessToken(id_token, "google"); err != nil {
+		h.server.responseUnauth(w, "gsValidate", fmt.Errorf("failed validation error: %v", err))
+		return
+	}
 }

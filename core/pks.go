@@ -245,10 +245,12 @@ func (pks *PublicKeySet) GetKidNE(kid string) (*big.Int, int, error) {
 
 // LenJWKS return the length of the array of JWKs
 func (pks *PublicKeySet) LenJWKS() int {
-	if pks == nil {
+	if pks == nil || pks.Jwks == nil {
 		return 0
 	}
-	return len(pks.Jwks.Keys)
+
+	ko := *pks.Jwks
+	return len(ko.Keys)
 }
 
 // AddJWK will generate new private key and from it will add a new JWK into JWKS

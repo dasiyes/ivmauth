@@ -144,7 +144,7 @@ func main() {
 
 	var pkr pksrefreshing.Service
 	{
-		pkr = pksrefreshing.NewService(pubkeys, keyJournal, oidprv, cfg.GetIvmantoOIDC())
+		pkr = pksrefreshing.NewService(pubkeys, keyJournal, oidprv, cfg)
 		pkr = pksrefreshing.NewLoggingService(log.With(logger, "component", "pksrefreshing"), pkr)
 		pkr = pksrefreshing.NewInstrumentingService(
 			kitprometheus.NewCounterFrom(stdprometheus.CounterOpts{

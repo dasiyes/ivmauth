@@ -52,7 +52,7 @@ type service struct {
 	keyset     core.PublicKeySetRepository
 	keyJournal core.KJR
 	providers  core.OIDProviderRepository
-	cfg        *config.OpenIDConfiguration
+	cfg        config.IvmCfg
 }
 
 // Initiating OpenID Providers
@@ -90,7 +90,7 @@ func (s *service) newPKS(ip string) error {
 		// [x] Implement initial load of Ivmanto's OID Provider configuration from the config file. Update the configuration into the firestore DB.
 		// cfg passed to pkr service will hold defacto Ivmanto's configuration loaded from the config file.
 		oidp = core.NewOIDProvider(prvn)
-		oidp.Oidc = s.cfg
+		oidp.Oidc = s.cfg.GetOIDPC(ip)
 		if oidp.Oidc == nil {
 			return fmt.Errorf("missing openID configuration")
 		}
@@ -119,20 +119,26 @@ func (s *service) newPKS(ip string) error {
 		}(pks)
 
 	case "google":
-		// getting Google's OpenID Configuration
-		oidc, err = getGooglesOIC(pks)
-		if err != nil {
-			return err
-		}
+
 		oidp = core.NewOIDProvider(prvn)
-		oidp.Oidc = oidc
+		oidp.Oidc = s.cfg.GetOIDPC(ip)
+
+		if oidp.Oidc == nil {
+
+			// getting Google's OpenID Configuration from Google config site
+			oidc, err = getGooglesOIC(pks)
+			if err != nil {
+				fmt.Printf("[newPKS] error getting GooglesOIC: %v", err)
+				return err
+			}
+			oidp.Oidc = oidc
+		}
 
 		if err = s.providers.Store(oidp); err != nil {
 			return err
 		}
 
 		// fullfiling PKS
-		// pks.URL, err = url.Parse(oidc.JwksURI)
 		pks.URL = oidp.Oidc.JwksURI
 		if err != nil {
 			return err
@@ -141,6 +147,9 @@ func (s *service) newPKS(ip string) error {
 		if err != nil {
 			return err
 		}
+		// [ ] to remove after debug
+		fmt.Printf("...... downloaded jwks: %s, pks.URL: %s\n", string(jwks), pks.URL)
+
 		if err := pks.Init(jwks, exp); err != nil {
 			return err
 		}
@@ -214,17 +223,19 @@ func (s *service) GetPKSCache(identityProvider string) (*core.PublicKeySet, erro
 
 	// Get the pks from the cache
 	pks, err := s.keyset.Find2(identityProvider)
-	if err != nil && err.Error() == "key not found" {
+	if err != nil && strings.HasPrefix(err.Error(), "[Find2] error retrieving documentId") {
 
 		pks = &core.PublicKeySet{}
 
-		_ = s.PKSRotator(pks)
-		err = nil
+		if identityProvider == "ivmanto" {
+			_ = s.PKSRotator(pks)
+		}
+
 		// Not found - download it again from the providers url
-		err = s.newPKS(identityProvider)
+		err := s.newPKS(identityProvider)
 		if err != nil {
 			// error when downloading it - return empty pks and error
-			return nil, fmt.Errorf("Error while creating a new PKS: %#v for IdentyProvider: %s", err, identityProvider)
+			return nil, fmt.Errorf("Error while creating a new PKS: %v for IdentyProvider: %s", err, identityProvider)
 		}
 		// Try again to find it in cache - once the download has been called
 		pks, err = s.keyset.Find2(identityProvider)
@@ -294,7 +305,7 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 	// deadline - the time when the current key expires
 	// ltri - lead-time rotation interval
 	var deadline, ltri int64
-	ltri = int64(s.cfg.LeadTime)
+	ltri = int64(s.cfg.GetOIDPC("ivmanto").LeadTime)
 
 	var kj *core.KeyJournal = &core.KeyJournal{Records: []core.KeyRecord{}}
 	var kr *core.KeyRecord
@@ -331,7 +342,7 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 		now := time.Now().Unix()
 		if (deadline-ltri) < now && now < deadline {
 
-			var validity = s.cfg.Validity
+			var validity = s.cfg.GetOIDPC("ivmanto").Validity
 			// create a new Public key that will become active once the current key will be
 			// retired [from index 1 -> to index 0]
 			kj, err = pks.AddJWK(jwt.SigningMethodRS256, validity)
@@ -389,7 +400,7 @@ func (s *service) PKSRotator(pks *core.PublicKeySet) error {
 func (s *service) rotatorRunner(pks *core.PublicKeySet) {
 
 	// rri - rotator runner interval
-	var rri = int64(s.cfg.RRPeriod)
+	var rri = int64(s.cfg.GetOIDPC("ivmanto").RRPeriod)
 
 	fmt.Printf("[%+v] another run of rotatorRunner... \n", time.Now())
 	err := s.PKSRotator(pks)
@@ -417,7 +428,7 @@ func (s *service) createIvmantoJWK(pks *core.PublicKeySet) error {
 	}
 
 	// The pks is freshly created with one empty JWK in the JWKS
-	var validity = s.cfg.Validity
+	var validity = s.cfg.GetOIDPC("ivmanto").Validity
 	kj, err = pks.AddJWK(jwt.SigningMethodRS256, validity)
 	if err != nil {
 		return fmt.Errorf("[createIvmantoJWK] error while addJWK: %#v", err)
@@ -452,7 +463,7 @@ func (s *service) getJWKSfromUrl(pks *core.PublicKeySet) {
 
 	// Initiate pks
 	if err := pks.Init(jwks, exp); err != nil {
-		fmt.Printf("error initiating PKS: %#v", err)
+		fmt.Printf("error initiating PKS: %v", err)
 	}
 	// reset service level variable
 	n = 0
@@ -506,6 +517,7 @@ func getGooglesOIC(pks *core.PublicKeySet) (cfg *config.OpenIDConfiguration, err
 
 	resp, err := pks.HTTPClient.Get("https://accounts.google.com/.well-known/openid-configuration")
 	if err != nil {
+		fmt.Printf("[getGooglesOIC] getting open-config for Google raised error: %v", err)
 		return &oidconfig, ErrExtEndpointResponse
 	}
 	defer resp.Body.Close()
@@ -528,7 +540,7 @@ func NewService(
 	pksr core.PublicKeySetRepository,
 	kj core.KJR,
 	oidpr core.OIDProviderRepository,
-	cfg *config.OpenIDConfiguration) Service {
+	cfg config.IvmCfg) Service {
 
 	return &service{
 		keyset:     pksr,

@@ -68,6 +68,8 @@ func (h *authHandler) authenticateRequest(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	_ = level.Debug(h.logger).Log("request-body", fmt.Sprintf("%+v", reqbody))
+
 	// Preliminary download JWKS for idToken validation if the x-token-type is not empty
 	// [ ] find a way how to get the PKS from the cache. It has been initiated at startup time by the method `InitOIDProviders``
 	// var tt = r.Header.Get("x-token-type")
