@@ -113,7 +113,7 @@ func (it *IDToken) Valid() error {
 	}
 
 	if it.Iat >= time.Now().Unix() {
-		return fmt.Errorf("%s, %v", "invalid `Iat` value | ", ErrInvalidIDToken)
+		return fmt.Errorf("invalid `Iat` value %d | error: %v", it.Iat, ErrInvalidIDToken)
 	}
 
 	return nil
