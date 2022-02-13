@@ -37,7 +37,7 @@ func main() {
 	var (
 		inmemory = flag.Bool("inmem", false, "use in-memory repositories")
 		env      = flag.String("env", "dev", "The environment where the service will run. It will define the config file name to load by adding suffix '-$env' to 'config'. Accepted values: dev|staging|prod ")
-		cf       = flag.String("c", "config.yaml", "The configuration file name to use for oauth server config values and dependent services")
+		cfn      = flag.String("c", "config", "The configuration file name to use for oauth server config values and dependent services")
 	)
 
 	fmt.Printf("  ... parse run-time flags\n")
@@ -53,14 +53,17 @@ func main() {
 	}
 
 	fmt.Printf("  ... loading configuration\n")
+
 	// Initiate top level context and config vars
 	var (
-		ctx = context.Background()
-		cfg = ivmcfg.Init(env, log.With(logger, "component", "config"))
+		ctx  = context.Background()
+		clgr = log.With(logger, "component", "config")
+		cfg  = ivmcfg.Init(env, clgr)
+		cf   = fmt.Sprintf("%s-%s.yaml", *cfn, *env)
 	)
 
 	// Load the service configuration from a file
-	if err := cfg.LoadConfig(*cf, log.With(logger, "component", "config")); err != nil {
+	if err := cfg.LoadConfig(cf, clgr); err != nil {
 		_ = level.Error(logger).Log("LoadConfig", "Unable to load service configuration", "Error", err.Error())
 		os.Exit(1)
 	}
@@ -137,7 +140,7 @@ func main() {
 		os.Exit(1)
 	}
 	ssolgr := log.With(logger, "component", "ivmSSO")
-	ivmSSO := ssoapp.NewIvmSSO(tc, &ssolgr, users)
+	ivmSSO := ssoapp.NewIvmSSO(tc, &ssolgr, cfg, users)
 
 	fmt.Printf("  ... initiating services\n")
 	// initiating services

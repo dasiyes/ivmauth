@@ -96,6 +96,8 @@ type IDToken struct {
 // Valid function performs an validation check that match the OpenID Connect specification for validating ID Token
 func (it *IDToken) Valid() error {
 
+	tn := time.Now().Unix()
+
 	if it.Iss == "" || !strings.HasPrefix(strings.ToLower(it.Iss), "https") {
 		return fmt.Errorf("%s, %v", "empty or invalid `Iss` value | ", ErrInvalidIDToken)
 	}
@@ -108,12 +110,12 @@ func (it *IDToken) Valid() error {
 		return fmt.Errorf("%s, %v", "empty `Aud` value | ", ErrInvalidIDToken)
 	}
 
-	if it.Exp < time.Now().Unix()+60 {
+	if it.Exp < tn+60 {
 		return fmt.Errorf("%s, %v", "token expired | ", ErrInvalidIDToken)
 	}
 
-	if it.Iat >= time.Now().Unix() {
-		return fmt.Errorf("invalid `Iat` value %d | error: %v", it.Iat, ErrInvalidIDToken)
+	if it.Iat >= tn+1 {
+		return fmt.Errorf("invalid `Iat` value %d vs now %d| error: %v", it.Iat, tn, ErrInvalidIDToken)
 	}
 
 	return nil

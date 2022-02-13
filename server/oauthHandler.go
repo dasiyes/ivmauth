@@ -734,11 +734,23 @@ func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id_token := r.FormValue("credential")
-	_ = level.Debug(h.logger).Log("IDtoken", id_token)
 
 	// validate ID Token
 	if err := h.server.Auth.ValidateAccessToken(id_token, "google"); err != nil {
 		h.server.responseUnauth(w, "gsValidate", fmt.Errorf("failed validation error: %v", err))
 		return
 	}
+
+	fmt.Printf("referrer is: %s", r.Referer())
+
+	// TODO:
+	// * create IVMANTO session in Authed state
+	// * record it in shared session store
+	// * generate Ivmanto's Access and Refresh Token
+	//
+	// -- in separate GO routine
+	// * Check if the user is registred:
+	// 		- if yes - link/connect both Accounts
+	//		- if no - register the user with the data from IDToken
+	//
 }

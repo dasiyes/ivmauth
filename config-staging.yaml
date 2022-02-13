@@ -34,6 +34,8 @@ api_gateway_svc:
   endpoints:
     - endpoint: "/pg/cb"
       method: "GET"
+    - endpoint: "/oauth/gs/validate"
+      method: "POST"
 
 # web application config
 web_app_svc:

@@ -147,8 +147,6 @@ func (s *service) newPKS(ip string) error {
 		if err != nil {
 			return err
 		}
-		// [ ] to remove after debug
-		fmt.Printf("...... downloaded jwks: %s, pks.URL: %s\n", string(jwks), pks.URL)
 
 		if err := pks.Init(jwks, exp); err != nil {
 			return err

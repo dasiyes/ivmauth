@@ -1,7 +1,7 @@
 # ivmauth service configuration file
 
 # environment
-env: STAGING
+env: DEV
 
 # current service configuration
 auth_svc:
@@ -12,6 +12,7 @@ auth_svc:
 # cloud environment config
 cloud_env:
   project_id: 'ivmauth'
+  path_gsignin_login: "/oauth/gs/validate"
 
 # session man config
 sesman_config:
@@ -30,10 +31,12 @@ email_cfg:
 
 # api-gateway config
 api_gateway_svc:
-  host: ["ivmanto.dev"]
+  host: ["localhost:8090"]
   endpoints:
     - endpoint: "/pg/cb"
       method: "GET"
+    - endpoint: "/oauth/gs/validate"
+      method: "POST"
 
 # web application config
 web_app_svc:

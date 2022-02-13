@@ -120,6 +120,8 @@ github.com/dasiyes/ivmapi v0.0.19-t26-stage/go.mod h1:8OyQHGcjffSwXJffJ1kRF0OmC6
 github.com/dasiyes/ivmconfig v0.0.0-20211215150735-0f6785e919b7/go.mod h1:jHNMnECM5MQxJ5HfQi8koogAPbaqgXJhvVuYHiPsS6w=
 github.com/dasiyes/ivmconfig v0.0.0-20220212211434-db36204f185c h1:OtRrCDCEnfsA6Qfu0h9xNbgeVqFPai4TcaqoQRhxpIg=
 github.com/dasiyes/ivmconfig v0.0.0-20220212211434-db36204f185c/go.mod h1:jHNMnECM5MQxJ5HfQi8koogAPbaqgXJhvVuYHiPsS6w=
+github.com/dasiyes/ivmconfig v0.0.0-20220213163700-26dca3c6fef5 h1:XvLBLPeDSvMwmGC2A0SbHuldKilCvJYOu6n4fqyFpEQ=
+github.com/dasiyes/ivmconfig v0.0.0-20220213163700-26dca3c6fef5/go.mod h1:jHNMnECM5MQxJ5HfQi8koogAPbaqgXJhvVuYHiPsS6w=
 github.com/dasiyes/ivmsesman v0.4.9-dev12/go.mod h1:axJdmwau158jAsdb2ewP8LSfFbMgfDLNZ/KW+vwRYpo=
 github.com/dasiyes/ivmsesman v0.4.9-dev21 h1:RyqhWdUv4HKTYBlXQp7ZPzfqyAO4Yt+bqtjBVtvbFw8=
 github.com/dasiyes/ivmsesman v0.4.9-dev21/go.mod h1:axJdmwau158jAsdb2ewP8LSfFbMgfDLNZ/KW+vwRYpo=
