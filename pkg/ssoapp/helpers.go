@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"runtime/debug"
+	"strings"
 	"time"
 
+	"github.com/dasiyes/ivmconfig/src/pkg/config"
 	"github.com/go-kit/log/level"
 	"github.com/justinas/nosurf"
 )
@@ -20,6 +22,7 @@ func (a *IvmSSO) serverError(w http.ResponseWriter, err error) {
 
 // render is a helper function to render a specific template using the cached templates file repo
 func (a *IvmSSO) Render(w http.ResponseWriter, r *http.Request, name string, td *TemplateData) {
+
 	ts, ok := a.templateCache[name]
 	if !ok {
 		a.serverError(w, fmt.Errorf("the template %s does not exist", name))
@@ -51,10 +54,13 @@ func (a *IvmSSO) addDefaultData(td *TemplateData, r *http.Request) *TemplateData
 	cc, err := r.Cookie("c")
 	if err != nil {
 		cid = ""
-		fmt.Printf("unable to get clientID. error %#v", err)
+		_ = level.Error(*a.logger).Log("method", "addDefaultData", "while getting customerID error", fmt.Sprintf("%v", err))
 	} else {
 		cid = cc.Value
 	}
+
+	// Compose the Google SignIn endpoint that will receive the IDToken to validate
+	td.GSigninURI = composeGSuri(a.cfg)
 
 	// generates new CSRFToken
 	td.CSRFToken = nosurf.Token(r)
@@ -63,6 +69,20 @@ func (a *IvmSSO) addDefaultData(td *TemplateData, r *http.Request) *TemplateData
 	// td.Flash = a.session.PopString(r, "flash")
 	// td.IsAuthenticated = a.isAuthenticated(r)
 	td.ClientID = cid
+	td.Version = a.cfg.GetVer()
 
 	return td
+}
+
+// Compose the Google Sign In endpoint uri
+func composeGSuri(cfg config.IvmCfg) string {
+
+	apiSvcHst := cfg.GetAPIGWSvcURL()
+	gslp := cfg.GetGSLoginPath()
+	sch := "https"
+	if strings.HasPrefix(apiSvcHst, "localhost") {
+		sch = "http"
+	}
+
+	return fmt.Sprintf("%s://%s%s", sch, apiSvcHst, gslp)
 }

@@ -12,6 +12,7 @@ auth_svc:
 # cloud environment config
 cloud_env:
   project_id: 'ivmauth'
+  path_gsignin_login: "/oauth/gs/validate"
 
 # session man config
 sesman_config:
@@ -34,6 +35,8 @@ api_gateway_svc:
   endpoints:
     - endpoint: "/pg/cb"
       method: "GET"
+    - endpoint: "/oauth/gs/validate"
+      method: "POST"
 
 # web application config
 web_app_svc:
