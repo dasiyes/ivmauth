@@ -721,7 +721,7 @@ func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
 
 	// CSRF check
 	csrf_c, err := r.Cookie("g_csrf_token")
-	if err != nil {
+	if err != nil || csrf_c.Value == "" {
 		h.server.responseBadRequest(w, "gsValidate", fmt.Errorf("invalid request"))
 		return
 	}
@@ -741,7 +741,22 @@ func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("referrer is: %s", r.Referer())
+	rf := r.Referer()
+	switch rf {
+	case "https://ivmanto.dev/pg":
+		// [ ] implement feature
+	case "https://ivmanto.dev":
+		// [ ] implement feature
+	case "https://ivmanto.dev/oauth/ui/login":
+		// [ ] implement feature
+	case "https://ivmanto.dev/oauth/ui/register":
+		// [ ] implement feature
+	default:
+		// [ ] implement feature
+	}
+
+	fmt.Printf("referrer is: %s", rf)
+	http.Redirect(w, r, "https://ivmanto.dev/pg", 303)
 
 	// TODO:
 	// * create IVMANTO session in Authed state
