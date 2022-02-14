@@ -6,11 +6,12 @@
     <div class="login-container">  
         <section class="login" id="login">
             <header>
-                <h2>Logoutt</h2>
+                <h2>Logout</h2>
                 <h4>current logged</h4>
             </header>
             <form class="login-form" action='/oauth/logout' method='POST'>
                 {{with .Form}}
+                    <div><p>{{.User.Email}}</p></div>
                     <div class="submit-container">
                         <button id="e1" type="submit" class="login-button">Logout</button>
                     </div>

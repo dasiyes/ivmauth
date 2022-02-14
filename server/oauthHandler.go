@@ -232,8 +232,7 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 	at, oidpn := extractAuthIDT(r)
 	_ = level.Debug(h.logger).Log("at", at, "oidpn", oidpn)
 
-	if at != "" {
-		oidpn := "ivmanto"
+	if at != "" && oidpn != "" {
 		_, oidtoken, err := h.server.Auth.ValidateAccessToken(at, oidpn)
 
 		if err == nil {
