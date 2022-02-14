@@ -154,7 +154,9 @@ func (s *service) newPKS(ip string) error {
 		if err := s.keyset.Store(pks, nil); err != nil {
 			return err
 		}
-
+	case "github":
+		// TODO: implement from here: https://docs.github.com/en/developers/apps/building-github-apps/identifying-and-authorizing-users-for-github-apps
+		return nil
 	// TODO: Add more Identity providers below
 	default:
 		return fmt.Errorf("unknown provider")
