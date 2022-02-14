@@ -230,10 +230,16 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 	var td ssoapp.TemplateData
 
 	at, oidpn := extractAuthIDT(r)
-	if at != "" && oidpn != "" {
+	_ = level.Debug(h.logger).Log("at", at, "oidpn", oidpn)
+
+	if at != "" {
+		oidpn := "ivmanto"
 		_, oidtoken, err := h.server.Auth.ValidateAccessToken(at, oidpn)
+
 		if err == nil {
 			au := oidtoken.Email
+			_ = level.Debug(h.logger).Log("oidtoken.Email", oidtoken.Email)
+
 			td = ssoapp.TemplateData{
 				User: &models.User{
 					Email: au,
