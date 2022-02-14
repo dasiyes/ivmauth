@@ -799,7 +799,7 @@ func extractAuthIDT(r *http.Request) (at, oidpn string) {
 		return at, oidpn
 	}
 
-	auh := strings.Split(r.Header.Get("Authorrization"), " ")
+	auh := strings.Split(r.Header.Get("Authorization"), " ")
 
 	if len(auh) != 2 || auh[0] != "Bearer" || auh[1] == "" {
 		return at, oidpn
