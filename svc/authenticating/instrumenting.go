@@ -7,6 +7,7 @@ import (
 	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 	"github.com/go-kit/kit/metrics"
+	"github.com/golang-jwt/jwt"
 )
 
 type instrumentingService struct {
@@ -117,7 +118,7 @@ func (s *instrumentingService) IssueIvmIDToken(subCode string, cid core.ClientID
 	return s.next.IssueIvmIDToken(subCode, cid)
 }
 
-func (s *instrumentingService) ValidateAccessToken(at, oidpn string) (err error) {
+func (s *instrumentingService) ValidateAccessToken(at, oidpn string) (tkn *jwt.Token, oidtoken *core.IDToken, err error) {
 	defer func(begin time.Time) {
 		s.requestCount.With("method", "ValidateAT").Add(1)
 		if err != nil {

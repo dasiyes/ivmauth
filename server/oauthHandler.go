@@ -20,6 +20,7 @@ import (
 	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/pkg/email"
 	"github.com/dasiyes/ivmauth/pkg/forms"
+	"github.com/dasiyes/ivmauth/pkg/models"
 	"github.com/dasiyes/ivmauth/pkg/ssoapp"
 )
 
@@ -45,6 +46,7 @@ func (h *oauthHandler) router() chi.Router {
 		r.Route("/ui", func(r chi.Router) {
 			r.Use(noSurf)
 			r.Get("/login", h.userLoginForm)
+			// r.Get("/logout", h.userLogoutForm)
 			r.Get("/register", h.userRegisterForm)
 		})
 		r.Route("/gs", func(r chi.Router) {
@@ -226,12 +228,47 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 // userLoginForm will handle the UI for users Login Form
 func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 
-	var td = ssoapp.TemplateData{
+	var td ssoapp.TemplateData
+
+	at, oidpn := extractAuthIDT(r)
+	_ = level.Debug(h.logger).Log("at", at, "oidpn", oidpn)
+
+	if at != "" && oidpn != "" {
+		_, oidtoken, err := h.server.Auth.ValidateAccessToken(at, oidpn)
+
+		if err == nil {
+
+			_ = level.Debug(h.logger).Log("oidtoken.Email", oidtoken.Email)
+
+			td = ssoapp.TemplateData{
+				User: &models.User{
+					Name:  oidtoken.Name,
+					Email: oidtoken.Email,
+				},
+			}
+			h.server.IvmSSO.Render(w, r, "logout.page.tmpl", &td)
+			return
+		}
+	}
+
+	td = ssoapp.TemplateData{
 		Form: forms.New(nil),
 	}
 
 	h.server.IvmSSO.Render(w, r, "login.page.tmpl", &td)
 }
+
+// [x] temp - for local tests only
+// func (h *oauthHandler) userLogoutForm(w http.ResponseWriter, r *http.Request) {
+//
+// 	td := ssoapp.TemplateData{
+// 		User: &models.User{
+// 			Name:  "oidtoken.Name",
+// 			Email: "oidtoken.Email",
+// 		},
+// 	}
+// 	h.server.IvmSSO.Render(w, r, "logout.page.tmpl", &td)
+// }
 
 // userRegisterForm will handle the UI for the user's registration form
 func (h *oauthHandler) userRegisterForm(w http.ResponseWriter, r *http.Request) {
@@ -603,7 +640,7 @@ func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ia cookie value must be valis (loggedIn)
+	// ia cookie value must be valid (loggedIn)
 	if iac.Value != "1" {
 		h.server.responseBadRequest(w, "logOut-get-ia-cookie", fmt.Errorf("invalid cookie value %s", iac.Value))
 		return
@@ -615,10 +652,10 @@ func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Set-Cookie", "ia=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
 	w.Header().Add("Set-Cookie", fmt.Sprintf("%s=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT", scn))
+	w.Header().Set("Referer", "/oauth/logout")
 
-	if rfr == "" {
-		r.Header.Set("Location", "https://ivmanto.dev/pg")
-		w.WriteHeader(http.StatusAccepted)
+	if rfr == "" || rfr == "https://ivmanto.dev/oauth/ui/login" {
+		http.Redirect(w, r, "https://ivmanto.dev/pg", http.StatusSeeOther)
 	} else {
 		// redirect back to web app page (registered for the client id)
 		http.Redirect(w, r, rfr, http.StatusSeeOther)
@@ -638,18 +675,12 @@ func (h *oauthHandler) handleRefTokenFllow(
 // validateToken is a support function to validate the provided access token
 func (h *oauthHandler) validateToken(w http.ResponseWriter, r *http.Request) {
 
-	oidpn := r.Header.Get("X-Token-Type")
-	if oidpn == "" {
-		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("empty openID provider name"))
-		return
-	}
-	auh := strings.Split(r.Header.Get("Authorrization"), " ")
-	if len(auh) != 2 || auh[0] != "Bearer" {
-		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("invalid request"))
-		return
+	at, oidpn := extractAuthIDT(r)
+	if at == "" || oidpn == "" {
+		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("empty AT or openID provider name"))
 	}
 
-	if err := h.server.Auth.ValidateAccessToken(auh[1], oidpn); err != nil {
+	if _, _, err := h.server.Auth.ValidateAccessToken(at, oidpn); err != nil {
 		h.server.responseUnauth(w, "validateToken", fmt.Errorf("failed validation error: %v", err))
 		return
 	}
@@ -736,10 +767,14 @@ func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
 	id_token := r.FormValue("credential")
 
 	// validate ID Token
-	if err := h.server.Auth.ValidateAccessToken(id_token, "google"); err != nil {
+	tkn, oidtoken, err := h.server.Auth.ValidateAccessToken(id_token, "google")
+	if err != nil {
 		h.server.responseUnauth(w, "gsValidate", fmt.Errorf("failed validation error: %v", err))
 		return
 	}
+
+	_ = oidtoken
+	_ = tkn
 
 	rf := r.Referer()
 	switch rf {
@@ -768,4 +803,20 @@ func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
 	// 		- if yes - link/connect both Accounts
 	//		- if no - register the user with the data from IDToken
 	//
+}
+
+func extractAuthIDT(r *http.Request) (at, oidpn string) {
+
+	oidpn = r.Header.Get("X-Token-Type")
+	if oidpn == "" {
+		return at, oidpn
+	}
+
+	auh := strings.Split(r.Header.Get("Authorization"), " ")
+
+	if len(auh) != 2 || auh[0] != "Bearer" || auh[1] == "" {
+		return at, oidpn
+	}
+
+	return auh[1], oidpn
 }
