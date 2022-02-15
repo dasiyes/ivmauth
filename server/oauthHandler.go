@@ -652,6 +652,7 @@ func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Set-Cookie", "ia=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
 	w.Header().Add("Set-Cookie", fmt.Sprintf("%s=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT", scn))
+	w.Header().Set("Referer", "/oauth/logout")
 
 	if rfr == "" {
 		r.Header.Set("Location", "https://ivmanto.dev/pg")
