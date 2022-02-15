@@ -46,6 +46,7 @@ func (h *oauthHandler) router() chi.Router {
 		r.Route("/ui", func(r chi.Router) {
 			r.Use(noSurf)
 			r.Get("/login", h.userLoginForm)
+			// r.Get("/logout", h.userLogoutForm)
 			r.Get("/register", h.userRegisterForm)
 		})
 		r.Route("/gs", func(r chi.Router) {
@@ -256,6 +257,18 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 
 	h.server.IvmSSO.Render(w, r, "login.page.tmpl", &td)
 }
+
+// [x] temp - for local tests only
+// func (h *oauthHandler) userLogoutForm(w http.ResponseWriter, r *http.Request) {
+//
+// 	td := ssoapp.TemplateData{
+// 		User: &models.User{
+// 			Name:  "oidtoken.Name",
+// 			Email: "oidtoken.Email",
+// 		},
+// 	}
+// 	h.server.IvmSSO.Render(w, r, "logout.page.tmpl", &td)
+// }
 
 // userRegisterForm will handle the UI for the user's registration form
 func (h *oauthHandler) userRegisterForm(w http.ResponseWriter, r *http.Request) {
@@ -627,7 +640,7 @@ func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ia cookie value must be valis (loggedIn)
+	// ia cookie value must be valid (loggedIn)
 	if iac.Value != "1" {
 		h.server.responseBadRequest(w, "logOut-get-ia-cookie", fmt.Errorf("invalid cookie value %s", iac.Value))
 		return

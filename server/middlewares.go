@@ -121,6 +121,9 @@ func isReqWhitelisted(r *http.Request) bool {
 		return true
 	case mr == "POST /oauth/logout":
 		return true
+	// [ ] temp for local test only
+	// case mr == "GET /oauth/ui/logout":
+	// 	return true
 	case mr == "GET /oauth/ui/login":
 		return true
 	case mr == "GET /oauth/ui/register":
