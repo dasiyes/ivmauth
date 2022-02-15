@@ -655,8 +655,6 @@ func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Referer", "/oauth/logout")
 
 	if rfr == "" || rfr == "https://ivmanto.dev/oauth/ui/login" {
-		//r.Header.Set("Location", "https://ivmanto.dev/pg")
-		//w.WriteHeader(http.StatusAccepted)
 		http.Redirect(w, r, "https://ivmanto.dev/pg", http.StatusSeeOther)
 	} else {
 		// redirect back to web app page (registered for the client id)
