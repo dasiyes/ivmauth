@@ -236,12 +236,13 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 		_, oidtoken, err := h.server.Auth.ValidateAccessToken(at, oidpn)
 
 		if err == nil {
-			au := oidtoken.Email
+
 			_ = level.Debug(h.logger).Log("oidtoken.Email", oidtoken.Email)
 
 			td = ssoapp.TemplateData{
 				User: &models.User{
-					Email: au,
+					Name:  oidtoken.Name,
+					Email: oidtoken.Email,
 				},
 			}
 			h.server.IvmSSO.Render(w, r, "logout.page.tmpl", &td)

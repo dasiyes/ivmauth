@@ -8,14 +8,15 @@
             <header>
                 <h2>Logout</h2>
                 <h4>currently logged as</h4>
+                {{with .User}}
+                    <div>
+                        <input type='text' name='username' value='{{.Name}}'>
+                        <input type='text' name='userid' value='{{.Email}}'>
+                    </div>
+                {{end}}
             </header>
             <form class="login-form" action='/oauth/logout' method='POST'>
                 {{with .Form}}
-                    {{with .User}}
-                        <div>
-                            <p>{{.Name}} {{.Email}}</p>
-                        </div>
-                    {{end}}
                     <div class="submit-container">
                         <button id="e1" type="submit" class="login-button">Logout</button>
                     </div>
