@@ -238,8 +238,6 @@ func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 
 		if err == nil {
 
-			_ = level.Debug(h.logger).Log("oidtoken.Email", oidtoken.Email)
-
 			td = ssoapp.TemplateData{
 				User: &models.User{
 					Name:  oidtoken.Name,
@@ -624,7 +622,7 @@ func (h *oauthHandler) handleAuthCodeFlow(
 func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 
 	scn := h.server.Config.GetSesssionCookieName()
-	rfr := r.Referer()
+	home := fmt.Sprintf("https://%s", h.server.Config.GetAPIGWSvcURL())
 
 	// Must have any session cookie (not checking for valid session id cookie - just session cookie)
 	sc, err := r.Cookie(scn)
@@ -654,12 +652,8 @@ func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Set-Cookie", fmt.Sprintf("%s=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT", scn))
 	w.Header().Set("Referer", "/oauth/logout")
 
-	if rfr == "" || rfr == "https://ivmanto.dev/oauth/ui/login" {
-		http.Redirect(w, r, "https://ivmanto.dev/pg", http.StatusSeeOther)
-	} else {
-		// redirect back to web app page (registered for the client id)
-		http.Redirect(w, r, rfr, http.StatusSeeOther)
-	}
+	// redirect back to web app page (registered for the client id)
+	http.Redirect(w, r, home, http.StatusSeeOther)
 }
 
 // TODO [dev]: implement handling of the refresh token for re-issue Access Token!
