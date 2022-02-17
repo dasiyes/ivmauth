@@ -98,16 +98,21 @@ func isReqWhitelisted(r *http.Request) bool {
 	fmt.Printf("request path: %#v;\n", mr)
 
 	switch {
+	case strings.HasPrefix(mr, "GET /assets/"):
+		return true
 	case strings.HasPrefix(mr, "GET /oauth/activate"):
 		return true
-	case strings.HasPrefix(mr, "GET /assets/"):
-		fmt.Printf("the request has reached ivmauth service with path: %s", mr)
+	case strings.HasPrefix(mr, "POST /oauth/gs"):
+		return true
+	case strings.HasSuffix(mr, "favicon.ico"):
 		return true
 	case mr == "GET /.well-known/openid-configuration":
 		return true
 	case mr == "GET /auth/version":
 		return true
 	case mr == "GET /auth/metrics":
+		return true
+	case mr == "GET /favicon.ico":
 		return true
 	case mr == "GET /oauth/metrics":
 		return true
@@ -117,6 +122,9 @@ func isReqWhitelisted(r *http.Request) bool {
 		return true
 	case mr == "POST /oauth/logout":
 		return true
+	// [ ] temp for local test only
+	// case mr == "GET /oauth/ui/logout":
+	// 	return true
 	case mr == "GET /oauth/ui/login":
 		return true
 	case mr == "GET /oauth/ui/register":

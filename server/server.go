@@ -120,7 +120,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *Server) oidcc() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		var ivmoid *config.OpenIDConfiguration = s.Config.GetIvmantoOIDC()
+		var ivmoid *config.OpenIDConfiguration = s.Config.GetOIDPC("ivmanto")
 
 		w.Header().Set("Content-Type", "application/json")
 

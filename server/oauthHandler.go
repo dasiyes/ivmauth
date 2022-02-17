@@ -20,6 +20,7 @@ import (
 	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/pkg/email"
 	"github.com/dasiyes/ivmauth/pkg/forms"
+	"github.com/dasiyes/ivmauth/pkg/models"
 	"github.com/dasiyes/ivmauth/pkg/ssoapp"
 )
 
@@ -45,7 +46,11 @@ func (h *oauthHandler) router() chi.Router {
 		r.Route("/ui", func(r chi.Router) {
 			r.Use(noSurf)
 			r.Get("/login", h.userLoginForm)
+			// r.Get("/logout", h.userLogoutForm)
 			r.Get("/register", h.userRegisterForm)
+		})
+		r.Route("/gs", func(r chi.Router) {
+			r.Post("/validate", h.gsValidate)
 		})
 	})
 
@@ -223,12 +228,46 @@ func (h *oauthHandler) authLogin(w http.ResponseWriter, r *http.Request) {
 // userLoginForm will handle the UI for users Login Form
 func (h *oauthHandler) userLoginForm(w http.ResponseWriter, r *http.Request) {
 
-	var td = ssoapp.TemplateData{
+	var td ssoapp.TemplateData
+
+	at, oidpn := extractAuthIDT(r)
+	_ = level.Debug(h.logger).Log("at", at, "oidpn", oidpn)
+
+	if at != "" && oidpn != "" {
+		_, oidtoken, err := h.server.Auth.ValidateAccessToken(at, oidpn)
+
+		_ = level.Debug(h.logger).Log("... user name", oidtoken.Name)
+
+		if err == nil {
+
+			td = ssoapp.TemplateData{
+				User: &models.User{
+					Name: oidtoken.Name,
+				},
+			}
+			h.server.IvmSSO.Render(w, r, "logout.page.tmpl", &td)
+			return
+		}
+	}
+
+	td = ssoapp.TemplateData{
 		Form: forms.New(nil),
 	}
 
 	h.server.IvmSSO.Render(w, r, "login.page.tmpl", &td)
 }
+
+// [x] temp - for local tests only
+// func (h *oauthHandler) userLogoutForm(w http.ResponseWriter, r *http.Request) {
+//
+// 	td := ssoapp.TemplateData{
+// 		User: &models.User{
+// 			Name:  "oidtoken.Name",
+// 			Email: "oidtoken.Email",
+// 		},
+// 	}
+// 	h.server.IvmSSO.Render(w, r, "logout.page.tmpl", &td)
+// }
 
 // userRegisterForm will handle the UI for the user's registration form
 func (h *oauthHandler) userRegisterForm(w http.ResponseWriter, r *http.Request) {
@@ -561,6 +600,9 @@ func (h *oauthHandler) handleAuthCodeFlow(
 	c := core.Client{ClientID: core.ClientID(rb.ClientID)}
 
 	oidt := h.server.Auth.IssueIvmIDToken(rb.SubCode, cid)
+	// [ ] remove after debug
+	_ = level.Debug(h.logger).Log("***issued-IDToken-oidt-Name***", oidt.Name)
+
 	at, err := h.server.Auth.IssueAccessToken(oidt, &c)
 	if err != nil {
 		h.server.responseUnauth(w, "handleAuthCodeFllow-issue-accessToken", fmt.Errorf("error issue access token: %v", err))
@@ -584,7 +626,7 @@ func (h *oauthHandler) handleAuthCodeFlow(
 func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 
 	scn := h.server.Config.GetSesssionCookieName()
-	rfr := r.Referer()
+	home := fmt.Sprintf("https://%s", h.server.Config.GetAPIGWSvcURL())
 
 	// Must have any session cookie (not checking for valid session id cookie - just session cookie)
 	sc, err := r.Cookie(scn)
@@ -600,7 +642,7 @@ func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ia cookie value must be valis (loggedIn)
+	// ia cookie value must be valid (loggedIn)
 	if iac.Value != "1" {
 		h.server.responseBadRequest(w, "logOut-get-ia-cookie", fmt.Errorf("invalid cookie value %s", iac.Value))
 		return
@@ -612,14 +654,10 @@ func (h *oauthHandler) logOut(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Set-Cookie", "ia=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT")
 	w.Header().Add("Set-Cookie", fmt.Sprintf("%s=deleted; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT", scn))
+	w.Header().Set("Referer", "/oauth/logout")
 
-	if rfr == "" {
-		r.Header.Set("Location", "https://ivmanto.dev/pg")
-		w.WriteHeader(http.StatusAccepted)
-	} else {
-		// redirect back to web app page (registered for the client id)
-		http.Redirect(w, r, rfr, http.StatusSeeOther)
-	}
+	// redirect back to web app page (registered for the client id)
+	http.Redirect(w, r, home, http.StatusSeeOther)
 }
 
 // TODO [dev]: implement handling of the refresh token for re-issue Access Token!
@@ -635,18 +673,12 @@ func (h *oauthHandler) handleRefTokenFllow(
 // validateToken is a support function to validate the provided access token
 func (h *oauthHandler) validateToken(w http.ResponseWriter, r *http.Request) {
 
-	oidpn := r.Header.Get("X-Token-Type")
-	if oidpn == "" {
-		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("empty openID provider name"))
-		return
-	}
-	auh := strings.Split(r.Header.Get("Authorrization"), " ")
-	if len(auh) != 2 || auh[0] != "Bearer" {
-		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("invalid request"))
-		return
+	at, oidpn := extractAuthIDT(r)
+	if at == "" || oidpn == "" {
+		h.server.responseBadRequest(w, "validateToken", fmt.Errorf("empty AT or openID provider name"))
 	}
 
-	if err := h.server.Auth.ValidateAccessToken(auh[1], oidpn); err != nil {
+	if _, _, err := h.server.Auth.ValidateAccessToken(at, oidpn); err != nil {
 		h.server.responseUnauth(w, "validateToken", fmt.Errorf("failed validation error: %v", err))
 		return
 	}
@@ -697,4 +729,92 @@ func (h *oauthHandler) logPotentialCSRFAttacks(r *http.Request, err error) {
 	rm := r.Method
 	rp := r.URL.Path
 	_ = level.Info(h.logger).Log("log_possible_CSRF", fmt.Sprintf("remote ip %s, request method %s, request path %s", ip, rm, rp), "error", fmt.Sprintf("%v", err))
+}
+
+// gsValidate - will validate the Google's Sign In JWT token sent as POST request to the endpoint /oauth/gs/validate
+func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
+
+	headerContentTtype := r.Header.Get("Content-Type")
+	if headerContentTtype != "application/x-www-form-urlencoded" {
+		w.WriteHeader(http.StatusUnsupportedMediaType)
+		h.server.responseBadRequest(w, "gsValidate", fmt.Errorf("unsupported media type %s", headerContentTtype))
+		return
+	}
+
+	err := r.ParseForm()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		h.server.responseBadRequest(w, "gsValidate", fmt.Errorf("while parsing the form error: %v", err))
+		return
+	}
+
+	// CSRF check
+	csrf_c, err := r.Cookie("g_csrf_token")
+	if err != nil || csrf_c.Value == "" {
+		h.server.responseBadRequest(w, "gsValidate", fmt.Errorf("invalid request"))
+		return
+	}
+
+	csrf_b := r.FormValue("g_csrf_token")
+
+	if csrf_c.Value != csrf_b {
+		h.server.responseBadRequest(w, "gsValidate", fmt.Errorf("invalid request"))
+		return
+	}
+
+	id_token := r.FormValue("credential")
+
+	// validate ID Token
+	tkn, oidtoken, err := h.server.Auth.ValidateAccessToken(id_token, "google")
+	if err != nil {
+		h.server.responseUnauth(w, "gsValidate", fmt.Errorf("failed validation error: %v", err))
+		return
+	}
+
+	_ = oidtoken
+	_ = tkn
+
+	rf := r.Referer()
+	switch rf {
+	case "https://ivmanto.dev/pg":
+		// [ ] implement feature
+	case "https://ivmanto.dev":
+		// [ ] implement feature
+	case "https://ivmanto.dev/oauth/ui/login":
+		// [ ] implement feature
+	case "https://ivmanto.dev/oauth/ui/register":
+		// [ ] implement feature
+	default:
+		// [ ] implement feature
+	}
+
+	fmt.Printf("referrer is: %s", rf)
+	http.Redirect(w, r, "https://ivmanto.dev/pg", 303)
+
+	// TODO:
+	// * create IVMANTO session in Authed state
+	// * record it in shared session store
+	// * generate Ivmanto's Access and Refresh Token
+	//
+	// -- in separate GO routine
+	// * Check if the user is registred:
+	// 		- if yes - link/connect both Accounts
+	//		- if no - register the user with the data from IDToken
+	//
+}
+
+func extractAuthIDT(r *http.Request) (at, oidpn string) {
+
+	oidpn = r.Header.Get("X-Token-Type")
+	if oidpn == "" {
+		return at, oidpn
+	}
+
+	auh := strings.Split(r.Header.Get("Authorization"), " ")
+
+	if len(auh) != 2 || auh[0] != "Bearer" || auh[1] == "" {
+		return at, oidpn
+	}
+
+	return auh[1], oidpn
 }

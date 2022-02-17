@@ -190,7 +190,7 @@ footer h3 {
 }
 
 .login.error_1 > header:before {
-  content: 'Invalid username or password!';
+  content: 'Connecting ...';
 }
 
 .login.error_2 > header:before {
@@ -215,6 +215,36 @@ footer h3 {
   color: #1B659D;
   opacity: 0.3;
   font-weight: 400;
+}
+
+/* Logout */
+
+.logout {
+  position: relative;
+  width: 100%;
+  padding: 10px;
+  margin: 14px 0 10px 0;
+  box-sizing: border-box;
+  border-radius: 3px;
+  background: #FAFAFA;
+  overflow: hidden;
+}
+
+.logout > header {
+  position: relative;
+  width: 100%;
+  padding: 10px;
+  margin: -10px -10px 25px -10px;
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.2rem;
+  color: #D1D1D1;
+}
+
+.logout > header h4 {
+  animation: text_opacity 1.5s cubic-bezier(.55, 0, .1, 1);
+  color: rgba(27, 101, 157, 0.8);
+  font-weight: 400;
+  margin: 10px 0 10px 0;
 }
 
 /* Form */

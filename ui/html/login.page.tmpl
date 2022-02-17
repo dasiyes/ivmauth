@@ -29,10 +29,11 @@
             </form>
 
             <div id="g_id_onload"
-                data-client_id="755477323135-ai15g84hp3ht4vn1lutcibpa4es22m49.apps.googleusercontent.com"
+                data-client_id="{{.ClientID}}"
                 data-context="signin"
                 data-ux_mode="popup"
-                data-login_uri="https://ivmanto.dev/oauth/login"
+                data-login_uri="{{.GSigninURI}}"
+                data-nonce="{{.CSRFToken}}"
                 data-auto_prompt="false">
             </div>
 

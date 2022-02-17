@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-kit/log"
+	"github.com/golang-jwt/jwt"
 
 	"github.com/dasiyes/ivmauth/core"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
@@ -110,7 +111,7 @@ func (s *loggingService) ValidateUsersCredentials(email, pass string) (ok bool, 
 			"method", "ValidateUsersCredentials",
 			"took", time.Since(begin),
 			"email", email,
-			"password", pass,
+			"password", "",
 			"valid", ok,
 			"err", err,
 		)
@@ -142,10 +143,12 @@ func (s *loggingService) IssueIvmIDToken(subCode string, cid core.ClientID) *cor
 	return s.next.IssueIvmIDToken(subCode, cid)
 }
 
-func (s *loggingService) ValidateAccessToken(at, oidpn string) (err error) {
+func (s *loggingService) ValidateAccessToken(at, oidpn string) (tkn *jwt.Token, oidtoken *core.IDToken, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
-			"method", "ValidateAT",
+			"***method***", "ValidateAccessToken",
+			"tkn", fmt.Sprintf("%+v", tkn),
+			"oidtoken", fmt.Sprintf("%+v", oidtoken),
 			"openIDPrvName", oidpn,
 			"error", fmt.Sprintf("%v", err),
 			"took", time.Since(begin),

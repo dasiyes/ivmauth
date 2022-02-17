@@ -46,7 +46,7 @@ type Service interface {
 	Validate(rh *http.Header, body *core.AuthRequestBody, pks pksrefreshing.Service, client *core.Client) (*core.AccessToken, error)
 
 	// ValidateAccessToken - will validate the provided Access Token. OpenID Connect IDTokens will bealso supported only from listed /configured OIDC providers.
-	ValidateAccessToken(at, oidpn string) error
+	ValidateAccessToken(at, oidpn string) (tkn *jwt.Token, oidtoken *core.IDToken, err error)
 
 	// AuthenticateClient authenticates the client sending the request for authenitcation of the resource owner.
 	// request Header Authorization: Basic XXX
@@ -439,8 +439,8 @@ func (s *service) IssueAccessToken(oidt *core.IDToken, client *core.Client) (*co
 		oidpn = "ivmanto"
 	}
 
-	clm := newIvmATC(validity, realm, issval, oidt.Sub)
-	rtclm := newIvmATC(0, realm, issval, oidt.Sub)
+	clm := newIvmATC(validity, realm, issval, oidt, client)
+	rtclm := newIvmATC(0, realm, issval, oidt, client)
 
 	switch alg {
 	case "RS256":
@@ -478,16 +478,16 @@ func (s *service) IssueAccessToken(oidt *core.IDToken, client *core.Client) (*co
 // ValidateAccessToken - will validate the provided Access Token. OpenID Connect IDTokens will be also supported only from listed / configured OIDC providers.
 // @at - Access Token. Can be also openID Connect IDToken.
 // @oidpn - openID provider name
-func (s *service) ValidateAccessToken(at, oidpn string) error {
+func (s *service) ValidateAccessToken(at, oidpn string) (tkn *jwt.Token, oidtoken *core.IDToken, err error) {
 
 	// [x] step-1: If the provider is registred
 	if ok, err := s.pkr.OIDPExists(oidpn); !ok && err != nil {
-		return fmt.Errorf("while checking if the oidpn [%s] is a registered provider, raised error: %v", oidpn, err)
+		return nil, nil, fmt.Errorf("while checking if the oidpn [%s] is a registered provider, raised error: %v", oidpn, err)
 	}
 
-	tkn, oidtoken, err := validateIDToken(at, oidpn, s.pkr)
+	tkn, oidtoken, err = validateIDToken(at, oidpn, s.pkr)
 	if err != nil {
-		return fmt.Errorf("[ValidateAccessToken] token: %#v, idtoken: %#v, while validating access token -error: %#v", tkn, oidtoken, err)
+		return nil, nil, fmt.Errorf("[ValidateAccessToken] token: %+v, idtoken: %+v, while validating access token -error: %v", tkn, oidtoken, err)
 	}
 
 	if tkn.Valid {
@@ -496,10 +496,10 @@ func (s *service) ValidateAccessToken(at, oidpn string) error {
 		}
 	} else {
 		// the tkn is NOT valid - return error
-		return fmt.Errorf("invalid access token for provider %s", oidpn)
+		return nil, nil, fmt.Errorf("invalid access token for provider %s", oidpn)
 	}
 
-	return nil
+	return tkn, oidtoken, nil
 }
 
 // TODO [dev]: review and remove becuase the registering User is done in the svc/registering service
@@ -606,6 +606,12 @@ func (s *service) IssueIvmIDToken(subCode string, cid core.ClientID) *core.IDTok
 
 	var iat = time.Now().Unix()
 	var exp = iat + 3600
+	var aun string
+
+	authusr, err := s.users.FindBySubjectCode(subCode)
+	if err == nil {
+		aun = authusr.Name
+	}
 
 	var idt = core.IDToken{
 		// REQUIRED
@@ -615,8 +621,7 @@ func (s *service) IssueIvmIDToken(subCode string, cid core.ClientID) *core.IDTok
 		Exp: exp,
 		Iat: iat,
 		// OPTIONAL
-		Email:         "",
-		EmailVerified: false,
+		Name: aun,
 	}
 
 	return &idt
@@ -703,7 +708,7 @@ func NewService(pkr pksrefreshing.Service,
 
 // newIvmATC generates a new ivmantoATClaims set.
 // @validity in seconds
-func newIvmATC(validity int, realm, issval, subCode string) *core.IvmantoATClaims {
+func newIvmATC(validity int, realm, issval string, oidt *core.IDToken, cln *core.Client) *core.IvmantoATClaims {
 
 	tn := time.Now().Unix()
 	tid := core.GenTID(realm[:3])
@@ -712,12 +717,13 @@ func newIvmATC(validity int, realm, issval, subCode string) *core.IvmantoATClaim
 	// [x]: consider to change the content of the AUD. The meaing should be the receiver of the token should identify itslef withing the value of AUD.
 	return &core.IvmantoATClaims{
 		Iss: issval,
-		Sub: subCode,
-		// [ ] Check if the value of `Aud` must be replaced by clienID?!?
-		Aud: "realm:[" + realm + "]",
-		Exp: tn + int64(validity),
-		Iat: tn,
-		Nbf: tn,
-		Jti: tid,
+		Sub: oidt.Sub,
+		// [x] Check if the value of `Aud` must be replaced by clienID?!?
+		Aud:  string(cln.ClientID),
+		Exp:  tn + int64(validity),
+		Iat:  tn,
+		Nbf:  tn,
+		Jti:  tid,
+		Name: oidt.Name,
 	}
 }

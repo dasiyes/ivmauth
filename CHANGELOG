@@ -1,3 +1,8 @@
+v0.0.21
+        - implementing Google Signin button
+        - GoogleSignin code in UI templates parameterized
+        - Logout UI for cases when try to login again while there is a user logged in already
+
 v0.0.20
         - Access Token validation will now look at Authorization header for AT
         - Review and correct errors for user login and register
