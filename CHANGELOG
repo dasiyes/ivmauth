@@ -1,3 +1,7 @@
+v0.0.22
+        - finalize Google Sign to complete functional feature
+        - 
+        
 v0.0.21
         - implementing Google Signin button
         - GoogleSignin code in UI templates parameterized
