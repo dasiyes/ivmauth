@@ -15,13 +15,14 @@ type AccessToken struct {
 
 // The object with standard JWT claims [RFC7519] for embiding into the Ivamnto's AT
 type IvmantoATClaims struct {
-	Iss string `json:"iss"`
-	Sub string `json:"sub"`
-	Aud string `json:"aud"`
-	Exp int64  `json:"exp"`
-	Nbf int64  `json:"nbf"`
-	Iat int64  `json:"iat"`
-	Jti string `json:"jti"`
+	Iss  string `json:"iss"`
+	Sub  string `json:"sub"`
+	Aud  string `json:"aud"`
+	Exp  int64  `json:"exp"`
+	Nbf  int64  `json:"nbf"`
+	Iat  int64  `json:"iat"`
+	Jti  string `json:"jti"`
+	Name string `json:"name"`
 }
 
 // TODO [dev]: review if this method is required?
