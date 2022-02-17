@@ -190,7 +190,7 @@ footer h3 {
 }
 
 .login.error_1 > header:before {
-  content: 'Invalid username or password!';
+  content: 'Connecting ...';
 }
 
 .login.error_2 > header:before {

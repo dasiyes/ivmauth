@@ -606,6 +606,16 @@ func (s *service) IssueIvmIDToken(subCode string, cid core.ClientID) *core.IDTok
 
 	var iat = time.Now().Unix()
 	var exp = iat + 3600
+	var aun string
+	var ev bool
+
+	authusr, err := s.users.FindBySubjectCode(subCode)
+	if err == nil {
+		aun = authusr.Name
+		if core.EntryStatus(authusr.Status) == 1 {
+			ev = true
+		}
+	}
 
 	var idt = core.IDToken{
 		// REQUIRED
@@ -615,8 +625,8 @@ func (s *service) IssueIvmIDToken(subCode string, cid core.ClientID) *core.IDTok
 		Exp: exp,
 		Iat: iat,
 		// OPTIONAL
-		Email:         "",
-		EmailVerified: false,
+		Name:          aun,
+		EmailVerified: ev,
 	}
 
 	return &idt

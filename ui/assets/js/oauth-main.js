@@ -5,7 +5,6 @@ if (lh.startsWith('localhost')) {
   document.cookie = "c=755477323135-ai15g84hp3ht4vn1lutcibpa4es22m49.apps.googleusercontent.com; secure=true; path=/";
 }
 
-document.ho
 var form = document.getElementById('login');
 var buttonE1 = document.getElementById('e1');
 
