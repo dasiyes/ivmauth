@@ -111,7 +111,7 @@ func (s *loggingService) ValidateUsersCredentials(email, pass string) (ok bool, 
 			"method", "ValidateUsersCredentials",
 			"took", time.Since(begin),
 			"email", email,
-			"password", pass,
+			"password", "",
 			"valid", ok,
 			"err", err,
 		)

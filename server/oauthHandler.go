@@ -601,7 +601,7 @@ func (h *oauthHandler) handleAuthCodeFlow(
 
 	oidt := h.server.Auth.IssueIvmIDToken(rb.SubCode, cid)
 	// [ ] remove after debug
-	fmt.Printf(" *** issued IDToken oidt-Name *** %s", oidt.Name)
+	_ = level.Debug(h.logger).Log("***issued-IDToken-oidt-Name***", oidt.Name)
 
 	at, err := h.server.Auth.IssueAccessToken(oidt, &c)
 	if err != nil {
