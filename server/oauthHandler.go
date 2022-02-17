@@ -600,6 +600,9 @@ func (h *oauthHandler) handleAuthCodeFlow(
 	c := core.Client{ClientID: core.ClientID(rb.ClientID)}
 
 	oidt := h.server.Auth.IssueIvmIDToken(rb.SubCode, cid)
+	// [ ] remove after debug
+	fmt.Printf(" *** issued IDToken oidt-Name *** %s", oidt.Name)
+
 	at, err := h.server.Auth.IssueAccessToken(oidt, &c)
 	if err != nil {
 		h.server.responseUnauth(w, "handleAuthCodeFllow-issue-accessToken", fmt.Errorf("error issue access token: %v", err))
