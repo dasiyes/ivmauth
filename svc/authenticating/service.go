@@ -14,6 +14,7 @@ import (
 	rph "github.com/dasiyes/ivmauth/pkg/rsapemhelps"
 	"github.com/dasiyes/ivmauth/svc/pksrefreshing"
 	"github.com/dasiyes/ivmconfig/src/pkg/config"
+	"github.com/go-kit/log/level"
 	"github.com/golang-jwt/jwt"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -84,6 +85,7 @@ type service struct {
 	clients  core.ClientRepository
 	users    core.UserRepository
 	config   config.IvmCfg
+	lgs      loggingService
 }
 
 // DEPRICATED this method will be replaced by several new methods to handle apiGateway with Session Manager application architecture
@@ -489,6 +491,8 @@ func (s *service) ValidateAccessToken(at, oidpn string) (tkn *jwt.Token, oidtoke
 	if err != nil {
 		return nil, nil, fmt.Errorf("[ValidateAccessToken] token: %+v, idtoken: %+v, while validating access token -error: %v", tkn, oidtoken, err)
 	}
+
+	_ = level.Debug(s.lgs.logger).Log("***", "[ValidateAccessToken]", "tkn", fmt.Sprintf("%+v", tkn), "oidtoken", fmt.Sprintf("%+v", oidtoken))
 
 	if tkn.Valid {
 		if err := oidtoken.Valid(); err != nil {

@@ -149,7 +149,9 @@ func validateIDToken(rawIDToken string, idP string, pks pksrefreshing.Service) (
 		return nil, nil, fmt.Errorf("[validateIDToken] tkn: %#v, on jwt.ParseWithClaims returned error:%v", tkn, errprs)
 	}
 
-	fmt.Printf(" xxx idtoken name %s", oidt.Name)
+	// [ ] to remove printf after the debug
+	fmt.Printf(" xxx idtoken name %s\n", oidt.Name)
+
 	return tkn, &oidt, nil
 }
 
