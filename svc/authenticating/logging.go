@@ -146,7 +146,9 @@ func (s *loggingService) IssueIvmIDToken(subCode string, cid core.ClientID) *cor
 func (s *loggingService) ValidateAccessToken(at, oidpn string) (tkn *jwt.Token, oidtoken *core.IDToken, err error) {
 	defer func(begin time.Time) {
 		_ = s.logger.Log(
-			"method", "ValidateAT",
+			"***method***", "ValidateAccessToken",
+			"tkn", fmt.Sprintf("%+v", tkn),
+			"oidtoken", fmt.Sprintf("%+v", oidtoken),
 			"openIDPrvName", oidpn,
 			"error", fmt.Sprintf("%v", err),
 			"took", time.Since(begin),
