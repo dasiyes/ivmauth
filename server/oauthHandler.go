@@ -765,21 +765,24 @@ func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
 	id_token := r.FormValue("credential")
 
 	// validate ID Token
-	tkn, oidtoken, err := h.server.Auth.ValidateAccessToken(id_token, "google")
+	_, oidtoken, err := h.server.Auth.ValidateAccessToken(id_token, "google")
 	if err != nil {
 		h.server.responseUnauth(w, "gsValidate", fmt.Errorf("failed validation error: %v", err))
 		return
 	}
 
-	fmt.Printf(" === [gsValidate] email: %s, name: %s\n", oidtoken.Email, oidtoken.Name)
-	_ = oidtoken
-	_ = tkn
+	if oidtoken.Email == "" || oidtoken.Name == "" {
+		h.server.responseUnauth(w, "gsValidate", fmt.Errorf("missing mandatory user attributes from the IDToken"))
+		return
+	}
 
 	err = h.server.Sm.SessionAuth(w, r, id_token, "", oidtoken.Email)
 	if err != nil {
 		h.server.responseUnauth(w, "gsValidate", fmt.Errorf("failed session authentication with error: %v", err))
 		return
 	}
+
+	w.Header().Add("Set-Cookie", "ia=1; HTTPOnly; Path=/")
 
 	rf := r.Referer()
 	switch rf {
@@ -799,9 +802,8 @@ func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "https://ivmanto.dev/pg", 303)
 
 	// TODO:
-	// * create IVMANTO session in Authed state
-	// * record it in shared session store
-	// * generate Ivmanto's Access and Refresh Token
+	// [x] create IVMANTO session in Authed state
+	// [x] record it in shared session store
 	//
 	// -- in separate GO routine
 	// * Check if the user is registred:
