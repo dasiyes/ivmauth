@@ -771,8 +771,15 @@ func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	fmt.Printf(" === [gsValidate] email: %s, name: %s\n", oidtoken.Email, oidtoken.Name)
 	_ = oidtoken
 	_ = tkn
+
+	err = h.server.Sm.SessionAuth(w, r, id_token, "", oidtoken.Email)
+	if err != nil {
+		h.server.responseUnauth(w, "gsValidate", fmt.Errorf("failed session authentication with error: %v", err))
+		return
+	}
 
 	rf := r.Referer()
 	switch rf {
@@ -788,7 +795,7 @@ func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
 		// [ ] implement feature
 	}
 
-	fmt.Printf("referrer is: %s", rf)
+	fmt.Printf("referrer is: %s\n", rf)
 	http.Redirect(w, r, "https://ivmanto.dev/pg", 303)
 
 	// TODO:
@@ -803,6 +810,7 @@ func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
 	//
 }
 
+// extractAuthIDT [support func] getting the required header's values for auth
 func extractAuthIDT(r *http.Request) (at, oidpn string) {
 
 	oidpn = r.Header.Get("X-Token-Type")
