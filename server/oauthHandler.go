@@ -79,7 +79,7 @@ func (h *oauthHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
 
 	r.URL.RawQuery, err = url.QueryUnescape(r.URL.RawQuery)
 	if err != nil {
-		fmt.Printf("error unescaping URL query: %q\n", err.Error())
+		_ = level.Error(h.logger).Log("error-unescaping-URL-query", fmt.Sprintf("%v", err))
 	}
 
 	q := r.URL.Query()

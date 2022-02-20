@@ -361,13 +361,13 @@ func validateClientExists(r *http.Request, clients core.ClientRepository) (*core
 func isClientIDValidateCase(r *http.Request) bool {
 	mrp := r.Method + " " + r.URL.Path
 	switch {
+	case strings.HasPrefix(mrp, "POST /oauth/gs/validate"):
+		return true
 	case mrp == "GET /oauth/authorize":
 		return true
 	case mrp == "GET /oauth/userInfo":
 		return true
 	case mrp == "POST /oauth/login":
-		return true
-	case mrp == "POST /oauth/gs/validate":
 		return true
 	case mrp == "POST /oauth/register":
 		return true
