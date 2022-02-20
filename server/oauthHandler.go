@@ -475,8 +475,20 @@ func (h *oauthHandler) userInfo(w http.ResponseWriter, r *http.Request) {
 
 	usr, err := h.server.IvmSSO.Users.FindBySubjectCode(uid.(string))
 	if err != nil {
-		_ = level.Error(h.logger).Log("[userInfo]-error", fmt.Errorf("unable to retrieve the user - error: %v", err))
-		h.server.responseIntServerError(w, "userInfo", fmt.Errorf("unable to retrieve the user"))
+		if err.Error() == "user not found" {
+			err = nil
+			usr, err = h.server.IvmSSO.Users.Find(core.UserID(uid.(string)))
+			if err != nil {
+				_ = level.Error(h.logger).Log("[userInfo]-Find", fmt.Errorf("unable to retrieve the user - error: %v", err))
+				h.server.responseIntServerError(w, "userInfo", fmt.Errorf("unable to retrieve the user"))
+				return
+			}
+
+		} else {
+			_ = level.Error(h.logger).Log("[userInfo]-FindBySubjectCode", fmt.Errorf("unable to retrieve the user - error: %v", err))
+			h.server.responseIntServerError(w, "userInfo", fmt.Errorf("unable to retrieve the user"))
+			return
+		}
 	}
 
 	_ = level.Debug(h.logger).Log("user", fmt.Sprintf("%#v", usr))

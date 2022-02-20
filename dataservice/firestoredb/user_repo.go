@@ -137,6 +137,7 @@ func (ur *userRepository) FindBySubjectCode(sc string) (*core.User, error) {
 	for {
 		doc, err := iter.Next()
 		if err == iterator.Done {
+			// [!] Do not change the error `ErrUserNotFound` - there is logic built on it
 			return nil, ErrUserNotFound
 		}
 		if err != nil {
