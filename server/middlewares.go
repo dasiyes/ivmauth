@@ -64,7 +64,7 @@ func authClients(lg kitlog.Logger, au authenticating.Service) func(next http.Han
 				case core.ErrBadRequest:
 					core.EncodeError(context.TODO(), http.StatusBadRequest, core.ErrClientAuth, w)
 				default:
-					core.EncodeError(context.TODO(), http.StatusUnauthorized, core.ErrClientAuth, w)
+					core.EncodeError(context.TODO(), http.StatusUnauthorized, fmt.Errorf("AuthenticateClient error: %v", err), w)
 				}
 				return
 			}
