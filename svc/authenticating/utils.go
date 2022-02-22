@@ -364,7 +364,7 @@ func validateClientExists(r *http.Request, clients core.ClientRepository) (*core
 // This function will match the cases when clientID must be ONLY validated but not authenticated.
 func isClientIDValidateCase(r *http.Request) bool {
 	mrp := r.Method + " " + r.URL.Path
-	fmt.Printf("[isClientIDValidateCase]-mrp: %s", mrp)
+	fmt.Printf("[isClientIDValidateCase]-mrp:`%s`\n", mrp)
 
 	switch {
 	case strings.HasPrefix(mrp, "POST /oauth/gs/validate"):
