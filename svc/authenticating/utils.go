@@ -341,7 +341,11 @@ func validateClientExists(r *http.Request, clients core.ClientRepository) (*core
 		if err != nil {
 			return nil, fmt.Errorf("while getting clientID: %v from cookie error raised: %v", cID, err)
 		}
+	case "POST /oauth/gs/validate":
+		cID = "---"
+		// [ ] get the clientID from ...
 	default:
+		fmt.Printf("[validateClientExists]-default-mrp: %s", mrp)
 		cID = ""
 	}
 
@@ -360,6 +364,8 @@ func validateClientExists(r *http.Request, clients core.ClientRepository) (*core
 // This function will match the cases when clientID must be ONLY validated but not authenticated.
 func isClientIDValidateCase(r *http.Request) bool {
 	mrp := r.Method + " " + r.URL.Path
+	fmt.Printf("[isClientIDValidateCase]-mrp: %s", mrp)
+
 	switch {
 	case strings.HasPrefix(mrp, "POST /oauth/gs/validate"):
 		return true
