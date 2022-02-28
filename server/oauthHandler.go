@@ -827,7 +827,7 @@ func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
 // oneTapValidate is func to validate the calls from GS one tap window
 func (h *oauthHandler) oneTapValidate(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Printf("... request from one tap")
+	fmt.Printf("... request from one tap: %+v", r)
 	w.WriteHeader(200)
 }
 
