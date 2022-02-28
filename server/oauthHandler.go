@@ -51,7 +51,7 @@ func (h *oauthHandler) router() chi.Router {
 		})
 		r.Route("/gs", func(r chi.Router) {
 			r.Post("/validate", h.gsValidate)
-			r.Post("/onetap", h.oneTapValidate)
+			r.Post("/onetap", h.gsValidate)
 		})
 	})
 
@@ -825,11 +825,11 @@ func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
 }
 
 // oneTapValidate is func to validate the calls from GS one tap window
-func (h *oauthHandler) oneTapValidate(w http.ResponseWriter, r *http.Request) {
+// func (h *oauthHandler) oneTapValidate(w http.ResponseWriter, r *http.Request) {
 
-	fmt.Printf("... request from one tap: %+v", r)
-	w.WriteHeader(200)
-}
+// 	fmt.Printf("... request from one tap: %+v", r)
+// 	w.WriteHeader(200)
+// }
 
 // extractAuthIDT [support func] getting the required header's values for auth
 func extractAuthIDT(r *http.Request) (at, oidpn string) {
