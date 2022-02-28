@@ -51,6 +51,7 @@ func (h *oauthHandler) router() chi.Router {
 		})
 		r.Route("/gs", func(r chi.Router) {
 			r.Post("/validate", h.gsValidate)
+			r.Post("/onetap", h.oneTapValidate)
 		})
 	})
 
@@ -71,8 +72,7 @@ func (h *oauthHandler) processAuthCode(w http.ResponseWriter, r *http.Request) {
 	//&redirect_uri=https://www.oauth.com/playground/authorization-code-with-pkce.html
 	//&scope=photo+offline_access
 	//&state=ZwUAXBT9cf0btwOR
-	//&code_challenge=U4wChzuCcE215Yha-Qc7ZoBc4u1rkeFHJCoQUUPcD0E
-	//&code_challenge_method=S256
+	//&code_challenge=U4wChzuCcE215Yha-Qc7ZoBc4u1rkeFHJCoQUUPcD0E //&code_challenge_method=S256
 
 	var err error
 	_ = level.Debug(h.logger).Log("requestURI", r.RequestURI)
@@ -822,6 +822,13 @@ func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
 	// 		- if yes - link/connect both Accounts
 	//		- if no - register the user with the data from IDToken
 	//
+}
+
+// oneTapValidate is func to validate the calls from GS one tap window
+func (h *oauthHandler) oneTapValidate(w http.ResponseWriter, r *http.Request) {
+
+	fmt.Printf("... request from one tap")
+	w.WriteHeader(200)
 }
 
 // extractAuthIDT [support func] getting the required header's values for auth
