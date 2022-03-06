@@ -805,7 +805,14 @@ func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
 	case "https://ivmanto.dev/oauth/ui/login":
 		// [ ] implement feature
 	case "https://ivmanto.dev/oauth/ui/register":
-		// [ ] implement feature
+		// [x] create a new user profile
+
+		var subCode = core.NewSubCode()
+		err = h.server.Rgs.RegisterUser(oidtoken.Name, oidtoken.Email, "", "google", "Done", subCode)
+		if err != nil {
+			_ = level.Error(h.logger).Log("method", "gsValidate", "RegisterUser-error", fmt.Sprintf("%v", err))
+		}
+
 	default:
 		// [ ] implement feature
 	}
@@ -820,16 +827,9 @@ func (h *oauthHandler) gsValidate(w http.ResponseWriter, r *http.Request) {
 	// -- in separate GO routine
 	// * Check if the user is registred:
 	// 		- if yes - link/connect both Accounts
-	//		- if no - register the user with the data from IDToken
+	//		- [x] if no - register the user with the data from IDToken
 	//
 }
-
-// oneTapValidate is func to validate the calls from GS one tap window
-// func (h *oauthHandler) oneTapValidate(w http.ResponseWriter, r *http.Request) {
-
-// 	fmt.Printf("... request from one tap: %+v", r)
-// 	w.WriteHeader(200)
-// }
 
 // extractAuthIDT [support func] getting the required header's values for auth
 func extractAuthIDT(r *http.Request) (at, oidpn string) {

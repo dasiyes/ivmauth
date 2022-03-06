@@ -23,7 +23,7 @@ type User struct {
 	OIDCProvider string
 	SubCode      SubCode `json:"-"`
 	RefreshToken string  `json:"-"`
-	// InitState is the attribute to use as verification attribute when the user activate its account. Effectively the value of the session id when registering the new user.
+	// InitState is the attribute to use as verification attribute when the user activate its account. Effectively the value of the session id when registering the new user and value `Done` when the user has been activated or is signed up by third party OpenID provider.
 	InitState string `json:"-"`
 	Created   int64
 }
