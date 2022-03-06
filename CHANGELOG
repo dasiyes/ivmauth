@@ -1,6 +1,6 @@
 v0.0.22
         - finalize Google Sign to complete functional feature
-        - 
+        - register users from referel endpoint /oauth/ui/register for Google Signup.
         
 v0.0.21
         - implementing Google Signin button
