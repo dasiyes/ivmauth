@@ -25,13 +25,17 @@ type service struct {
 func (s *service) RegisterUser(names, email, password, provider, state string, subCode core.SubCode) error {
 
 	var mpl = 8
+	var psw []byte
+	var errgp error
 
-	if !tools.PswCheck(password, mpl) {
-		return fmt.Errorf("the suplied password did not pass the checks")
-	}
-	var psw, errgp = bcrypt.GenerateFromPassword([]byte(password), 12)
-	if errgp != nil {
-		return fmt.Errorf("error while bcrypting the password: %#v", errgp)
+	if provider == "ivmanto" {
+		if !tools.PswCheck(password, mpl) {
+			return fmt.Errorf("the suplied password did not pass the checks")
+		}
+		psw, errgp = bcrypt.GenerateFromPassword([]byte(password), 12)
+		if errgp != nil {
+			return fmt.Errorf("error while bcrypting the password: %#v", errgp)
+		}
 	}
 
 	u := &core.User{
