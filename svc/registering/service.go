@@ -12,8 +12,11 @@ import (
 type Service interface {
 	// RegisterUser will be registering a new user in the ivmauth oauth2 server
 	RegisterUser(names, email, password, provider, state string, subCode core.SubCode) error
+
 	// ActivateUser will activate newly registered users
 	ActivateUser(userId, subcode, state string) error
+
+	//
 }
 
 type service struct {
