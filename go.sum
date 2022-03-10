@@ -118,15 +118,11 @@ github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ3
 github.com/dasiyes/ivmapi v0.0.19-t26-stage h1:PhYL40taMrHbTCDk0oAuvBuX7Itib24an0qY6E/PQjo=
 github.com/dasiyes/ivmapi v0.0.19-t26-stage/go.mod h1:8OyQHGcjffSwXJffJ1kRF0OmC62Gfc6dgH/rCPNBOBY=
 github.com/dasiyes/ivmconfig v0.0.0-20211215150735-0f6785e919b7/go.mod h1:jHNMnECM5MQxJ5HfQi8koogAPbaqgXJhvVuYHiPsS6w=
-github.com/dasiyes/ivmconfig v0.0.0-20220212211434-db36204f185c h1:OtRrCDCEnfsA6Qfu0h9xNbgeVqFPai4TcaqoQRhxpIg=
-github.com/dasiyes/ivmconfig v0.0.0-20220212211434-db36204f185c/go.mod h1:jHNMnECM5MQxJ5HfQi8koogAPbaqgXJhvVuYHiPsS6w=
-github.com/dasiyes/ivmconfig v0.0.0-20220213163700-26dca3c6fef5 h1:XvLBLPeDSvMwmGC2A0SbHuldKilCvJYOu6n4fqyFpEQ=
-github.com/dasiyes/ivmconfig v0.0.0-20220213163700-26dca3c6fef5/go.mod h1:jHNMnECM5MQxJ5HfQi8koogAPbaqgXJhvVuYHiPsS6w=
 github.com/dasiyes/ivmconfig v0.0.0-20220309073147-c8086cdc9f41 h1:ubPtvqLKrBkNpgHdsmkfDrgrW8XEl0oXGZHzq5+qyE4=
 github.com/dasiyes/ivmconfig v0.0.0-20220309073147-c8086cdc9f41/go.mod h1:jHNMnECM5MQxJ5HfQi8koogAPbaqgXJhvVuYHiPsS6w=
 github.com/dasiyes/ivmsesman v0.4.9-dev12/go.mod h1:axJdmwau158jAsdb2ewP8LSfFbMgfDLNZ/KW+vwRYpo=
-github.com/dasiyes/ivmsesman v0.4.9-dev21 h1:RyqhWdUv4HKTYBlXQp7ZPzfqyAO4Yt+bqtjBVtvbFw8=
-github.com/dasiyes/ivmsesman v0.4.9-dev21/go.mod h1:axJdmwau158jAsdb2ewP8LSfFbMgfDLNZ/KW+vwRYpo=
+github.com/dasiyes/ivmsesman v0.4.9 h1:w96seJ+ExmxKQl+HrYwaCC/y8LBEJ+EAP3B7wtnTrkA=
+github.com/dasiyes/ivmsesman v0.4.9/go.mod h1:axJdmwau158jAsdb2ewP8LSfFbMgfDLNZ/KW+vwRYpo=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=

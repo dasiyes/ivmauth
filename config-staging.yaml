@@ -20,6 +20,7 @@ sesman_config:
   max_lifetime: 3600
   visit_cookie_name: "iv"
   project_id: ${FIRESTORE_PROJECT_ID}
+  blc_interval: 9000
 
 # email configuration 
 email_cfg:
