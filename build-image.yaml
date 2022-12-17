@@ -7,7 +7,7 @@ steps:
 
 # Push the container image to Container Registry
 - id: 'Upload the image'
-- name: 'gcr.io/cloud-builders/docker'
+  name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'eu.gcr.io/cloudrun/container/ivmauth']
 
 images:
