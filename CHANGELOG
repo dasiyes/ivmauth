@@ -1,3 +1,6 @@
+v0.0.3.dev01
+                - Implementing cloud build for building docker image only - no deployment.
+                
 v0.0.3
         - Breaking changes for star using this repository as image builder only. The CiCD will be done by ivmanto-iaac repository.
                 
