@@ -12,3 +12,7 @@ steps:
 
 images:
 - eu.gcr.io/cloudrun/container/ivmauth
+
+options:
+  pool:
+    name: 'projects/${_GAR_PROJECT_ID}/locations/REGION/workerPools/${_PRIVATE_POOL}'
