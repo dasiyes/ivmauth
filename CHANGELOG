@@ -1,3 +1,6 @@
+v0.0.3
+        - Breaking changes for star using this repository as image builder only. The CiCD will be done by ivmanto-iaac repository.
+                
 v0.0.22
         - finalize Google Sign to complete functional feature
         - register users from referel endpoint /oauth/ui/register for Google Signup.
