@@ -15,4 +15,4 @@ images:
 
 options:
   pool:
-    name: 'projects/${_GAR_PROJECT_ID}/locations/REGION/workerPools/${_PRIVATE_POOL}'
+    name: '${_PRIVATE_POOL_NAME}'
