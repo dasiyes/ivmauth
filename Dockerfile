@@ -18,7 +18,7 @@ WORKDIR /ivmauth
 COPY go.* ./
 
 # source: https://medium.com/swlh/go-modules-with-private-git-repository-3940b6835727
-RUN git config --global url."https://$USERNAME:$GITHUB_TOKEN@github.com/dasiyes/".insteadOf "https://github.com/dasiyes/"
+RUN git config --global url."https://$GITHUB_USERNAME:$GITHUB_TOKEN@github.com/dasiyes/".insteadOf "https://github.com/dasiyes/"
 
 RUN env GIT_TERMINAL_PROMPT=1 go mod download
 
