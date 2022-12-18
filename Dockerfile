@@ -4,10 +4,10 @@
 # FROM golang:1.15-buster as builder
 
 # My attempt to get eu.gcr.io image
-FROM golang:1.17-buster AS build
+FROM golang:1.19-buster AS build
 
 ARG GITHUB_TOKEN
-ARG USERNAME
+ARG GITHUB_USERNAME
 
 # Create and change to the app directory.
 WORKDIR /ivmauth
@@ -17,10 +17,15 @@ WORKDIR /ivmauth
 # Expecting to copy go.mod and if present go.sum.
 COPY go.* ./
 
+# Create a .netrc file to allow git to clone private repos
+#RUN echo "machine github.com login " . $GITHUB_USERNAME . " password " . $GITHUB_TOKEN > ~/.netrc
+#RUN echo $GITHUB_USERNAME
+
 # source: https://medium.com/swlh/go-modules-with-private-git-repository-3940b6835727
-RUN git config --global url."https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/dasiyes/".insteadOf "https://github.com/dasiyes/"
+RUN git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
 
 RUN env GIT_TERMINAL_PROMPT=1 go mod download
+#RUN go mod download 
 
 # Copy local code to the container image.
 COPY . ./
