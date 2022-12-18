@@ -11,7 +11,7 @@ steps:
   args: ['push', 'eu.gcr.io/${_PROJECT_ID}/container/ivmauth']
 
 images:
-- eu.gcr.io/cloudrun/container/ivmauth
+- eu.gcr.io/${_PROJECT_ID}/container/ivmauth
 
 options:
   pool:
