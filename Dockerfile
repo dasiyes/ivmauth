@@ -18,14 +18,13 @@ WORKDIR /ivmauth
 COPY go.* ./
 
 # Create a .netrc file to allow git to clone private repos
-#RUN echo "machine github.com login " . $GITHUB_USERNAME . " password " . $GITHUB_TOKEN > ~/.netrc
-#RUN echo $GITHUB_USERNAME
+# RUN echo "machine github.com login " . $GITHUB_USERNAME . " password " . $GITHUB_TOKEN . " " > ~/.netrc
+# RUN cat ~/.netrc
 
 # source: https://medium.com/swlh/go-modules-with-private-git-repository-3940b6835727
 RUN git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
 
 RUN env GIT_TERMINAL_PROMPT=1 go mod download
-#RUN go mod download 
 
 # Copy local code to the container image.
 COPY . ./
