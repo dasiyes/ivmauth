@@ -2,6 +2,7 @@
 # This is based on Debian and sets the GOPATH to /go.
 # https://hub.docker.com/_/golang
 # FROM golang:1.15-buster as builder
+# ---
 
 # My attempt to get eu.gcr.io image
 FROM golang:1.19-buster AS build
