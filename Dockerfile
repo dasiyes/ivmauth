@@ -2,9 +2,10 @@
 # This is based on Debian and sets the GOPATH to /go.
 # https://hub.docker.com/_/golang
 # FROM golang:1.15-buster as builder
+# ---___
 
 # My attempt to get eu.gcr.io image
-FROM golang:1.19-buster AS build
+FROM golang:1.20-buster AS build
 
 ARG GITHUB_TOKEN
 ARG GITHUB_USERNAME
@@ -22,7 +23,7 @@ COPY go.* ./
 # RUN cat ~/.netrc
 
 # source: https://medium.com/swlh/go-modules-with-private-git-repository-3940b6835727
-RUN git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+RUN git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadof "https://github.com/"
 
 RUN env GIT_TERMINAL_PROMPT=1 go mod download
 
