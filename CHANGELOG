@@ -1,5 +1,9 @@
+v0.0.4.dev01
+        - Security patch for package golang.org/x/net - version with the patch: v0.7.0
+        - Added docs folder to the project
+        
 v0.0.3.dev01
-                - Implementing cloud build for building docker image only - no deployment.
+        - Implementing cloud build for building docker image only - no deployment.
                 
 v0.0.3
         - Breaking changes for star using this repository as image builder only. The CiCD will be done by ivmanto-iaac repository.
