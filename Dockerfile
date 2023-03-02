@@ -31,14 +31,16 @@ RUN env GIT_TERMINAL_PROMPT=1 go mod download
 COPY . ./
 
 # Build the binary.
-RUN go build -o cmd/ivmauth/ivmauth -v -mod=readonly ivmauth.go 
+# Add the below key to GO build command to fix the issue with `file not found ` error ON ALPINE IMAGE
+# --ldflags '-linkmode external -extldflags "-static"'
+RUN go build --ldflags '-linkmode external -extldflags "-static"' -o cmd/ivmauth/ivmauth -v -mod=readonly ivmauth.go 
 
 # Use the alpine image for a lean production container.
-FROM alpine:3.13 AS base
+FROM alpine:3.17 AS base
 RUN mkdir /lib64 && ln -s /lib/libc.musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
 RUN apk --no-cache add ca-certificates
 
-WORKDIR /root/
+WORKDIR /ivmauth
 
 # Copy the binary to the production image from the builder stage.
 COPY --from=build /ivmauth/cmd/ivmauth/ivmauth .
@@ -46,6 +48,8 @@ COPY --from=build /ivmauth/config-staging.yaml .
 COPY --from=build /ivmauth/version .
 COPY --from=build /ivmauth/ui ./ui
 COPY --from=build /ivmauth/favicon.ico .
+
+ENV PATH="${PATH}:/ivmauth"
 
 # Run the web service on container startup.
 CMD ["./ivmauth", "--env=staging"]

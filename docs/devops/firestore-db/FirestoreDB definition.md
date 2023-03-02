@@ -11,8 +11,8 @@ The following collections will be created when a new record is added to the DB:
     
 # Service Account roles (permissions)
 
-* Firestore Service Agent
+* Firestore Service Agent [`roles/firestore.serviceAgent`]
   *Gives Firestore service account access to managed resources.*
 
-* Cloud Datastore User
+* Cloud Datastore User [`roles/datastore.user`]
   *Provides read/write access to data in a Cloud Datastore database. Intended for application developers and service accounts.*
