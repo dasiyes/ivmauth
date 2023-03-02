@@ -11,7 +11,8 @@ auth_svc:
 
 # cloud environment config
 cloud_env:
-  project_id: 'ivmauth'
+  # project_id: "ivm-bu1-d-sample-base-7fvc"
+  project_id: ${FIRESTORE_PROJECT_ID}
   path_gsignin_login: "/oauth/gs/validate"
 
 # session man config
